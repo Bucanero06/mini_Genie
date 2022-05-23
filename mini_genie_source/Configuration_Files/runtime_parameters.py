@@ -14,7 +14,7 @@ Run_Time_Settings = dict(
             # 'USDCHF',  # momentary
         ],  # momentary
         #
-        delocalize_data=False,
+        delocalize_data=True,
         drop_nan=False,
         ffill=False,
         fill_dates=False,
@@ -24,11 +24,16 @@ Run_Time_Settings = dict(
 
     Optimization_Settings=dict(
         study_name='test_name',
+        optimization_period=dict(
+            start_date=datetime.datetime(month=8, day=1, year=2021),
+            end_date=datetime.datetime(month=1, day=1, year=2022)
+        ),
         timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # fixme: logic missing
         Continue=False,
+
         Initial_Search=dict(
             # max_initial_combinations=1_000_000,
-            max_initial_combinations=100000,
+            max_initial_combinations=141125,
             initial_batch_size=2,
             force_to_finish=True,  # fixme: logic missing
             #
@@ -36,6 +41,7 @@ Run_Time_Settings = dict(
                 timeframes='all',  # fixme: needs to add settings for how to reduce, these dont do anything
                 windows='grid',  # fixme: needs to add settings for how to reduce, these dont do anything
                 tp_sl=dict(
+                    bar_atr_period=datetime.timedelta(days=60, hours=0, minutes=0, seconds=0),
                     n_ratios=[0.5, 1, 1.5, 2, 2.5],
                     lambda_ratios=[1, 1.2, 1.5, 1.75, 2, 2.5, 3],
                     number_of_bar_trends=1,
@@ -46,16 +52,18 @@ Run_Time_Settings = dict(
         ),
 
         Loss_Function=dict(
-            metrics=['Trial', 'Objective', 'Risk/Reward Ratio', 'Risk Adjusted Return',
-                     'Total Trades',
-                     'Win Rate [%]',
-                     'Profit Factor',
-                     'Sortino Ratio',
-                     'Omega Ratio',
-                     'Total Return [%]',
-                     # 'Max Drawdown [%]',
-                     # 'Max Gross Exposure [%]'
-                     ],
+            metrics=[
+                'Risk/Reward Ratio',
+                'Risk Adjusted Return',
+                'Total Trades',
+                'Win Rate [%]',
+                'Profit Factor',
+                'Sortino Ratio',
+                'Omega Ratio',
+                'Total Return [%]',
+                'Max Drawdown [%]',
+                # 'Max Gross Exposure [%]'
+            ],
             loss_settings=dict(
                 total_profit=dict(
                     total_profit_weight=1,

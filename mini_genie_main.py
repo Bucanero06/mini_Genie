@@ -1,6 +1,8 @@
+import os.path
+
 import numpy as np
-# import ray
 import vectorbtpro as vbt
+# import ray
 from logger_tt import logger
 from logger_tt import setup_logging
 
@@ -28,6 +30,7 @@ class mini_genie_trader:
         # Init Ray
         # ray.init(num_cpus=24)
 
+        self.status = '__init__'
         import flatdict
         self.runtime_settings = flatdict.FlatDict(runtime_kwargs, delimiter='.')
 
@@ -49,6 +52,9 @@ class mini_genie_trader:
                 number_of_outputs += 1
         self.number_of_outputs = number_of_outputs
         #
+        self.optimization_start_date = self.runtime_settings['Optimization_Settings.optimization_period.start_date']
+        self.optimization_end_date = self.runtime_settings['Optimization_Settings.optimization_period.end_date']
+        #
         # Miscellaneous
         from datetime import datetime
         self.stop_sim_time = self.runtime_settings['Optimization_Settings.timer_limit'] + datetime.now()
@@ -63,14 +69,16 @@ class mini_genie_trader:
             'type'].lower() in self.ACCEPTED_TF_TYPES)
         self.tp_sl_keynames = tuple(key_name for key_name in self.key_names if self.parameter_windows[key_name][
             'type'].lower() in self.ACCEPTED_TP_SL_TYPES)
-
+        #
+        self.tp_sl_selection_space = self.runtime_settings[
+            "Optimization_Settings.Initial_Search.paramter_selection.tp_sl"]
         # Initial Actions
         #
         # Prepare directories and save file paths
         self._preparedirectoriesforstudy()
         #
-        if self.runtime_settings["Optimization_Settings.Continue"]:
-            self._load_precomputed_params()
+        # Load precomputed params, values, and stats if continuing study
+        self._load_precomputed_params()
 
     def print_dict(self, optional_object=None):
         import pprint
@@ -88,6 +96,7 @@ class mini_genie_trader:
         logger.debug('''Create Folders if needed''')
         studies_directory = 'Studies'
         study_dir_path = f'{studies_directory}/Study_{self.study_name}'
+        saved_runs_path = f'{study_dir_path}/saved_parameter_history'
         portfolio_dir_path = f'{study_dir_path}/Portfolio'
         reports_dir_path = f'{study_dir_path}/Reports'
         data_dir_path = f'Datas'
@@ -100,12 +109,12 @@ class mini_genie_trader:
         CreateDir(f'Strategies')
 
         self.study_path = study_dir_path
+        self.saved_runs_path = saved_runs_path
         self.portfolio_path = portfolio_dir_path
         self.reports_path = reports_dir_path
         self.data_path = data_dir_path
 
     def _load_precomputed_params(self):
-
         """
         If continuing a previously started study, then we can assume we have computed some parameters already.
         The parameter combinations, trial_number, values and stats should have been saved to a file.
@@ -113,27 +122,55 @@ class mini_genie_trader:
         trial params, and trial objective value. Place this object in ray to be referred back to already
         computed params and values.
         """
-        # TODO:
-        #   code _load_precomputed_params
-        ...
+        import pandas as pd
+        def _write_header_df(path, cols_names, compression='gzip'):
+            header_df = pd.DataFrame(columns=cols_names)
+            header_df.to_parquet(path, compression=compression)
+            return header_df
 
+        #
+        header_df = pd.DataFrame()
+        saved_parameter_history = pd.DataFrame()
+        #
+        column_names = list(self.key_names) + self.runtime_settings['Optimization_Settings.Loss_Function.metrics']
+        #
+        # If does not exist, create file, write file head, and save path to paths place to ray
+        if not os.path.exists(f'{self.saved_runs_path}.gzip'):
+            header_df = _write_header_df(f'{self.saved_runs_path}.gzip', column_names)
+        #
+        # else, load file and place to ray
+        elif not self.runtime_settings["Optimization_Settings.Continue"]:
+            os.remove(f'{self.saved_runs_path}.gzip')
+            header_df = _write_header_df(f'{self.saved_runs_path}.gzip', column_names)
+        else:
+            saved_parameter_history = pd.read_parquet(f'{self.saved_runs_path}.gzip')
+
+        # fixme: self.previously_computed_parameters_df = ray.put(previously_computed_parameters_df if not header_df else header_df)
+        self.saved_parameter_history = saved_parameter_history if header_df.empty else header_df
+
+    # todo
     def _save_newly_computed_params(self):
         """Add to previously created file (or new if it does not exist), in a memory conscious way, the trial number,
         parameter combination, values, and combination stats"""
         # TODO:
         #   code _save_newly_computed_params
+        #   Im assuming that it will be similar to  _load_precomputed_params except now we are adding the newly computed
+        #   parameters to the saved parameters and saving them as gzip (expected to get very large)
         ...
 
+    # todo
     def _grade_parameter_combinations(self):
         """Use a loss function to give a value to each parameter combination,..."""
         # TODO:
         #   code _grade_parameter_combinations
         # TODO:
-        #   How should we grade them? F now i think we get stats for as many parameter combinations
+        #   How should we grade them? For now I think we get stats for as many parameter combinations
         #       as possible, then we can group strategies to determine the most stable regions, neighbors
         #       etc ...
 
     def fetch_and_prepare_input_data(self):
+        self.status = 'fetch_and_prepare_input_data'
+
         from mini_genie_source.Data_Handler.data_handler import Data_Handler
         data_processing = Data_Handler(self).fetch_data()  # Load symbols_data (attr)
         data_processing.break_up_olhc_data_from_symbols_data()  # splits ^ into open, low, high, close, *alt (attrs)
@@ -166,19 +203,13 @@ class mini_genie_trader:
                     [dict[f'{key_name}_length'] for key_name in _keynames if
                      self.parameter_windows[key_name]['type'].lower() in self.ACCEPTED_WINDOW_TYPES])
 
-            # TODO:
-
-            #   if n_initial_combinations > max_initial_combinations:
-            #       reduce calc...
-            #       define n_initial_combinations
-
-            #
+            # if n_initial_combinations > max_initial_combinations: reduce initial search space
             if lengths_dict["n_initial_combinations"] > max_initial_combinations:
                 # First try the reduced TP and SL space
-                tp_sl_selection_space = self.runtime_settings[
-                    "Optimization_Settings.Initial_Search.paramter_selection.tp_sl"]
-                lengths_dict['tp_sl_length'] = len(tp_sl_selection_space["n_ratios"]) * len(
-                    tp_sl_selection_space["lambda_ratios"]) * tp_sl_selection_space["number_of_bar_trends"] * len(
+
+                lengths_dict['tp_sl_length'] = len(self.tp_sl_selection_space["n_ratios"]) * len(
+                    self.tp_sl_selection_space["lambda_ratios"]) * self.tp_sl_selection_space[
+                                                   "number_of_bar_trends"] * len(
                     lengths_dict["all_tf_in_this_study"])
                 #
                 lengths_dict["n_initial_combinations"] = _compute_n_initial_combinations_carefully(lengths_dict)
@@ -221,7 +252,7 @@ class mini_genie_trader:
                     max_windows_product=temp_lengths_dict[f'max_windows_product'],
                     windows_product=1,
                     n_windows_to_be_reduced=0,
-                    window_keynames_to_be_reduced=temp_lengths_dict["window_keynames_to_be_reduced"],
+                    window_keynames_to_be_reduced=[],
                     window_keynames_above_1=temp_lengths_dict["window_keynames_to_be_reduced"],
                 )
                 while not we_are_good:
@@ -256,8 +287,6 @@ class mini_genie_trader:
                         #
                     else:
                         max_initial_combinations = max_initial_combinations + (max_initial_combinations * 0.01)
-                        logger.debug(
-                            f"Too low of max_initial_combinations, increasing to {int(max_initial_combinations)} ")
                         we_are_good = False
                         #
                         temp_lengths_dict["big_r_scaling_factor"] = lengths_dict[
@@ -349,17 +378,13 @@ class mini_genie_trader:
                     self.parameter_windows[key_name]["min_step"])
 
             elif self.parameter_windows[key_name]["type"].lower() in self.ACCEPTED_TP_SL_TYPES:
-                ...
-                # todo: do the stuff for tp and sl
-
-                # fixme: do the stuff for length
-                #   number_of_bar_trends = len([\bar{upwards}, \bar{downwards}, \bar{sideways}] = 3 or \bar{trends})
-                #   number_of_n =
-                #   n = len()
-                #   e.g.
-                #   number_of_gamma = len()
-                #   gamma = len()
-
+                if isinstance(self.parameter_windows[key_name]['lower_bound'], int) and isinstance(
+                        self.parameter_windows[key_name]['upper_bound'], int):
+                    initial_parameters_record_dtype.append((key_name, 'i8'))
+                elif isinstance(self.parameter_windows[key_name]['lower_bound'], float) or isinstance(
+                        self.parameter_windows[key_name]['upper_bound'], float):
+                    initial_parameters_record_dtype.append((key_name, 'f8'))
+                #
                 parameters_lengths_dict[f'{key_name}_length'] = _total_possible_values_in_window(
                     self.parameter_windows[key_name]["lower_bound"], self.parameter_windows[key_name]["upper_bound"],
                     self.parameter_windows[key_name]["min_step"])
@@ -381,22 +406,64 @@ class mini_genie_trader:
         self.parameters_lengths_dict = _reduce_initial_parameter_space(parameters_lengths_dict, self.runtime_settings[
             "Optimization_Settings.Initial_Search.max_initial_combinations"])
 
-        logger.warning(
-            f'I know max_initial_combinations was set to '
-            f'{self.runtime_settings["Optimization_Settings.Initial_Search.max_initial_combinations"]} '
-            f'but, I needed at least {self.parameters_lengths_dict["n_initial_combinations"]} initial combinations')
+        if self.parameters_lengths_dict["n_initial_combinations"] > self.runtime_settings[
+            "Optimization_Settings.Initial_Search.max_initial_combinations"]:
+            logger.warning(
+                f'I know max_initial_combinations was set to '
+                f'{self.runtime_settings["Optimization_Settings.Initial_Search.max_initial_combinations"]} '
+                f'but, I needed at least {self.parameters_lengths_dict["n_initial_combinations"]} initial combinations'
+                f"\N{smiling face with smiling eyes}"
+            )
 
         self.parameter_data_dtype = np.dtype(initial_parameters_record_dtype)
         self.initial_parameters_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
                                                   dtype=self.parameter_data_dtype)
 
+    def _compute_params_product_and_populate_record(self, params):
+        from itertools import product
+        initial_param_combinations = list(set(product(*[params[key_names] for key_names in self.key_names])))
+
+        for i in range(len(initial_param_combinations)):
+            self.initial_parameters_record[i] = initial_param_combinations[i]
+
+    def _compute_bar_atr(self):
+        """
+        Todo:
+         For TP and SL use the avg ATR for the 3 months prior to the optimization date window for every
+                       timeframe (when possible do this separately for upwards, downwards and sideways, then use
+                       these values separately during the strategy or average them for a single value) then:
+                           1.  Using \bar{ATR}(TF), define multiple TP_0 and SL_0 for and scale with n ratios [ 0.5, 1, 1.5, 2, 2.5]
+                           2.  Use (TP/SL) \gamma ratios like [ 1, 1.2, 1.5, 1.75, 2, 2.5, 3]
+                               (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=1.5, -> R=\bar{ATR}(TF='1h')/n=500
+                                   ==> TP=750 & SL=-500)
+                               (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=1.0, -> R=\bar{ATR}(TF='1h')/n=500
+                                   ==> TP=500 & SL=-500)
+                               (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=0.5, -> R=\bar{ATR}(TF='1h')/n=500
+                                   ==> TP=500 & SL=-750)
+
+        """
+
+        #
+        exit()
+        # Need to save the base tp and sl
+        blank_filler = 0
+        avg_atr = {}
+        for key_name in self.timeframe_keynames:
+            avg_atr[key_name] = dict(
+                upwards=blank_filler,
+                downwards=blank_filler
+            )
+
+        self.avg_atr = 1
+
+    # todo
     def suggest_initial_parameters(self):
         """
-        TODO:
           List of Initial Params:
                Product of:
                    All Categorical Params
                    Use a grid-like approach to windows for indicators
+                TODO:
                    For TP and SL use the avg ATR for the 3 months prior to the optimization date window for every
                        timeframe (when possible do this separately for upwards, downwards and sideways, then use
                        these values separately during the strategy or average them for a single value) then:
@@ -413,20 +480,78 @@ class mini_genie_trader:
         """
 
         # Get the lens and sizes of each parameter to determine number of combinations and create a numpy record
-        self._initiate_parameters_records(add_ids=True)
+        self._initiate_parameters_records(add_ids=False)
 
+        # logger.info(self.initial_parameters_record)
+        # logger.info(self.parameters_lengths_dict)
+        # logger.info(f'\n\n')
         # Fill initial parameter space
+        #
+        timeframe_params = {}
+        window_params = {}
+        tp_sl_params = {}
+        #
+        if not self.runtime_settings["Optimization_Settings.Continue"]:
+            # Timeframe type parameters
+            for key_name in self.timeframe_keynames:
+                '''All Categorical Params'''
+                number_of_suggestions = self.parameters_lengths_dict[f'{key_name}_length']
+                #
+                values = self.parameter_windows[key_name]["choices"]
+                assert number_of_suggestions == len(values)
+                #
+                timeframe_params[key_name] = values
 
-        # Timeframe type parameters
+            # Window type parameters
+            for key_name in self.window_key_names:
+                '''Use a grid-like approach to windows for indicators'''
+                number_of_suggestions = self.parameters_lengths_dict[f'{key_name}_length']
+                upper_bound = self.parameter_windows[key_name]["upper_bound"]
+                lower_bound = self.parameter_windows[key_name]["lower_bound"]
+                #
+                values = np.linspace(start=lower_bound, stop=upper_bound, num=number_of_suggestions).astype(int)
+                assert number_of_suggestions == len(values)
 
-        # Window type parameters
+                window_params[key_name] = values
 
-        # TP_SL type parameters
+                ...
+
+            # TP_SL type parameters
+            for key_name in self.tp_sl_keynames:
+                # TODO
+                #   Get ATR results
+                self._compute_bar_atr()
+                # TODO
+                #   Compute Take_Profits and Stop_Loses
+
+                # parameters_lengths_dict[f'{key_name}_length'] = _total_possible_values_in_window(
+                #                     self.parameter_windows[key_name]["lower_bound"], self.parameter_windows[key_name]["upper_bound"],
+                #                     self.parameter_windows[key_name]["min_step"])
+                #
+                #                 parameters_lengths_dict[f'tp_sl_length'] = parameters_lengths_dict[f'tp_sl_length'] * \
+                #                                                            parameters_lengths_dict[f'{key_name}_length'] if \
+                #                     parameters_lengths_dict[f'tp_sl_length'] else parameters_lengths_dict[f'{key_name}_length']
+                exit()
+                # TODO
+                #   pass values to tp_sl_params
+
+                tp_sl_params[key_name] = [100] if key_name == 'take_profit_points' else [-100]
+
+            #
+        else:
+            # TODO: code else ... the continuation of the study
+            ...
+
+        params = timeframe_params | window_params | tp_sl_params
+        self._compute_params_product_and_populate_record(params)
+
+        logger.info(self.initial_parameters_record)
 
         exit()
 
         # self.initial_parameter_history = ...
 
+    # todo
     def simulate_strategy(self):
         # TODO:
         #   In batches or similar to Genie[full]:
@@ -435,18 +560,22 @@ class mini_genie_trader:
 
         ...
 
+    # todo
     def tell_genie(self):
         # TODO:
         #   In batches or similar to Genie[full]:
         #       3.  Tell N parameters' to Genie
         ...
 
+    # todo
     def initiate_optuna_study(self):
         ...
 
+    # todo
     def run_refining_epochs(self):
         ...
 
+    # todo
     def analyze(self):
         ...
 
@@ -465,6 +594,8 @@ if __name__ == "__main__":
 
     # Load symbols_data, open, low, high, close to genie object.
     genie_object.fetch_and_prepare_input_data()
+    # TODO: LEFT HERE
+    exit()
 
     # TODO:
     #  List of Initial Params:
@@ -485,6 +616,7 @@ if __name__ == "__main__":
     #   Run product of unique param values in each category, use the best N params params as the starting seeds
     #       for Optimization ... next
 
+    # Determine initial search space size and content
     genie_object.suggest_initial_parameters()
 
     genie_object.print_dict()
