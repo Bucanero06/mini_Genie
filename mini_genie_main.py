@@ -646,9 +646,9 @@ if __name__ == "__main__":
     # Load symbols_data, open, low, high, close to genie object.
     genie_object.fetch_and_prepare_input_data()
 
-    logger.info(ray.get(genie_object.saved_parameter_history.head()))
-    logger.info(ray.get(genie_object.optimization_high_data.head()))
-    logger.info(ray.get(genie_object.bar_atr_low_data.head()))
+    logger.info(ray.get(genie_object.saved_parameter_history))
+    logger.info(ray.get(genie_object.optimization_high_data))
+    logger.info(ray.get(genie_object.bar_atr_low_data))
     # TODO: LEFT HERE
     exit()
 
