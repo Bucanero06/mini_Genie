@@ -33,7 +33,7 @@ Run_Time_Settings = dict(
 
         Initial_Search=dict(
             # max_initial_combinations=1_000_000,
-            max_initial_combinations=141125,
+            max_initial_combinations=1000,
             initial_batch_size=2,
             force_to_finish=True,  # fixme: logic missing
             #
@@ -41,9 +41,12 @@ Run_Time_Settings = dict(
                 timeframes='all',  # fixme: needs to add settings for how to reduce, these dont do anything
                 windows='grid',  # fixme: needs to add settings for how to reduce, these dont do anything
                 tp_sl=dict(
-                    bar_atr_period=datetime.timedelta(days=60, hours=0, minutes=0, seconds=0),
+                    bar_atr_days=datetime.timedelta(days=60, hours=0, minutes=0, seconds=0),
+                    bar_atr_periods=[14],  # todo multiple inputs
+                    bar_atr_multiplier=[3],  # todo multiple inputs
+                    #
                     n_ratios=[0.5, 1, 1.5, 2, 2.5],
-                    lambda_ratios=[1, 1.2, 1.5, 1.75, 2, 2.5, 3],
+                    gamma_ratios=[1, 1.2, 1.5, 1.75, 2, 2.5, 3],
                     number_of_bar_trends=1,
                 ),
 

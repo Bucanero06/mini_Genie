@@ -45,10 +45,11 @@ class mini_genie_trader:
         #
         self.group_by = [f'custom_{key_name}' for key_name in self.key_names]
         #
-        metrics_dict = self.runtime_settings['Optimization_Settings.Loss_Function.loss_settings']
+        self.metrics_key_names = self.runtime_settings['Optimization_Settings.Loss_Function.metrics']
+        self.loss_metrics_settings_dict = self.runtime_settings['Optimization_Settings.Loss_Function.loss_settings']
         number_of_outputs = 0
-        for metric_name in metrics_dict._values:
-            if metrics_dict[f'{metric_name}.{metric_name}_weight'] != 0:
+        for metric_name in self.loss_metrics_settings_dict._values:
+            if self.loss_metrics_settings_dict[f'{metric_name}.{metric_name}_weight'] != 0:
                 number_of_outputs += 1
         self.number_of_outputs = number_of_outputs
         #
@@ -60,7 +61,10 @@ class mini_genie_trader:
         self.stop_sim_time = self.runtime_settings['Optimization_Settings.timer_limit'] + datetime.now()
         self.ACCEPTED_TIMEFRAMES = ['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']
         self.ACCEPTED_TF_TYPES = ['timeframe', 'tf']
-        self.ACCEPTED_TP_SL_TYPES = ['take_profit', 'tp', 'stop_loss', 'sl']
+        self.ACCEPTED_TP_TYPES = ['take_profit', 'tp']
+        self.ACCEPTED_SL_TYPES = ['stop_loss', 'sl']
+        self.ACCEPTED_TP_SL_TYPES = self.ACCEPTED_TP_TYPES + self.ACCEPTED_SL_TYPES
+
         self.ACCEPTED_WINDOW_TYPES = ['window', 'w']
         #
         self.window_key_names = tuple(key_name for key_name in self.key_names if self.parameter_windows[key_name][
@@ -69,6 +73,10 @@ class mini_genie_trader:
             'type'].lower() in self.ACCEPTED_TF_TYPES)
         self.tp_sl_keynames = tuple(key_name for key_name in self.key_names if self.parameter_windows[key_name][
             'type'].lower() in self.ACCEPTED_TP_SL_TYPES)
+        self.tp_keynames = tuple(key_name for key_name in self.key_names if self.parameter_windows[key_name][
+            'type'].lower() in self.ACCEPTED_TP_TYPES)
+        self.sl_keynames = tuple(key_name for key_name in self.key_names if self.parameter_windows[key_name][
+            'type'].lower() in self.ACCEPTED_SL_TYPES)
         #
         self.tp_sl_selection_space = self.runtime_settings[
             "Optimization_Settings.Initial_Search.parameter_selection.tp_sl"]
@@ -219,6 +227,7 @@ class mini_genie_trader:
             Returns:
                 object:
             """
+            max_initial_combinations_original = max_initial_combinations
 
             def _compute_n_initial_combinations_carefully(dict: object) -> object:  # fixme: naming is horrible
                 """
@@ -258,13 +267,14 @@ class mini_genie_trader:
                 # First try the reduced TP and SL space
 
                 lengths_dict['tp_sl_length'] = len(self.tp_sl_selection_space["n_ratios"]) * len(
-                    self.tp_sl_selection_space["lambda_ratios"]) * self.tp_sl_selection_space[
+                    self.tp_sl_selection_space["gamma_ratios"]) * self.tp_sl_selection_space[
                                                    "number_of_bar_trends"] * len(
                     lengths_dict["all_tf_in_this_study"])
                 #
                 lengths_dict["n_initial_combinations"] = _compute_n_initial_combinations_carefully(lengths_dict)
                 lengths_dict["using_reduced_tp_sl_space"] = True
             #
+
             if lengths_dict["n_initial_combinations"] > max_initial_combinations:
                 # Second try the reduced windowed space
                 temp_lengths_dict = dict(
@@ -290,12 +300,19 @@ class mini_genie_trader:
                 temp_lengths_dict["small_r_scaling_factor"] = temp_lengths_dict["big_r_scaling_factor"] ** (
                         1 / len(temp_lengths_dict["window_keynames_to_be_reduced"]))
 
-                we_are_good = all(
-                    temp_lengths_dict[f'{key_name}_length'] > temp_lengths_dict["small_r_scaling_factor"] for
-                    key_name in
-                    temp_lengths_dict["window_keynames_to_be_reduced"])
+                # we_are_good = all(
+                #     temp_lengths_dict[f'{key_name}_length'] > temp_lengths_dict["small_r_scaling_factor"] for
+                #     key_name in
+                #     temp_lengths_dict["window_keynames_to_be_reduced"])
+                # logger.info(f'{temp_lengths_dict["window_keynames_to_be_reduced"] = }')
+                #                 logger.info(f'{we_are_good = }')
+                #                 logger.info(f'{_compute_n_initial_combinations_carefully(temp_lengths_dict) = }')
+                #
+                #
+                #                 we_are_good=_compute_n_initial_combinations_carefully(temp_lengths_dict)
 
                 # Refine small_r_scaling_factor
+                we_are_good = False
                 temp_lengths_dict = dict(
                     big_r_scaling_factor=temp_lengths_dict["big_r_scaling_factor"],
                     small_r_scaling_factor=temp_lengths_dict["small_r_scaling_factor"],
@@ -366,15 +383,12 @@ class mini_genie_trader:
                                                                                     _keynames=
                                                                                     temp_lengths_dict[
                                                                                         "window_keynames_to_be_reduced"])
-                #
 
-                #
-            #
             lengths_dict["n_initial_combinations"] = _compute_n_initial_combinations_carefully(lengths_dict)
             #
             return lengths_dict
 
-        initial_parameters_record_dtype = []
+        parameters_record_dtype = []
 
         # Keep track of miscellaneous settings for reducing the space
         parameters_lengths_dict = dict(
@@ -387,7 +401,7 @@ class mini_genie_trader:
         )
 
         if add_ids:
-            initial_parameters_record_dtype.append(('trial_id', np.int_))
+            parameters_record_dtype.append(('trial_id', np.int_))
         for key_name in self.key_names:
             parameters_lengths_dict[f'{key_name}_length'] = 0
 
@@ -395,7 +409,7 @@ class mini_genie_trader:
                 tf_in_key_name = [tf.lower() for tf in self.parameter_windows[key_name]['choices']]
 
                 if set(tf_in_key_name).issubset(set(self.ACCEPTED_TIMEFRAMES)):
-                    initial_parameters_record_dtype.append((key_name, 'U8'))
+                    parameters_record_dtype.append((key_name, 'U8'))
                 else:
                     erroneous_timeframes = [tf for tf in tf_in_key_name if tf not in self.ACCEPTED_TIMEFRAMES]
                     logger.error(
@@ -411,10 +425,10 @@ class mini_genie_trader:
             elif self.parameter_windows[key_name]["type"].lower() in self.ACCEPTED_WINDOW_TYPES:
                 if isinstance(self.parameter_windows[key_name]['lower_bound'], int) and isinstance(
                         self.parameter_windows[key_name]['upper_bound'], int):
-                    initial_parameters_record_dtype.append((key_name, 'i8'))
+                    parameters_record_dtype.append((key_name, 'i8'))
                 elif isinstance(self.parameter_windows[key_name]['lower_bound'], float) or isinstance(
                         self.parameter_windows[key_name]['upper_bound'], float):
-                    initial_parameters_record_dtype.append((key_name, 'f8'))
+                    parameters_record_dtype.append((key_name, 'f8'))
                 else:
                     logger.error(f'Parameter {key_name} is defined as type window but inputs are inconsistent.\n'
                                  f'     (e.g. -> Either lower_bound or upper_bound is a float => float)\n'
@@ -430,10 +444,10 @@ class mini_genie_trader:
             elif self.parameter_windows[key_name]["type"].lower() in self.ACCEPTED_TP_SL_TYPES:
                 if isinstance(self.parameter_windows[key_name]['lower_bound'], int) and isinstance(
                         self.parameter_windows[key_name]['upper_bound'], int):
-                    initial_parameters_record_dtype.append((key_name, 'i8'))
+                    parameters_record_dtype.append((key_name, 'i8'))
                 elif isinstance(self.parameter_windows[key_name]['lower_bound'], float) or isinstance(
                         self.parameter_windows[key_name]['upper_bound'], float):
-                    initial_parameters_record_dtype.append((key_name, 'f8'))
+                    parameters_record_dtype.append((key_name, 'f8'))
                 #
                 parameters_lengths_dict[f'{key_name}_length'] = _total_possible_values_in_window(
                     self.parameter_windows[key_name]["lower_bound"], self.parameter_windows[key_name]["upper_bound"],
@@ -465,50 +479,85 @@ class mini_genie_trader:
                 f"\N{smiling face with smiling eyes}"
             )
 
-        self.parameter_data_dtype = np.dtype(initial_parameters_record_dtype)
-        self.initial_parameters_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
-                                                  dtype=self.parameter_data_dtype)
+        self.parameter_data_dtype = np.dtype(parameters_record_dtype)
+        self.parameters_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
+                                          dtype=self.parameter_data_dtype)
+        #
 
-    def _compute_params_product_and_populate_record(self, params):
+    def _compute_params_product_n_fill_record(self, params):
         from itertools import product
-        initial_param_combinations = list(set(product(*[params[key_names] for key_names in self.key_names])))
-
-        for i in range(len(initial_param_combinations)):
-            self.initial_parameters_record[i] = initial_param_combinations[i]
-
-    def _compute_bar_atr(self):
-        """
-        Todo:
-         For TP and SL use the avg ATR for the 3 months prior to the optimization date window for every
-                       timeframe (when possible do this separately for upwards, downwards and sideways, then use
-                       these values separately during the strategy or average them for a single value) then:
-                           1.  Using \bar{ATR}(TF), define multiple TP_0 and SL_0 for and scale with n ratios [ 0.5, 1, 1.5, 2, 2.5]
-                           2.  Use (TP/SL) \gamma ratios like [ 1, 1.2, 1.5, 1.75, 2, 2.5, 3]
-                               (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=1.5, -> R=\bar{ATR}(TF='1h')/n=500
-                                   ==> TP=750 & SL=-500)
-                               (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=1.0, -> R=\bar{ATR}(TF='1h')/n=500
-                                   ==> TP=500 & SL=-500)
-                               (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=0.5, -> R=\bar{ATR}(TF='1h')/n=500
-                                   ==> TP=500 & SL=-750)
-
-        """
+        initial_param_combinations = list(
+            set(
+                product(
+                    *[
+                        params[key_name] for key_name in self.key_names if key_name not in self.tp_sl_keynames
+                    ], params["tp_sl"]
+                )
+            )
+        )
 
         #
-        logger.info(f'in _compute_bar_atr')
-        exit()
-        # Need to save the base tp and sl
-        blank_filler = 0
-        avg_atr = {}
-        for key_name in self.timeframe_keynames:
-            avg_atr[key_name] = dict(
-                upwards=blank_filler,
-                downwards=blank_filler
+        for i in range(len(initial_param_combinations)):
+            value = (initial_param_combinations[i][:-1] + initial_param_combinations[i][-1])
+            self.parameters_record[i] = value
+
+    def _compute_bar_atr(self):
+        from mini_genie_source.Simulation_Handler.compute_bar_atr import compute_bar_atr
+        self.bar_atr = compute_bar_atr(self)
+
+    @staticmethod
+    def _expand_tp_sl_0(tp_sl_0, n_ratios, gamma_ratios, tick_size):
+        """
+        tp_sl_0: base
+        n_ratios: you multiply the atr with
+        gamma_ratios: risk reward ratio
+        """
+        tp = []
+        sl = []
+
+        for n in n_ratios:
+            for gamma in gamma_ratios:
+                adj_tp_sl_0 = tp_sl_0 * n
+                diff = adj_tp_sl_0 * gamma
+                #
+                if gamma < 1:
+                    tp.append(adj_tp_sl_0 / tick_size)
+                    sl.append(-(adj_tp_sl_0 + diff) / tick_size)
+                else:
+                    tp.append((adj_tp_sl_0 + diff) / tick_size)
+                    sl.append((-adj_tp_sl_0) / tick_size)
+                #
+
+        return tp, sl
+
+    def _compute_tp_n_sl_from_tp_sl_0(self) -> object:
+        """
+
+        Returns:
+            object:
+
+        """
+        result = {}
+        for tf in self.parameters_lengths_dict[f'all_tf_in_this_study']:
+            tp_sl_0 = self.bar_atr[tf]["mean_atr"]
+            tp, sl = self._expand_tp_sl_0(tp_sl_0,
+                                          self.tp_sl_selection_space["n_ratios"],
+                                          self.tp_sl_selection_space["gamma_ratios"],
+                                          self.runtime_settings["Data_Settings.tick_size"])
+            result[tf] = dict(
+                take_profits=tp,
+                stop_losses=sl
             )
 
-        self.avg_atr = 1
+        return result
 
-    # todo
-    def suggest_initial_parameters(self):
+    def _initiate_metric_records(self):
+        self.metric_data_dtype = np.dtype([(metric_name, 'U8') for metric_name in self.metrics_key_names])
+        self.metrics_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
+                                       dtype=self.metric_data_dtype)
+
+    # todo continue (everything)
+    def suggest_parameters(self):
         """
           List of Initial Params:
                Product of:
@@ -532,15 +581,15 @@ class mini_genie_trader:
 
         # Get the lens and sizes of each parameter to determine number of combinations and create a numpy record
         self._initiate_parameters_records(add_ids=False)
+        self._initiate_metric_records()
 
-        # logger.info(self.initial_parameters_record)
+        # logger.info(self.parameters_record)
         # logger.info(self.parameters_lengths_dict)
         # logger.info(f'\n\n')
         # Fill initial parameter space
         #
         timeframe_params = {}
         window_params = {}
-        tp_sl_params = {}
         #
         if not self.runtime_settings["Optimization_Settings.Continue"]:
             # Timeframe type parameters
@@ -568,39 +617,44 @@ class mini_genie_trader:
                 ...
 
             # TP_SL type parameters
-            for key_name in self.tp_sl_keynames:
-                # TODO
-                #   Get ATR results
-                self._compute_bar_atr()
-                # TODO
-                #   Compute Take_Profits and Stop_Loses
-
-                # parameters_lengths_dict[f'{key_name}_length'] = _total_possible_values_in_window(
-                #                     self.parameter_windows[key_name]["lower_bound"], self.parameter_windows[key_name]["upper_bound"],
-                #                     self.parameter_windows[key_name]["min_step"])
+            # todo
+            if not self.parameters_lengths_dict["using_reduced_tp_sl_space"]:
+                ''''''
+                # TODO:
+                #  this means that we can run all the tp_sl combinations, doubtful we will hit this but here
+                #  in the unlikelihood it occurs
+                ...
+            else:
                 #
-                #                 parameters_lengths_dict[f'tp_sl_length'] = parameters_lengths_dict[f'tp_sl_length'] * \
-                #                                                            parameters_lengths_dict[f'{key_name}_length'] if \
-                #                     parameters_lengths_dict[f'tp_sl_length'] else parameters_lengths_dict[f'{key_name}_length']
-                exit()
-                # TODO
-                #   pass values to tp_sl_params
-
-                tp_sl_params[key_name] = [100] if key_name == 'take_profit_points' else [-100]
+                self._compute_bar_atr()
+                #
+                # todo
+                if not self.tp_sl_selection_space["number_of_bar_trends"] == 1:
+                    ''''''
+                    # TODO:
+                    #  this means that we need to apply the next few steps for each trend type
+                    ...
+                else:
+                    number_of_suggestions = self.parameters_lengths_dict[f'tp_sl_length']
+                    #
+                    tp_sl_dict = self._compute_tp_n_sl_from_tp_sl_0()
+                    #
+                    tp_sl = []
+                    for tf in self.parameters_lengths_dict["all_tf_in_this_study"]:
+                        tp_sl.extend(
+                            (take_profit, stop_loss) for take_profit, stop_loss in
+                            zip(tp_sl_dict[tf]["take_profits"], tp_sl_dict[tf]["stop_losses"])
+                        )
+                    #
+                    assert number_of_suggestions == len(tp_sl)
 
             #
         else:
             # TODO: code else ... the continuation of the study
             ...
-
-        params = timeframe_params | window_params | tp_sl_params
-        self._compute_params_product_and_populate_record(params)
-
-        logger.info(self.initial_parameters_record)
-
-        exit()
-
-        # self.initial_parameter_history = ...
+        params = timeframe_params | window_params
+        params["tp_sl"] = tp_sl
+        self._compute_params_product_n_fill_record(params)
 
     # todo
     def simulate_strategy(self):
@@ -646,34 +700,35 @@ if __name__ == "__main__":
     # Load symbols_data, open, low, high, close to genie object.
     genie_object.fetch_and_prepare_input_data()
 
-    logger.info(ray.get(genie_object.saved_parameter_history))
-    logger.info(ray.get(genie_object.optimization_high_data))
-    logger.info(ray.get(genie_object.bar_atr_low_data))
-    # TODO: LEFT HERE
-    exit()
-
-    # TODO:
-    #  List of Initial Params:
-    #       Product of:
-    #           All Categorical Params
-    #           Use a grid-like approach to windows for indicators
-    #           For TP and SL use the avg ATR for the 3 months prior to the optimization date window for every
-    #               timeframe (when possible do this separately for upwards, downwards and sideways, then use
-    #               these values separately during the strategy or average them for a single value) then:
-    #                   1.  Using \bar{ATR}(TF), define multiple TP_0 and SL_0 for and scale with n ratios [ 0.5, 1, 1.5, 2, 2.5]
-    #                   2.  Use (TP/SL) \gamma ratios like [ 1, 1.2, 1.5, 1.75, 2, 2.5, 3]
-    #                       (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=1.5, -> R=\bar{ATR}(TF='1h')/n=500
-    #                           ==> TP=750 & SL=-500)
-    #                       (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=1.0, -> R=\bar{ATR}(TF='1h')/n=500
-    #                           ==> TP=500 & SL=-500)
-    #                       (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=0.5, -> R=\bar{ATR}(TF='1h')/n=500
-    #                           ==> TP=500 & SL=-750)
-    #   Run product of unique param values in each category, use the best N params params as the starting seeds
-    #       for Optimization ... next
+    '''
+     List of Initial Params:
+          Product of:
+              All Categorical Params
+              Use a grid-like approach to windows for indicators
+              For TP and SL use the avg ATR for the 3 months prior to the optimization date window for every
+                  timeframe (when possible do this separately for upwards, downwards and sideways, then use
+                  these values separately during the strategy or average them for a single value) then:
+                      1.  Using \bar{ATR}(TF), define multiple TP_0 and SL_0 for and scale with n ratios [ 0.5, 1, 1.5, 2, 2.5]
+                      2.  Use (TP/SL) \gamma ratios like [ 1, 1.2, 1.5, 1.75, 2, 2.5, 3]
+                          (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=1.5, -> R=\bar{ATR}(TF='1h')/n=500
+                              ==> TP=750 & SL=-500)
+                          (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=1.0, -> R=\bar{ATR}(TF='1h')/n=500
+                              ==> TP=500 & SL=-500)
+                          (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=0.5, -> R=\bar{ATR}(TF='1h')/n=500
+                              ==> TP=500 & SL=-750)
+      Run product of unique param values in each category, use the best N params params as the starting seeds
+          for Optimization ... next
+    '''
 
     # Determine initial search space size and content
-    genie_object.suggest_initial_parameters()
+    #   Initiates:       genie_object._initiate_parameters_records
+    #                    genie_object._initiate_metric_records
+    #   Fills:           genie_object._initiate_parameters_records
+    genie_object.suggest_parameters()
 
+    logger.info(f'{genie_object.metrics_record = }')
+    # TODO: LEFT HERE
+    exit()
     genie_object.print_dict()
     # TODO:
     #   In batches or similar to Genie[full]:

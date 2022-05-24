@@ -163,21 +163,21 @@ class Data_Handler:
                                                            self.genie_object.optimization_start_date,
                                                            self.genie_object.optimization_end_date)
         #
-        bar_atr_period = self.genie_object.tp_sl_selection_space["bar_atr_period"]
+        bar_atr_days = self.genie_object.tp_sl_selection_space["bar_atr_days"]
         from datetime import timedelta
         one_day = timedelta(days=1, hours=0, minutes=0, seconds=0)
         #
         bar_atr_open_data = self.fetch_dates_from_df(open_data,
-                                                     self.genie_object.optimization_start_date - bar_atr_period,
+                                                     self.genie_object.optimization_start_date - bar_atr_days,
                                                      self.genie_object.optimization_start_date - one_day)
         bar_atr_low_data = self.fetch_dates_from_df(low_data,
-                                                    self.genie_object.optimization_start_date - bar_atr_period,
+                                                    self.genie_object.optimization_start_date - bar_atr_days,
                                                     self.genie_object.optimization_start_date - one_day)
         bar_atr_high_data = self.fetch_dates_from_df(high_data,
-                                                     self.genie_object.optimization_start_date - bar_atr_period,
+                                                     self.genie_object.optimization_start_date - bar_atr_days,
                                                      self.genie_object.optimization_start_date - one_day)
         bar_atr_close_data = self.fetch_dates_from_df(close_data,
-                                                      self.genie_object.optimization_start_date - bar_atr_period,
+                                                      self.genie_object.optimization_start_date - bar_atr_days,
                                                       self.genie_object.optimization_start_date - one_day)
 
         # Set Optimization Data Attr's
