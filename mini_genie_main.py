@@ -1,8 +1,8 @@
 import os.path
 
 import numpy as np
+import ray
 import vectorbtpro as vbt
-# import ray
 from logger_tt import logger
 from logger_tt import setup_logging
 
@@ -71,21 +71,40 @@ class mini_genie_trader:
             'type'].lower() in self.ACCEPTED_TP_SL_TYPES)
         #
         self.tp_sl_selection_space = self.runtime_settings[
-            "Optimization_Settings.Initial_Search.paramter_selection.tp_sl"]
+            "Optimization_Settings.Initial_Search.parameter_selection.tp_sl"]
         # Initial Actions
         #
         # Prepare directories and save file paths
-        self._preparedirectoriesforstudy()
+        self._prepare_directory_paths_for_study()
         #
         # Load precomputed params, values, and stats if continuing study
         self._load_precomputed_params()
 
-    def print_dict(self, optional_object=None):
+    def print_dict(self, optional_object: object = None) -> object:
+        """
+
+        Returns:
+            object:
+        """
         import pprint
         pprint.pprint(self.__dict__ if not optional_object else optional_object.__dict__)
 
-    def _preparedirectoriesforstudy(self):
-        def CreateDir(dir):
+    def _prepare_directory_paths_for_study(self) -> object:
+        """
+        Returns:
+            object:
+
+        """
+
+        def CreateDir(dir: object) -> object:
+            """
+
+            Args:
+                dir:
+
+            Returns:
+                object:
+            """
             from os import path, mkdir
             if not path.exists(dir):
                 logger.info(f'Creating directory {dir}')
@@ -114,16 +133,19 @@ class mini_genie_trader:
         self.reports_path = reports_dir_path
         self.data_path = data_dir_path
 
-    def _load_precomputed_params(self):
+    def _load_precomputed_params(self) -> object:
         """
         If continuing a previously started study, then we can assume we have computed some parameters already.
         The parameter combinations, trial_number, values and stats should have been saved to a file.
         Here we only want to load the necessary, thus load trial number (to be used as index),
         trial params, and trial objective value. Place this object in ray to be referred back to already
         computed params and values.
+
+        Returns:
+            object:
         """
         import pandas as pd
-        def _write_header_df(path, cols_names, compression='gzip'):
+        def _write_header_df(path: object, cols_names: object, compression: object = 'gzip') -> object:
             header_df = pd.DataFrame(columns=cols_names)
             header_df.to_parquet(path, compression=compression)
             return header_df
@@ -145,8 +167,11 @@ class mini_genie_trader:
         else:
             saved_parameter_history = pd.read_parquet(f'{self.saved_runs_path}.gzip')
 
-        # fixme: self.previously_computed_parameters_df = ray.put(previously_computed_parameters_df if not header_df else header_df)
-        self.saved_parameter_history = saved_parameter_history if header_df.empty else header_df
+        # fixme: self.previously_computed_parameters_df = ray.put(previously_computed_parameters_df if not header_df
+        #  else header_df)
+        self.saved_parameter_history = ray.put(
+            saved_parameter_history if not saved_parameter_history.empty else header_df)
+        # self.saved_parameter_history = saved_parameter_history if header_df.empty else header_df
 
     # todo
     def _save_newly_computed_params(self):
@@ -168,27 +193,42 @@ class mini_genie_trader:
         #       as possible, then we can group strategies to determine the most stable regions, neighbors
         #       etc ...
 
-    def fetch_and_prepare_input_data(self):
+    def fetch_and_prepare_input_data(self) -> object:
         self.status = 'fetch_and_prepare_input_data'
 
         from mini_genie_source.Data_Handler.data_handler import Data_Handler
         data_processing = Data_Handler(self).fetch_data()  # Load symbols_data (attr)
         data_processing.break_up_olhc_data_from_symbols_data()  # splits ^ into open, low, high, close, *alt (attrs)
 
-    def _initiate_parameters_records(self, add_ids=None):
-        def _total_possible_values_in_window(lower, upper, step):
+    def _initiate_parameters_records(self, add_ids: object = None) -> object:
+        def _total_possible_values_in_window(lower: object, upper: object, step: object) -> object:
             return int((upper - lower) / step)
 
-        def _reduce_initial_parameter_space(lengths_dict, max_initial_combinations):
+        def _reduce_initial_parameter_space(lengths_dict: object, max_initial_combinations: object) -> object:
             """
             Reduce initial parameter space combinations by reducing the number of param suggestions:
                 1. For TP and SL parameters
                 2. For Windowed parameters
             Output:
                 n_initial_combinations to be used in the construction of the initial parameters record
+
+            Args:
+                lengths_dict:
+                max_initial_combinations:
+
+            Returns:
+                object:
             """
 
-            def _compute_n_initial_combinations_carefully(dict):  # fixme: naming is horrible
+            def _compute_n_initial_combinations_carefully(dict: object) -> object:  # fixme: naming is horrible
+                """
+
+                Args:
+                    dict:
+
+                Returns:
+
+                """
                 n_reduced_lengths = [dict[f'{key_name}_length'] for key_name in self.key_names
                                      if self.parameter_windows[key_name][
                                          'type'].lower() not in self.ACCEPTED_TP_SL_TYPES]
@@ -196,7 +236,17 @@ class mini_genie_trader:
 
                 return np.product(n_reduced_lengths)
 
-            def _compute_windows_lengths_now(dict, _keynames=None):
+            def _compute_windows_lengths_now(dict: object, _keynames: object = None) -> object:
+                """
+
+                Args:
+                    dict:
+                    _keynames:
+
+                Returns:
+                    object:
+
+                """
                 _keynames = self.key_names if not _keynames else _keynames
 
                 return np.product(
@@ -444,6 +494,7 @@ class mini_genie_trader:
         """
 
         #
+        logger.info(f'in _compute_bar_atr')
         exit()
         # Need to save the base tp and sl
         blank_filler = 0
@@ -594,6 +645,10 @@ if __name__ == "__main__":
 
     # Load symbols_data, open, low, high, close to genie object.
     genie_object.fetch_and_prepare_input_data()
+
+    logger.info(ray.get(genie_object.saved_parameter_history.head()))
+    logger.info(ray.get(genie_object.optimization_high_data.head()))
+    logger.info(ray.get(genie_object.bar_atr_low_data.head()))
     # TODO: LEFT HERE
     exit()
 

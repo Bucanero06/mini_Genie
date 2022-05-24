@@ -37,7 +37,7 @@ Run_Time_Settings = dict(
             initial_batch_size=2,
             force_to_finish=True,  # fixme: logic missing
             #
-            paramter_selection=dict(
+            parameter_selection=dict(
                 timeframes='all',  # fixme: needs to add settings for how to reduce, these dont do anything
                 windows='grid',  # fixme: needs to add settings for how to reduce, these dont do anything
                 tp_sl=dict(

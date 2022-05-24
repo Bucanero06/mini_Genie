@@ -26,19 +26,34 @@ class Data_Handler:
 
         #
 
-    def print_dict(self, optional_object=None):
+    def print_dict(self, optional_object: object = None) -> object:
         import pprint
         pprint.pprint(self.__dict__ if not optional_object else optional_object.__dict__)
 
     @staticmethod
-    def fetch_csv_data(data, data_files_dir):
+    def fetch_csv_data(data: object, data_files_dir: object) -> object:
+        """
+
+        Args:
+            data:
+            data_files_dir:
+
+        Returns:
+            object:
+
+        """
         print(f'Loading {data} from CSV file')
         bar_data = pd.read_csv(f'{data_files_dir}/{data}.csv',
                                index_col=0, parse_dates=True)
         print(f'Finished Loading {data} from CSV file')
         return bar_data
 
-    def fetch_data(self):
+    def fetch_data(self) -> object:
+        """
+
+        Returns:
+            object: 
+        """
         logger.info(f'Fetching Data')
         #
         if self.genie_object.runtime_settings['Data_Settings.load_CSV_from_pickle']:
@@ -90,7 +105,7 @@ class Data_Handler:
         mask = (df_index > start_date) & (df_index <= end_date)
         return df.loc[mask]
 
-    def break_up_olhc_data_from_symbols_data(self):
+    def break_up_olhc_data_from_symbols_data(self) -> object:
         if not self.genie_object.symbols_data_id:
             self.fetch_data()
 
