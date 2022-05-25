@@ -203,7 +203,7 @@ class mini_genie_trader:
     def fetch_and_prepare_input_data(self) -> object:
         self.status = 'fetch_and_prepare_input_data'
 
-        from mini_genie_source.Data_Handler.data_handler import Data_Handler
+        from Data_Handler.data_handler import Data_Handler
         data_processing = Data_Handler(self).fetch_data()  # Load symbols_data (attr)
         data_processing.break_up_olhc_data_from_symbols_data()  # splits ^ into open, low, high, close, *alt (attrs)
 

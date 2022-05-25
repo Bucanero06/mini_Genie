@@ -6,8 +6,29 @@ from scipy.ndimage.filters import maximum_filter1d, minimum_filter1d
 from vectorbtpro import _typing as tp
 
 
-def BARSINCE_genie(df):
-    def intervaled_cumsum_(a, trigger_val=1, start_val=0, invalid_specifier=-1):
+def BARSINCE_genie(df: object) -> object:
+    """
+
+    Args:
+        df:
+
+    Returns:
+        object:
+
+    """
+    def intervaled_cumsum_(a: object, trigger_val: object = 1, start_val: object = 0, invalid_specifier: object = -1) -> object:
+        """
+
+        Args:
+            a:
+            trigger_val:
+            start_val:
+            invalid_specifier:
+
+        Returns:
+            object:
+
+        """
         out = np.ones(a.size, dtype=int)
         idx = np.flatnonzero(a == trigger_val)
         if len(idx) == 0:
@@ -23,7 +44,18 @@ def BARSINCE_genie(df):
     return df.apply(intervaled_cumsum_).replace(-1, np.nan)
 
 
-def max_filter1d_same(a, W, fillna=np.nan):
+def max_filter1d_same(a: object, W: object, fillna: object = np.nan) -> object:
+    """
+
+    Args:
+        a:
+        W:
+        fillna:
+
+    Returns:
+        object:
+
+    """
     out_dtype = np.full(0, fillna).dtype
     hW = (W - 1) // 2  # Half window size
     out = maximum_filter1d(a, size=W, origin=hW)
@@ -35,14 +67,34 @@ def max_filter1d_same(a, W, fillna=np.nan):
 
 
 def ROLLING_MAX_genie(arr: tp.Array2d, window: int, minp: tp.Optional[int] = None) -> tp.Array2d:
-    """2-dim version of `max_filter1d_same`."""
+    """2-dim version of `max_filter1d_same`.
+
+    Args:
+        arr: 
+        window:
+        minp:
+
+    Returns:
+        object:
+    """
     out = np.empty_like(arr, dtype=np.float_)
     for col in prange(arr.shape[1]):
         out[:, col] = max_filter1d_same(arr[:, col], window)
     return out
 
 
-def min_filter1d_same(a, W, fillna=np.nan):
+def min_filter1d_same(a: object, W: object, fillna: object = np.nan) -> object:
+    """
+
+    Args:
+        a:
+        W:
+        fillna:
+
+    Returns:
+        object:
+
+    """
     out_dtype = np.full(0, fillna).dtype
     hW = (W - 1) // 2  # Half window size
     out = minimum_filter1d(a, size=W, origin=hW)
@@ -54,15 +106,38 @@ def min_filter1d_same(a, W, fillna=np.nan):
 
 
 def ROLLING_MIN_genie(arr: tp.Array2d, window: int, minp: tp.Optional[int] = None) -> tp.Array2d:
-    """2-dim version of `max_filter1d_same`."""
+    """2-dim version of `max_filter1d_same`.
+
+    Args:
+        arr: 
+        window: 
+        minp: 
+
+    Returns:
+        object: 
+    """
     out = np.empty_like(arr, dtype=np.float_)
     for col in prange(arr.shape[1]):
         out[:, col] = min_filter1d_same(arr[:, col], window)
     return out
 
 
-def resample_olhc_genie(timeframes, open_data=pd.DataFrame(), low_data=pd.DataFrame(), high_data=pd.DataFrame(),
-                        close_data=pd.DataFrame()):
+def resample_olhc_genie(timeframes: object, open_data: object = pd.DataFrame(), low_data: object = pd.DataFrame(),
+                        high_data: object = pd.DataFrame(),
+                        close_data: object = pd.DataFrame()) -> object:
+    """
+
+    Args:
+        timeframes: 
+        open_data: 
+        low_data: 
+        high_data: 
+        close_data: 
+
+    Returns:
+        object: 
+
+    """
     resampled_data_dict = {
         # Data
         'Open': {},
@@ -91,7 +166,17 @@ def resample_olhc_genie(timeframes, open_data=pd.DataFrame(), low_data=pd.DataFr
     return resampled_data_dict
 
 
-def split_uptrend_n_downtrend_atr(atr_df, dir_df):
+def split_uptrend_n_downtrend_atr(atr_df: object, dir_df: object) -> object:
+    """
+
+    Args:
+        atr_df: 
+        dir_df: 
+
+    Returns:
+        object: 
+
+    """
     atr_uptrend_mask = dir_df.values == 1
     atr_downtrend_mask = dir_df.values == -1
     return atr_df.loc[atr_uptrend_mask], atr_df.loc[atr_downtrend_mask]
