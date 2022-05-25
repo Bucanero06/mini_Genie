@@ -1,0 +1,10 @@
+mini\_genie\_source.Optimization\_Module\_mini\_genie package
+=============================================================
+
+Module contents
+---------------
+
+.. automodule:: mini_genie_source.Optimization_Module_mini_genie
+    :members:
+    :undoc-members:
+    :show-inheritance:

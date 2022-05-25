@@ -43,6 +43,7 @@ if __name__ == "__main__":
     #   Fills:           genie_object._initiate_parameters_records
     genie_object.suggest_parameters()
 
+    logger.info(f'{genie_object.parameters_record = }')
     logger.info(f'{genie_object.metrics_record = }')
     # TODO: LEFT HERE
     exit()

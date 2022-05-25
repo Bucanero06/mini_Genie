@@ -226,7 +226,6 @@ class mini_genie_trader:
             Returns:
                 object:
             """
-            max_initial_combinations_original = max_initial_combinations
 
             def _compute_n_initial_combinations_carefully(dict: object) -> object:  # fixme: naming is horrible
                 """
@@ -496,9 +495,9 @@ class mini_genie_trader:
         )
 
         #
-        for i in range(len(initial_param_combinations)):
-            value = (initial_param_combinations[i][:-1] + initial_param_combinations[i][-1])
-            self.parameters_record[i] = value
+        for index in range(len(initial_param_combinations)):
+            value = ((index,) + initial_param_combinations[index][:-1] + initial_param_combinations[index][-1])
+            self.parameters_record[index] = value
 
     def _compute_bar_atr(self):
         from mini_genie_source.Simulation_Handler.compute_bar_atr import compute_bar_atr
@@ -551,7 +550,11 @@ class mini_genie_trader:
         return result
 
     def _initiate_metric_records(self):
-        self.metric_data_dtype = np.dtype([(metric_name, 'U8') for metric_name in self.metrics_key_names])
+        parameters_record_dtype = []
+        parameters_record_dtype.append(('trial_id', np.int_))
+        for metric_name in self.metrics_key_names:
+            parameters_record_dtype.append((metric_name, 'U8'))
+        self.metric_data_dtype = np.dtype(parameters_record_dtype)
         self.metrics_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
                                        dtype=self.metric_data_dtype)
 
@@ -579,7 +582,7 @@ class mini_genie_trader:
         """
 
         # Get the lens and sizes of each parameter to determine number of combinations and create a numpy record
-        self._initiate_parameters_records(add_ids=False)
+        self._initiate_parameters_records(add_ids=True)
         self._initiate_metric_records()
 
         # logger.info(self.parameters_record)

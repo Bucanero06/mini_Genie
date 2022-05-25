@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mini_genie_source.Utilities.bars_utilities &mdash; mini-Genie  documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> mini-Genie
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">mini-Genie</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../Utilities.html">mini_genie_source.Utilities</a> &raquo;</li>
+      <li>mini_genie_source.Utilities.bars_utilities</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for mini_genie_source.Utilities.bars_utilities</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">vectorbtpro</span> <span class="k">as</span> <span class="nn">vbt</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">prange</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage.filters</span> <span class="kn">import</span> <span class="n">maximum_filter1d</span><span class="p">,</span> <span class="n">minimum_filter1d</span>
+<span class="kn">from</span> <span class="nn">vectorbtpro</span> <span class="kn">import</span> <span class="n">_typing</span> <span class="k">as</span> <span class="n">tp</span>
+
+
+<div class="viewcode-block" id="BARSINCE_genie"><a class="viewcode-back" href="../../../mini_genie_source.Utilities.html#mini_genie_source.Utilities.bars_utilities.BARSINCE_genie">[docs]</a><span class="k">def</span> <span class="nf">BARSINCE_genie</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df:</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        object:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">intervaled_cumsum_</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">trigger_val</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">start_val</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">invalid_specifier</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            a:</span>
+<span class="sd">            trigger_val:</span>
+<span class="sd">            start_val:</span>
+<span class="sd">            invalid_specifier:</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            object:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="n">trigger_val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">invalid_specifier</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="o">-</span><span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">start_val</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">idx</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">idx</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">out</span><span class="p">[:</span><span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">invalid_specifier</span>
+            <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">intervaled_cumsum_</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="max_filter1d_same"><a class="viewcode-back" href="../../../mini_genie_source.Utilities.html#mini_genie_source.Utilities.bars_utilities.max_filter1d_same">[docs]</a><span class="k">def</span> <span class="nf">max_filter1d_same</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">W</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">fillna</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        a:</span>
+<span class="sd">        W:</span>
+<span class="sd">        fillna:</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        object:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">fillna</span><span class="p">)</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="n">hW</span> <span class="o">=</span> <span class="p">(</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>  <span class="c1"># Half window size</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">maximum_filter1d</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">W</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="n">hW</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">is</span> <span class="n">out_dtype</span><span class="p">:</span>
+        <span class="n">out</span><span class="p">[:</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">fillna</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">fillna</span><span class="p">),</span> <span class="n">out</span><span class="p">[</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:]))</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="ROLLING_MAX_genie"><a class="viewcode-back" href="../../../mini_genie_source.Utilities.html#mini_genie_source.Utilities.bars_utilities.ROLLING_MAX_genie">[docs]</a><span class="k">def</span> <span class="nf">ROLLING_MAX_genie</span><span class="p">(</span><span class="n">arr</span><span class="p">:</span> <span class="n">tp</span><span class="o">.</span><span class="n">Array2d</span><span class="p">,</span> <span class="n">window</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">minp</span><span class="p">:</span> <span class="n">tp</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tp</span><span class="o">.</span><span class="n">Array2d</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;2-dim version of `max_filter1d_same`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        arr: </span>
+<span class="sd">        window:</span>
+<span class="sd">        minp:</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        object:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_filter1d_same</span><span class="p">(</span><span class="n">arr</span><span class="p">[:,</span> <span class="n">col</span><span class="p">],</span> <span class="n">window</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="min_filter1d_same"><a class="viewcode-back" href="../../../mini_genie_source.Utilities.html#mini_genie_source.Utilities.bars_utilities.min_filter1d_same">[docs]</a><span class="k">def</span> <span class="nf">min_filter1d_same</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">W</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">fillna</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        a:</span>
+<span class="sd">        W:</span>
+<span class="sd">        fillna:</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        object:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">fillna</span><span class="p">)</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="n">hW</span> <span class="o">=</span> <span class="p">(</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>  <span class="c1"># Half window size</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">minimum_filter1d</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">W</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="n">hW</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">is</span> <span class="n">out_dtype</span><span class="p">:</span>
+        <span class="n">out</span><span class="p">[:</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">fillna</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">fillna</span><span class="p">),</span> <span class="n">out</span><span class="p">[</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:]))</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="ROLLING_MIN_genie"><a class="viewcode-back" href="../../../mini_genie_source.Utilities.html#mini_genie_source.Utilities.bars_utilities.ROLLING_MIN_genie">[docs]</a><span class="k">def</span> <span class="nf">ROLLING_MIN_genie</span><span class="p">(</span><span class="n">arr</span><span class="p">:</span> <span class="n">tp</span><span class="o">.</span><span class="n">Array2d</span><span class="p">,</span> <span class="n">window</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">minp</span><span class="p">:</span> <span class="n">tp</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tp</span><span class="o">.</span><span class="n">Array2d</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;2-dim version of `max_filter1d_same`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        arr: </span>
+<span class="sd">        window: </span>
+<span class="sd">        minp: </span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        object: </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">min_filter1d_same</span><span class="p">(</span><span class="n">arr</span><span class="p">[:,</span> <span class="n">col</span><span class="p">],</span> <span class="n">window</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="resample_olhc_genie"><a class="viewcode-back" href="../../../mini_genie_source.Utilities.html#mini_genie_source.Utilities.bars_utilities.resample_olhc_genie">[docs]</a><span class="k">def</span> <span class="nf">resample_olhc_genie</span><span class="p">(</span><span class="n">timeframes</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">open_data</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span> <span class="n">low_data</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
+                        <span class="n">high_data</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
+                        <span class="n">close_data</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        timeframes: </span>
+<span class="sd">        open_data: </span>
+<span class="sd">        low_data: </span>
+<span class="sd">        high_data: </span>
+<span class="sd">        close_data: </span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        object: </span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">resampled_data_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># Data</span>
+        <span class="s1">&#39;Open&#39;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="s1">&#39;Low&#39;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="s1">&#39;High&#39;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="s1">&#39;Close&#39;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">timeframe</span> <span class="ow">in</span> <span class="n">timeframes</span><span class="p">:</span>
+        <span class="c1"># &#39;&#39;&#39;Pre-Resample Data&#39;&#39;&#39;</span>
+        <span class="c1"># OPEN</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">open_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">resampled_data_dict</span><span class="p">[</span><span class="s1">&#39;Open&#39;</span><span class="p">][</span><span class="n">timeframe</span><span class="p">]</span> <span class="o">=</span> <span class="n">open_data</span><span class="o">.</span><span class="n">vbt</span><span class="o">.</span><span class="n">resample_opening</span><span class="p">(</span>
+                <span class="n">timeframe</span><span class="p">)</span> <span class="k">if</span> <span class="n">timeframe</span> <span class="o">!=</span> <span class="s1">&#39;1m&#39;</span> <span class="k">else</span> <span class="n">open_data</span>
+        <span class="c1"># LOW</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">low_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">resampled_data_dict</span><span class="p">[</span><span class="s1">&#39;Low&#39;</span><span class="p">][</span><span class="n">timeframe</span><span class="p">]</span> <span class="o">=</span> <span class="n">low_data</span><span class="o">.</span><span class="n">vbt</span><span class="o">.</span><span class="n">resample_apply</span><span class="p">(</span><span class="n">timeframe</span><span class="p">,</span>
+                                                                                <span class="n">vbt</span><span class="o">.</span><span class="n">nb</span><span class="o">.</span><span class="n">min_reduce_nb</span><span class="p">)</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span> <span class="k">if</span> <span class="n">timeframe</span> <span class="o">!=</span> <span class="s1">&#39;1 min&#39;</span> <span class="k">else</span> <span class="n">low_data</span>
+        <span class="c1"># HIGH</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">high_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">resampled_data_dict</span><span class="p">[</span><span class="s1">&#39;High&#39;</span><span class="p">][</span><span class="n">timeframe</span><span class="p">]</span> <span class="o">=</span> <span class="n">high_data</span><span class="o">.</span><span class="n">vbt</span><span class="o">.</span><span class="n">resample_apply</span><span class="p">(</span><span class="n">timeframe</span><span class="p">,</span>
+                                                                                  <span class="n">vbt</span><span class="o">.</span><span class="n">nb</span><span class="o">.</span><span class="n">max_reduce_nb</span><span class="p">)</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span> <span class="k">if</span> <span class="n">timeframe</span> <span class="o">!=</span> <span class="s1">&#39;1 min&#39;</span> <span class="k">else</span> <span class="n">high_data</span>
+        <span class="c1"># CLOSE</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">close_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">resampled_data_dict</span><span class="p">[</span><span class="s1">&#39;Close&#39;</span><span class="p">][</span><span class="n">timeframe</span><span class="p">]</span> <span class="o">=</span> <span class="n">close_data</span><span class="o">.</span><span class="n">vbt</span><span class="o">.</span><span class="n">resample_apply</span><span class="p">(</span><span class="n">timeframe</span><span class="p">,</span>
+                                                                                    <span class="n">vbt</span><span class="o">.</span><span class="n">nb</span><span class="o">.</span><span class="n">last_reduce_nb</span><span class="p">)</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span> <span class="k">if</span> <span class="n">timeframe</span> <span class="o">!=</span> <span class="s1">&#39;1 min&#39;</span> <span class="k">else</span> <span class="n">close_data</span>
+    <span class="k">return</span> <span class="n">resampled_data_dict</span></div>
+
+
+<div class="viewcode-block" id="split_uptrend_n_downtrend_atr"><a class="viewcode-back" href="../../../mini_genie_source.Utilities.html#mini_genie_source.Utilities.bars_utilities.split_uptrend_n_downtrend_atr">[docs]</a><span class="k">def</span> <span class="nf">split_uptrend_n_downtrend_atr</span><span class="p">(</span><span class="n">atr_df</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">dir_df</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        atr_df: </span>
+<span class="sd">        dir_df: </span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        object: </span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">atr_uptrend_mask</span> <span class="o">=</span> <span class="n">dir_df</span><span class="o">.</span><span class="n">values</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">atr_downtrend_mask</span> <span class="o">=</span> <span class="n">dir_df</span><span class="o">.</span><span class="n">values</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">return</span> <span class="n">atr_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">atr_uptrend_mask</span><span class="p">],</span> <span class="n">atr_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">atr_downtrend_mask</span><span class="p">]</span></div>
+<span class="c1"># # # Change timeframes</span>
+<span class="c1">#     # resampled_data_dict = resample_olhc_genie(timeframes, low=low_data, high=high_data, close=close_data)</span>
+<span class="c1">#     # super_trend_dict = {}</span>
+<span class="c1">#     # # do loop</span>
+<span class="c1">#     # for tf in timeframes:</span>
+<span class="c1">#     #     super_trend_dict[tf] = superfast_supertrend_nb(high_data, low_data, close_data, period=period_windows,</span>
+<span class="c1">#     #                                                    multiplier=multiplier_windows)</span>
+<span class="c1">#</span>
+<span class="c1">#     # return super_trend_dict</span>
+
+<span class="c1"># @jit(nopython=False)</span>
+<span class="c1"># def cache_func(open_data, low_data, high_data, close_data, timeframes=&#39;1 min&#39;, period=7, multiplier=3):</span>
+<span class="c1">#     return resample_olhc_genie(timeframes, open_data, low_data, high_data, close_data)</span>
+
+<span class="c1"># # cache_func=cache_func,</span>
+<span class="c1">#         # pass_wrapper=True,</span>
+
+<span class="c1"># wrapper = vbt.ArrayWrapper.from_obj(df)</span>
+<span class="c1">#     df = wrapper.wrap_reduced(result)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Ruben Fernandez Carbon.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

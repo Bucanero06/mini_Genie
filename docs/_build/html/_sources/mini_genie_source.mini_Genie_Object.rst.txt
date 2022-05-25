@@ -1,0 +1,22 @@
+mini\_genie\_source.mini\_Genie\_Object package
+===============================================
+
+Submodules
+----------
+
+mini\_genie\_source.mini\_Genie\_Object.mini\_genie module
+----------------------------------------------------------
+
+.. automodule:: mini_genie_source.mini_Genie_Object.mini_genie
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: mini_genie_source.mini_Genie_Object
+    :members:
+    :undoc-members:
+    :show-inheritance:
