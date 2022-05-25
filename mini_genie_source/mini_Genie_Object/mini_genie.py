@@ -694,6 +694,10 @@ class mini_genie_trader:
             #
             simulation_handler.simulate_events(long_entries, long_exits, short_entries, short_exits,
                                                strategy_specific_kwargs)
+
+            # todo analyse
+
+            # todo save
             exit()
             self._save_newly_computed_params(...)
 
