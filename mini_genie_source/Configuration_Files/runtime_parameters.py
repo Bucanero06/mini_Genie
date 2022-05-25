@@ -1,5 +1,7 @@
 import datetime
 
+from Strategies.Money_Maker_Strategy import MMT_Strategy
+
 Run_Time_Settings = dict(
     # Data Settings
     Data_Settings=dict(
@@ -34,7 +36,7 @@ Run_Time_Settings = dict(
         Initial_Search=dict(
             # max_initial_combinations=1_000_000,
             max_initial_combinations=1000,
-            initial_batch_size=2,
+            batch_size=2,
             force_to_finish=True,  # fixme: logic missing
             #
             parameter_selection=dict(
@@ -163,7 +165,7 @@ Run_Time_Settings = dict(
         ),
     ),
     Strategy_Settings=dict(
-        # Strategy_Name=MMT_Strategy, FIXME: uncomment and import MMT_Strategy
+        Strategy=MMT_Strategy,  # FIXME: better input of info
         arguements=dict(
             fixed_initial_params=[
             ],

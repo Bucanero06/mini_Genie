@@ -26,6 +26,7 @@ class mini_genie_trader:
         # for key, value in runtime_kwargs.items():
         #     print(key)
         #     setattr(self, key, value)
+        # todo: need to upgrade to ray
         # Init Ray
         # ray.init(num_cpus=24)
 
@@ -36,7 +37,7 @@ class mini_genie_trader:
         # Define frequently used variables in first level
         self.study_name = self.runtime_settings["Optimization_Settings.study_name"]
         #
-        self.initial_batch_size = self.runtime_settings["Optimization_Settings.Initial_Search.initial_batch_size"]
+        self.batch_size = self.runtime_settings["Optimization_Settings.Initial_Search.batch_size"]
         #
         self.parameter_windows = self.runtime_settings["Strategy_Settings.parameter_windows"]._values
         #
@@ -84,7 +85,7 @@ class mini_genie_trader:
         # Prepare directories and save file paths
         self._prepare_directory_paths_for_study()
         #
-        # Load precomputed params, values, and stats if continuing study
+        # Load precomputed params, values, and stats if continuing study else, creates file with headers
         self._load_precomputed_params()
 
     def print_dict(self, optional_object: object = None) -> object:
@@ -179,16 +180,6 @@ class mini_genie_trader:
         self.saved_parameter_history = ray.put(
             saved_parameter_history if not saved_parameter_history.empty else header_df)
         # self.saved_parameter_history = saved_parameter_history if header_df.empty else header_df
-
-    # todo
-    def _save_newly_computed_params(self):
-        """Add to previously created file (or new if it does not exist), in a memory conscious way, the trial number,
-        parameter combination, values, and combination stats"""
-        # TODO:
-        #   code _save_newly_computed_params
-        #   Im assuming that it will be similar to  _load_precomputed_params except now we are adding the newly computed
-        #   parameters to the saved parameters and saving them as gzip (expected to get very large)
-        ...
 
     # todo
     def _grade_parameter_combinations(self):
@@ -549,7 +540,12 @@ class mini_genie_trader:
 
         return result
 
-    def _initiate_metric_records(self):
+    def _initiate_metric_records(self) -> object:
+        """
+        Returns:
+            object:
+
+        """
         parameters_record_dtype = []
         parameters_record_dtype.append(('trial_id', np.int_))
         for metric_name in self.metrics_key_names:
@@ -558,7 +554,7 @@ class mini_genie_trader:
         self.metrics_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
                                        dtype=self.metric_data_dtype)
 
-    # todo continue (everything)
+    # todo initial is done but everything for continuation missing
     def suggest_parameters(self):
         """
           List of Initial Params:
@@ -628,7 +624,11 @@ class mini_genie_trader:
                 ...
             else:
                 #
-                self._compute_bar_atr()
+                from Simulation_Handler.simulation_handler import Simulation_Handler
+                simulation_handler = Simulation_Handler(self)
+                simulation_handler.compute_bar_atr
+
+                # self._compute_bar_atr()
                 #
                 # todo
                 if not self.tp_sl_selection_space["number_of_bar_trends"] == 1:
@@ -659,19 +659,48 @@ class mini_genie_trader:
         self._compute_params_product_n_fill_record(params)
 
     # todo
-    def simulate_strategy(self):
+    def _save_newly_computed_params(self):
+        """Add to previously created file (or new if it does not exist), in a memory conscious way, the trial number,
+        parameter combination, values, and combination stats"""
+        # TODO:
+        #   code _save_newly_computed_params
+        #   Im assuming that it will be similar to  _load_precomputed_params except now we are adding the newly computed
+        #   parameters to the saved parameters and saving them as gzip (expected to get very large)
+        ...
+
+    # todo
+    def simulate(self):
         # TODO:
         #   In batches or similar to Genie[full]:
         #       1.  Simulate N parameters' indicators
         #       2.  Simulate N parameters' events
+        #
+        from Simulation_Handler.simulation_handler import Simulation_Handler
+        simulation_handler = Simulation_Handler(self)
+        #
+
+        number_of_parameters = len(self.parameters_record)
+        batch_size = self.batch_size
+        N_chunks = int(np.ceil(number_of_parameters / batch_size))
+        #
+        for chunk_index in range(N_chunks):
+            #
+            indexes = [chunk_index * self.batch_size, chunk_index * self.batch_size + self.batch_size]
+            epoch_index_range_ = range(indexes[0], indexes[1], 1)
+            epoch_params = np.take(self.parameters_record, epoch_index_range_)
+            #
+            long_entries, long_exits, short_entries, short_exits, \
+            strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params)
+            #
+            simulation_handler.simulate_events(long_entries, long_exits, short_entries, short_exits,
+                                               strategy_specific_kwargs)
+            exit()
+            self._save_newly_computed_params(...)
 
         ...
 
     # todo
-    def tell_genie(self):
-        # TODO:
-        #   In batches or similar to Genie[full]:
-        #       3.  Tell N parameters' to Genie
+    def ask_genie(self):
         ...
 
     # todo
@@ -680,6 +709,13 @@ class mini_genie_trader:
 
     # todo
     def run_refining_epochs(self):
+        ...
+
+    # todo
+    def tell_genie(self):
+        # TODO:
+        #   In batches or similar to Genie[full]:
+        #       3.  Tell N parameters' to Genie
         ...
 
     # todo

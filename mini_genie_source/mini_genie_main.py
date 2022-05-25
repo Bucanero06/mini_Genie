@@ -43,6 +43,13 @@ if __name__ == "__main__":
     #   Fills:           genie_object._initiate_parameters_records
     genie_object.suggest_parameters()
 
+    # TODO:
+    #   In batches or similar to Genie[full]:
+    #       1.  Simulate N parameters' indicators
+    #       2.  Simulate N parameters' events
+    genie_object.simulate()
+    #
+    logger.info(f'IN MAIN LOL')
     logger.info(f'{genie_object.parameters_record = }')
     logger.info(f'{genie_object.metrics_record = }')
     # TODO: LEFT HERE
