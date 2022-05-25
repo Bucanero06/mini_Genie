@@ -12,6 +12,14 @@ mini\_genie\_source.Simulation\_Handler.compute\_bar\_atr module
     :undoc-members:
     :show-inheritance:
 
+mini\_genie\_source.Simulation\_Handler.flexible\_simulation module
+-------------------------------------------------------------------
+
+.. automodule:: mini_genie_source.Simulation_Handler.flexible_simulation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 mini\_genie\_source.Simulation\_Handler.simulation\_handler module
 ------------------------------------------------------------------
 

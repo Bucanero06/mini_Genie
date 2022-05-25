@@ -38,7 +38,8 @@
 <li><a class="reference internal" href="#">mini_genie_source.Simulation_Handler package</a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#mini-genie-source-simulation-handler-compute-bar-atr-module">mini_genie_source.Simulation_Handler.compute_bar_atr module</a></li>
-<li><a class="reference internal" href="#module-mini_genie_source.Simulation_Handler.simulation_handler">mini_genie_source.Simulation_Handler.simulation_handler module</a></li>
+<li><a class="reference internal" href="#module-mini_genie_source.Simulation_Handler.flexible_simulation">mini_genie_source.Simulation_Handler.flexible_simulation module</a></li>
+<li><a class="reference internal" href="#mini-genie-source-simulation-handler-simulation-handler-module">mini_genie_source.Simulation_Handler.simulation_handler module</a></li>
 <li><a class="reference internal" href="#module-mini_genie_source.Simulation_Handler">Module contents</a></li>
 </ul>
 </li>
@@ -76,35 +77,40 @@
 <div class="section" id="mini-genie-source-simulation-handler-compute-bar-atr-module">
 <h2>mini_genie_source.Simulation_Handler.compute_bar_atr module<a class="headerlink" href="#mini-genie-source-simulation-handler-compute-bar-atr-module" title="Permalink to this headline">¶</a></h2>
 </div>
-<div class="section" id="module-mini_genie_source.Simulation_Handler.simulation_handler">
-<span id="mini-genie-source-simulation-handler-simulation-handler-module"></span><h2>mini_genie_source.Simulation_Handler.simulation_handler module<a class="headerlink" href="#module-mini_genie_source.Simulation_Handler.simulation_handler" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="mini_genie_source.Simulation_Handler.simulation_handler.Simulation_Handler">
-<em class="property">class </em><code class="descclassname">mini_genie_source.Simulation_Handler.simulation_handler.</code><code class="descname">Simulation_Handler</code><span class="sig-paren">(</span><em>genie_object</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mini_genie_source/Simulation_Handler/simulation_handler.html#Simulation_Handler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mini_genie_source.Simulation_Handler.simulation_handler.Simulation_Handler" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Takes care of simulations</p>
-<dl class="docutils">
-<dt>Args:</dt>
-<dd>():
-():</dd>
-<dt>Attributes:</dt>
-<dd>():
-():</dd>
-<dt>Note:</dt>
-<dd>this needs work lol</dd>
-</dl>
-<dl class="method">
-<dt id="mini_genie_source.Simulation_Handler.simulation_handler.Simulation_Handler.print_dict">
-<code class="descname">print_dict</code><span class="sig-paren">(</span><em>optional_object=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mini_genie_source/Simulation_Handler/simulation_handler.html#Simulation_Handler.print_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mini_genie_source.Simulation_Handler.simulation_handler.Simulation_Handler.print_dict" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="mini_genie_source.Simulation_Handler.simulation_handler.Simulation_Handler.simulate_atr">
-<code class="descname">simulate_atr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/mini_genie_source/Simulation_Handler/simulation_handler.html#Simulation_Handler.simulate_atr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mini_genie_source.Simulation_Handler.simulation_handler.Simulation_Handler.simulate_atr" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
+<div class="section" id="module-mini_genie_source.Simulation_Handler.flexible_simulation">
+<span id="mini-genie-source-simulation-handler-flexible-simulation-module"></span><h2>mini_genie_source.Simulation_Handler.flexible_simulation module<a class="headerlink" href="#module-mini_genie_source.Simulation_Handler.flexible_simulation" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="mini_genie_source.Simulation_Handler.flexible_simulation.Flexible_Simulation_Backtest">
+<code class="descclassname">mini_genie_source.Simulation_Handler.flexible_simulation.</code><code class="descname">Flexible_Simulation_Backtest</code><span class="sig-paren">(</span><em>runtime_settings</em>, <em>open_data</em>, <em>low_data</em>, <em>high_data</em>, <em>close_data</em>, <em>parameter_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mini_genie_source/Simulation_Handler/flexible_simulation.html#Flexible_Simulation_Backtest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mini_genie_source.Simulation_Handler.flexible_simulation.Flexible_Simulation_Backtest" title="Permalink to this definition">¶</a></dt>
+<dd><p>What do I do</p>
 </dd></dl>
 
+<dl class="function">
+<dt id="mini_genie_source.Simulation_Handler.flexible_simulation.Flexible_Simulation_Optimization">
+<code class="descclassname">mini_genie_source.Simulation_Handler.flexible_simulation.</code><code class="descname">Flexible_Simulation_Optimization</code><span class="sig-paren">(</span><em>runtime_settings</em>, <em>open_data</em>, <em>low_data</em>, <em>high_data</em>, <em>close_data</em>, <em>long_entries</em>, <em>long_exits</em>, <em>short_entries</em>, <em>short_exits</em>, <em>strategy_specific_kwargs</em>, <em>number_of_parameter_comb</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mini_genie_source/Simulation_Handler/flexible_simulation.html#Flexible_Simulation_Optimization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mini_genie_source.Simulation_Handler.flexible_simulation.Flexible_Simulation_Optimization" title="Permalink to this definition">¶</a></dt>
+<dd><p>What do I do</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mini_genie_source.Simulation_Handler.flexible_simulation.flex_order_func_nb">
+<code class="descclassname">mini_genie_source.Simulation_Handler.flexible_simulation.</code><code class="descname">flex_order_func_nb</code><a class="reference internal" href="_modules/mini_genie_source/Simulation_Handler/flexible_simulation.html#flex_order_func_nb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mini_genie_source.Simulation_Handler.flexible_simulation.flex_order_func_nb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flexible Sim Function</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mini_genie_source.Simulation_Handler.flexible_simulation.post_order_func_nb">
+<code class="descclassname">mini_genie_source.Simulation_Handler.flexible_simulation.</code><code class="descname">post_order_func_nb</code><a class="reference internal" href="_modules/mini_genie_source/Simulation_Handler/flexible_simulation.html#post_order_func_nb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mini_genie_source.Simulation_Handler.flexible_simulation.post_order_func_nb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Post Order Function</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mini_genie_source.Simulation_Handler.flexible_simulation.pre_sim_func_nb">
+<code class="descclassname">mini_genie_source.Simulation_Handler.flexible_simulation.</code><code class="descname">pre_sim_func_nb</code><a class="reference internal" href="_modules/mini_genie_source/Simulation_Handler/flexible_simulation.html#pre_sim_func_nb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mini_genie_source.Simulation_Handler.flexible_simulation.pre_sim_func_nb" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="mini-genie-source-simulation-handler-simulation-handler-module">
+<h2>mini_genie_source.Simulation_Handler.simulation_handler module<a class="headerlink" href="#mini-genie-source-simulation-handler-simulation-handler-module" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-mini_genie_source.Simulation_Handler">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-mini_genie_source.Simulation_Handler" title="Permalink to this headline">¶</a></h2>
