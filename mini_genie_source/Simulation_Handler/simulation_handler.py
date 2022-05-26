@@ -2,8 +2,6 @@ from time import perf_counter
 
 from logger_tt import logger
 
-from Utilities.general_utilities import get_objects_list_from_ray
-
 
 class Simulation_Handler:
     """
@@ -60,9 +58,12 @@ class Simulation_Handler:
             object:
 
         """
-        data = [self.genie_object.optimization_open_data, self.genie_object.optimization_low_data,
-                self.genie_object.optimization_high_data, self.genie_object.optimization_close_data]
-        open_data, low_data, high_data, close_data = get_objects_list_from_ray(data)
+        # data = [self.genie_object.optimization_open_data, self.genie_object.optimization_low_data,
+        #         self.genie_object.optimization_high_data, self.genie_object.optimization_close_data]
+        # open_data, low_data, high_data, close_data = get_objects_list_from_ray(data)
+        open_data, low_data, \
+        high_data, close_data = self.genie_object.optimization_open_data, self.genie_object.optimization_low_data, \
+                                self.genie_object.optimization_high_data, self.genie_object.optimization_close_data
 
         Start_Timer = perf_counter()
         long_entries, long_exits, \
@@ -91,9 +92,12 @@ class Simulation_Handler:
         Returns:
             object: 
         '''  # (2b)_n-1
-        data = [self.genie_object.optimization_open_data, self.genie_object.optimization_low_data,
-                self.genie_object.optimization_high_data, self.genie_object.optimization_close_data]
-        open_data, low_data, high_data, close_data = get_objects_list_from_ray(data)
+        # data = [self.genie_object.optimization_open_data, self.genie_object.optimization_low_data,
+        #         self.genie_object.optimization_high_data, self.genie_object.optimization_close_data]
+        # open_data, low_data, high_data, close_data = get_objects_list_from_ray(data)
+        open_data, low_data, \
+        high_data, close_data = self.genie_object.optimization_open_data, self.genie_object.optimization_low_data, \
+                                self.genie_object.optimization_high_data, self.genie_object.optimization_close_data
 
         batch_size_ = int(long_entries.shape[1] / len(close_data.keys()))
 
@@ -108,7 +112,7 @@ class Simulation_Handler:
 
         '''Save Portfolio after each epoch'''  # (3)_n-1
         pf.save(
-            f'{self.genie_object.runtime_settings["directory_paths"]["portfolio"]}/{self.genie_object.runtime_settings["Portfolio_Settings"]["saved_pf_optimization"]}')
+            f'{self.genie_object.portfolio_path}/{self.genie_object.runtime_settings["Simulation_Settings.Portfolio_Settings.saved_pf_optimization"]}')
 
         return pf, extra_sim_info
 

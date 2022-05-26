@@ -36,8 +36,8 @@ Run_Time_Settings = dict(
 
         Initial_Search=dict(
             # max_initial_combinations=1_000_000,
-            max_initial_combinations=1000,
-            batch_size=2,
+            max_initial_combinations=10_000_000,
+            batch_size=1000,
             force_to_finish=True,  # fixme: logic missing
             #
             parameter_selection=dict(

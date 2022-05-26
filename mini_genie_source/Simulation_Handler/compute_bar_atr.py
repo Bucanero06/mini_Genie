@@ -1,5 +1,4 @@
 import numpy as np
-import ray
 import vectorbtpro as vbt
 from numba import njit
 
@@ -245,10 +244,15 @@ def compute_bar_atr(genie_object):
         multiplier_windows=3
     )
 
-    open_data = ray.get(genie_object.bar_atr_open_data)
-    low_data = ray.get(genie_object.bar_atr_low_data)
-    high_data = ray.get(genie_object.bar_atr_high_data)
-    close_data = ray.get(genie_object.bar_atr_close_data)
+    # open_data = ray.get(genie_object.bar_atr_open_data)
+    # low_data = ray.get(genie_object.bar_atr_low_data)
+    # high_data = ray.get(genie_object.bar_atr_high_data)
+    # close_data = ray.get(genie_object.bar_atr_close_data)
+    #
+    open_data = genie_object.bar_atr_open_data
+    low_data = genie_object.bar_atr_low_data
+    high_data = genie_object.bar_atr_high_data
+    close_data = genie_object.bar_atr_close_data
 
     # Change timeframes
     resampled_data_dict = resample_olhc_genie(timeframes=timeframes,

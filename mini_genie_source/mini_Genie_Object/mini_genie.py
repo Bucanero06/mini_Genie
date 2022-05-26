@@ -1,9 +1,10 @@
 import os.path
+import sys
 
 import numpy as np
-import ray
 import vectorbtpro as vbt
 from logger_tt import logger
+from numpy import random
 
 
 class mini_genie_trader:
@@ -73,10 +74,11 @@ class mini_genie_trader:
             'type'].lower() in self.ACCEPTED_TF_TYPES)
         self.tp_sl_keynames = tuple(key_name for key_name in self.key_names if self.parameter_windows[key_name][
             'type'].lower() in self.ACCEPTED_TP_SL_TYPES)
-        self.tp_keynames = tuple(key_name for key_name in self.key_names if self.parameter_windows[key_name][
+        self.tp_keyname = tuple(key_name for key_name in self.key_names if self.parameter_windows[key_name][
             'type'].lower() in self.ACCEPTED_TP_TYPES)
-        self.sl_keynames = tuple(key_name for key_name in self.key_names if self.parameter_windows[key_name][
+        self.sl_keyname = tuple(key_name for key_name in self.key_names if self.parameter_windows[key_name][
             'type'].lower() in self.ACCEPTED_SL_TYPES)
+        assert len(self.tp_keyname) == len(self.sl_keyname) == 1
         #
         self.tp_sl_selection_space = self.runtime_settings[
             "Optimization_Settings.Initial_Search.parameter_selection.tp_sl"]
@@ -175,11 +177,11 @@ class mini_genie_trader:
         else:
             saved_parameter_history = pd.read_parquet(f'{self.saved_runs_path}.gzip')
 
-        # fixme: self.previously_computed_parameters_df = ray.put(previously_computed_parameters_df if not header_df
-        #  else header_df)
-        self.saved_parameter_history = ray.put(
-            saved_parameter_history if not saved_parameter_history.empty else header_df)
-        # self.saved_parameter_history = saved_parameter_history if header_df.empty else header_df
+        # # fixme: self.previously_computed_parameters_df = ray.put(previously_computed_parameters_df if not header_df
+        # #  else header_df)
+        # self.saved_parameter_history = ray.put(
+        #     saved_parameter_history if not saved_parameter_history.empty else header_df)
+        self.saved_parameter_history = saved_parameter_history if header_df.empty else header_df
 
     # todo
     def _grade_parameter_combinations(self):
@@ -192,6 +194,11 @@ class mini_genie_trader:
         #       etc ...
 
     def fetch_and_prepare_input_data(self) -> object:
+        """
+        Returns:
+            object: 
+
+        """
         self.status = 'fetch_and_prepare_input_data'
 
         from Data_Handler.data_handler import Data_Handler
@@ -412,11 +419,9 @@ class mini_genie_trader:
                 parameters_lengths_dict["all_tf_in_this_study"].extend(tf_in_key_name)
 
             elif self.parameter_windows[key_name]["type"].lower() in self.ACCEPTED_WINDOW_TYPES:
-                if isinstance(self.parameter_windows[key_name]['lower_bound'], int) and isinstance(
-                        self.parameter_windows[key_name]['upper_bound'], int):
+                if isinstance(self.parameter_windows[key_name]['min_step'], int):
                     parameters_record_dtype.append((key_name, 'i8'))
-                elif isinstance(self.parameter_windows[key_name]['lower_bound'], float) or isinstance(
-                        self.parameter_windows[key_name]['upper_bound'], float):
+                elif isinstance(self.parameter_windows[key_name]['min_step'], float):
                     parameters_record_dtype.append((key_name, 'f8'))
                 else:
                     logger.error(f'Parameter {key_name} is defined as type window but inputs are inconsistent.\n'
@@ -425,18 +430,24 @@ class mini_genie_trader:
                                  f' upper_bound type:   {type(self.parameter_windows[key_name]["upper_bound"])}'
                                  f' lower_bound type:   {type(self.parameter_windows[key_name]["lower_bound"])}'
                                  )
-                    exit()
+                    sys.exit()
                 parameters_lengths_dict[f'{key_name}_length'] = _total_possible_values_in_window(
                     self.parameter_windows[key_name]["lower_bound"], self.parameter_windows[key_name]["upper_bound"],
                     self.parameter_windows[key_name]["min_step"])
 
             elif self.parameter_windows[key_name]["type"].lower() in self.ACCEPTED_TP_SL_TYPES:
-                if isinstance(self.parameter_windows[key_name]['lower_bound'], int) and isinstance(
-                        self.parameter_windows[key_name]['upper_bound'], int):
+                if isinstance(self.parameter_windows[key_name]['min_step'], int):
                     parameters_record_dtype.append((key_name, 'i8'))
-                elif isinstance(self.parameter_windows[key_name]['lower_bound'], float) or isinstance(
-                        self.parameter_windows[key_name]['upper_bound'], float):
+                elif isinstance(self.parameter_windows[key_name]['min_step'], float):
                     parameters_record_dtype.append((key_name, 'f8'))
+                else:
+                    logger.error(f'Parameter {key_name} is defined as type window but inputs are inconsistent.\n'
+                                 f'     (e.g. -> Either lower_bound or upper_bound is a float => float)\n'
+                                 f'     (e.g. -> both lower_bound or upper_bound are integers => int)\n'
+                                 f' upper_bound type:   {type(self.parameter_windows[key_name]["upper_bound"])}'
+                                 f' lower_bound type:   {type(self.parameter_windows[key_name]["lower_bound"])}'
+                                 )
+                    sys.exit()
                 #
                 parameters_lengths_dict[f'{key_name}_length'] = _total_possible_values_in_window(
                     self.parameter_windows[key_name]["lower_bound"], self.parameter_windows[key_name]["upper_bound"],
@@ -449,7 +460,7 @@ class mini_genie_trader:
             else:
                 logger.error(f'Parameter {key_name} is defined as type {self.parameter_windows[key_name]["type"]}'
                              f'but that type is not accepted ... yet ;)')
-                exit()
+                sys.exit()
 
         parameters_lengths_dict["all_tf_in_this_study"] = list(set(parameters_lengths_dict["all_tf_in_this_study"]))
         # Determine size of complete parameter space combinations with settings given as well reduced space
@@ -475,6 +486,7 @@ class mini_genie_trader:
 
     def _compute_params_product_n_fill_record(self, params):
         from itertools import product
+
         initial_param_combinations = list(
             set(
                 product(
@@ -490,35 +502,73 @@ class mini_genie_trader:
             value = ((index,) + initial_param_combinations[index][:-1] + initial_param_combinations[index][-1])
             self.parameters_record[index] = value
 
-    def _compute_bar_atr(self):
+    def _compute_bar_atr(self) -> object:
+        """
+        Returns:
+            object: 
+
+        """
         from mini_genie_source.Simulation_Handler.compute_bar_atr import compute_bar_atr
         self.bar_atr = compute_bar_atr(self)
 
     @staticmethod
-    def _expand_tp_sl_0(tp_sl_0, n_ratios, gamma_ratios, tick_size):
+    def _fill_tp_sl_n_skip_out_of_bound_suggestions(tp_sl_record: object, tp_sl_0: object, n_ratios: object,
+                                                    gamma_ratios: object, tick_size: object,
+                                                    tp_upper_bound: object, tp_lower_bound: object,
+                                                    sl_upper_bound: object,
+                                                    sl_lower_bound: object,
+                                                    skipped_indexes: object, tf_index: object) -> object:
         """
         tp_sl_0: base
         n_ratios: you multiply the atr with
         gamma_ratios: risk reward ratio
-        """
-        tp = []
-        sl = []
 
+        Args:
+            tp_sl_record:
+            tp_sl_0:
+            n_ratios:
+            gamma_ratios:
+            tick_size:
+            tp_upper_bound:
+            tp_lower_bound:
+            sl_upper_bound:
+            sl_lower_bound:
+            skipped_indexes:
+            tf_index:
+
+        Returns:
+            object:
+        """
+
+        _index = -1
+        batch_ = len(n_ratios) * len(gamma_ratios)
         for n in n_ratios:
             for gamma in gamma_ratios:
+                _index = (_index + 1)
+                index = (tf_index * batch_) + _index
+                #
                 adj_tp_sl_0 = tp_sl_0 * n
                 diff = adj_tp_sl_0 * gamma
                 #
                 if gamma < 1:
-                    tp.append(adj_tp_sl_0 / tick_size)
-                    sl.append(-(adj_tp_sl_0 + diff) / tick_size)
-                else:
-                    tp.append((adj_tp_sl_0 + diff) / tick_size)
-                    sl.append((-adj_tp_sl_0) / tick_size)
+                    tp_value = adj_tp_sl_0 / tick_size
+                    sl_value = -(adj_tp_sl_0 + diff) / tick_size
                 #
+                else:
+                    tp_value = (adj_tp_sl_0 + diff) / tick_size
+                    sl_value = (-adj_tp_sl_0) / tick_size
+                #
+                if (tp_lower_bound <= abs(tp_value) <= tp_upper_bound) \
+                        and (sl_lower_bound <= abs(sl_value) <= sl_upper_bound):
+                    tp_sl_record["take_profit"][index] = tp_value
+                    tp_sl_record["stop_loss"][index] = sl_value
+                    #
+                else:
+                    skipped_indexes.append(index)
 
-        return tp, sl
+        return tp_sl_record, skipped_indexes
 
+    @property
     def _compute_tp_n_sl_from_tp_sl_0(self) -> object:
         """
 
@@ -526,19 +576,56 @@ class mini_genie_trader:
             object:
 
         """
-        result = {}
-        for tf in self.parameters_lengths_dict[f'all_tf_in_this_study']:
-            tp_sl_0 = self.bar_atr[tf]["mean_atr"]
-            tp, sl = self._expand_tp_sl_0(tp_sl_0,
-                                          self.tp_sl_selection_space["n_ratios"],
-                                          self.tp_sl_selection_space["gamma_ratios"],
-                                          self.runtime_settings["Data_Settings.tick_size"])
-            result[tf] = dict(
-                take_profits=tp,
-                stop_losses=sl
-            )
+        #
+        n_ratios = sorted(self.tp_sl_selection_space["n_ratios"])
+        gamma_ratios = self.tp_sl_selection_space["gamma_ratios"]
+        tick_size = self.runtime_settings["Data_Settings.tick_size"]
+        #
+        tp_upper_bound, tp_lower_bound, tp_min_step = self.parameter_windows[self.tp_keyname[0]]["upper_bound"], \
+                                                      self.parameter_windows[self.tp_keyname[0]]["lower_bound"], \
+                                                      self.parameter_windows[self.tp_keyname[0]]["min_step"]
+        sl_upper_bound, sl_lower_bound, sl_min_step = self.parameter_windows[self.sl_keyname[0]]["upper_bound"], \
+                                                      self.parameter_windows[self.sl_keyname[0]]["lower_bound"], \
+                                                      self.parameter_windows[self.sl_keyname[0]]["min_step"]
+        #
 
-        return result
+        dtype = 'i8' if isinstance(self.parameter_windows[self.tp_keyname[0]]['lower_bound'], int) else 'f4'
+        tp_sl_record = np.empty(self.parameters_lengths_dict["tp_sl_length"],
+                                dtype=np.dtype([
+                                    ('take_profit', dtype),
+                                    ('stop_loss', dtype)
+                                ]))
+
+        #
+        skipped_indexes = []
+        #
+        for tf_index, tf in enumerate(self.parameters_lengths_dict[f'all_tf_in_this_study']):
+            '''Fill with tp and sl that lay within their bounds'''
+            tp_sl_0 = self.bar_atr[tf]["mean_atr"]
+            #
+            tp_sl_record, skipped_indexes = self._fill_tp_sl_n_skip_out_of_bound_suggestions(tp_sl_record, tp_sl_0,
+                                                                                             n_ratios, gamma_ratios,
+                                                                                             tick_size, tp_upper_bound,
+                                                                                             tp_lower_bound,
+                                                                                             sl_upper_bound,
+                                                                                             sl_lower_bound,
+                                                                                             skipped_indexes, tf_index)
+        #
+        #   Fill missing indexes that weren't in bounds
+        tp_range = np.arange(tp_lower_bound + tp_min_step, tp_upper_bound, tp_min_step)
+        sl_range = np.arange(sl_lower_bound + sl_min_step, sl_upper_bound, sl_min_step)
+        #
+        if skipped_indexes:
+            logger.warning(
+                f'Redefinding a total of {len(skipped_indexes)} tp_n_sl\'s that did not reside within the bounds of their p-space \n'
+                f'  ** these are selected at random, however, change the initial n and gamma ratios to something more appropriate to minimize this process**')
+            for missing_index in skipped_indexes:
+                tp_sl_record["take_profit"][missing_index] = random.choice(
+                    [x for x in tp_range if x not in tp_sl_record["take_profit"]])
+                tp_sl_record["stop_loss"][missing_index] = random.choice(
+                    [x for x in sl_range if x not in tp_sl_record["stop_loss"]])
+
+        return tp_sl_record
 
     def _initiate_metric_records(self) -> object:
         """
@@ -639,24 +726,27 @@ class mini_genie_trader:
                 else:
                     number_of_suggestions = self.parameters_lengths_dict[f'tp_sl_length']
                     #
-                    tp_sl_dict = self._compute_tp_n_sl_from_tp_sl_0()
+                    tp_sl_record = self._compute_tp_n_sl_from_tp_sl_0
                     #
-                    tp_sl = []
-                    for tf in self.parameters_lengths_dict["all_tf_in_this_study"]:
-                        tp_sl.extend(
-                            (take_profit, stop_loss) for take_profit, stop_loss in
-                            zip(tp_sl_dict[tf]["take_profits"], tp_sl_dict[tf]["stop_losses"])
-                        )
+                    # self.parameters_lengths_dict[self.tp_keyname[0]] = len(tp_sl_record["take_profit"])
+                    # self.parameters_lengths_dict[self.sl_keyname[0]] = len(tp_sl_record["stop_loss"])
                     #
-                    assert number_of_suggestions == len(tp_sl)
-
+                    assert number_of_suggestions == len(tp_sl_record)
             #
+        # todo
         else:
             # TODO: code else ... the continuation of the study
             ...
         params = timeframe_params | window_params
-        params["tp_sl"] = tp_sl
+        # params["tp_sl"] = list(tp_sl_record)
+        params["tp_sl"] = [(tp, sl) for tp, sl in zip(tp_sl_record["take_profit"], tp_sl_record["stop_loss"])]
+
         self._compute_params_product_n_fill_record(params)
+        #
+        logger.info(f'Total # of Combinations -> {self.parameters_lengths_dict["n_total_combinations"]}\n'
+                    f'  * given current definitions for parameter space\n'
+                    f'\n'
+                    f'Initial Parameter Space Reduced to {self.parameters_lengths_dict["n_initial_combinations"]}')
 
     # todo
     def _save_newly_computed_params(self):
@@ -678,29 +768,44 @@ class mini_genie_trader:
         from Simulation_Handler.simulation_handler import Simulation_Handler
         simulation_handler = Simulation_Handler(self)
         #
+        # todo: import analysis_handler object ...
 
         number_of_parameters = len(self.parameters_record)
         batch_size = self.batch_size
         N_chunks = int(np.ceil(number_of_parameters / batch_size))
         #
-        for chunk_index in range(N_chunks):
-            #
-            indexes = [chunk_index * self.batch_size, chunk_index * self.batch_size + self.batch_size]
-            epoch_index_range_ = range(indexes[0], indexes[1], 1)
-            epoch_params = np.take(self.parameters_record, epoch_index_range_)
-            #
-            long_entries, long_exits, short_entries, short_exits, \
-            strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params)
-            #
-            simulation_handler.simulate_events(long_entries, long_exits, short_entries, short_exits,
-                                               strategy_specific_kwargs)
+        from time import perf_counter
+        import cProfile
+        import pstats
 
-            # todo analyse
-
-            # todo save
-            exit()
-            self._save_newly_computed_params(...)
-
+        with cProfile.Profile() as pr:
+            #
+            for chunk_index in range(N_chunks):
+                if chunk_index == 10:
+                    break
+                #
+                start_time = perf_counter()
+                logger.info(f'Epoch --> {chunk_index}, Trials Ran --> {chunk_index * self.batch_size} ')
+                indexes = [chunk_index * self.batch_size, chunk_index * self.batch_size + self.batch_size]
+                epoch_index_range_ = range(indexes[0], indexes[1], 1)
+                epoch_params = np.take(self.parameters_record, epoch_index_range_)
+                #
+                long_entries, long_exits, short_entries, short_exits, \
+                strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params)
+                #
+                pf, extra_sim_info = simulation_handler.simulate_events(long_entries, long_exits,
+                                                                        short_entries, short_exits,
+                                                                        strategy_specific_kwargs)
+                logger.info(f'Epoch {chunk_index} took {perf_counter() - start_time} seconds')
+                # # todo analyse
+                # # can analyze while computing signals and
+                # # todo save
+                # sys.exit()
+                # self._save_newly_computed_params(...)
+        stats = pstats.Stats(pr)
+        stats.sort_stats(pstats.SortKey.TIME)
+        stats.dump_stats(filename='batch_100.prof')
+        sys.exit()
         ...
 
     # todo

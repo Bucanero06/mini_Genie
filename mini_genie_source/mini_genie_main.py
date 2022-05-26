@@ -1,11 +1,12 @@
+import numpy as np
 from logger_tt import logger
 from logger_tt import setup_logging
 
 if __name__ == "__main__":
-    # Initiate Logger (Will not work within "ray")
     setup_logging(full_context=1)
     from mini_genie_source.Configuration_Files.runtime_parameters import Run_Time_Settings
     from mini_genie_source.mini_Genie_Object.mini_genie import mini_genie_trader
+
 
     # Initiate the genie object
     '''
@@ -53,6 +54,7 @@ if __name__ == "__main__":
     logger.info(f'{genie_object.parameters_record = }')
     logger.info(f'{genie_object.metrics_record = }')
     # TODO: LEFT HERE
+
     exit()
     genie_object.print_dict()
     # TODO:

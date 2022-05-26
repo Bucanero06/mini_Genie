@@ -16,7 +16,9 @@ def BARSINCE_genie(df: object) -> object:
         object:
 
     """
-    def intervaled_cumsum_(a: object, trigger_val: object = 1, start_val: object = 0, invalid_specifier: object = -1) -> object:
+
+    def intervaled_cumsum_(a: object, trigger_val: object = 1, start_val: object = 0,
+                           invalid_specifier: object = -1) -> object:
         """
 
         Args:

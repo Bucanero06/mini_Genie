@@ -309,7 +309,7 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data):
     # stoploss_bool = np.array(data_and_parameter_dictionary["stoploss_bool"])
     stoploss_points = np.array(parameter_data["stoploss_points"])
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
+    #
     '''Compile Structure and Run Master Indicator'''
     Master_Indicator = vbt.IF(
         input_names=[
@@ -352,14 +352,14 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data):
         execute_kwargs=dict(
             engine='ray',
             # n_chunks='auto',
-            # chunk_len='auto',del_refs
+            chunk_len='auto',  # del_refs
             # init_kwargs=dict(),
-            # init_kwargs={
-            #     # 'num_cpus': 18,
-            #     'num_cpus': 14,
-            #     # 'del_refs': False,
-            #     # 'ignore_reinit_error': True
-            # },
+            init_kwargs={
+                # 'num_cpus': 18,
+                'num_cpus': 28,
+                # 'del_refs': False,
+                # 'ignore_reinit_error': True
+            },
             # # remote_kwargs={'num_cpus': 18},
             # remote_kwargs={'num_cpus': 14},
             show_progress=True
