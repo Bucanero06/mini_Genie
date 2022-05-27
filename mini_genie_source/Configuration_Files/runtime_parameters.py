@@ -33,23 +33,28 @@ Run_Time_Settings = dict(
         ),
         timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # fixme: logic missing
         Continue=False,
-
+        batch_size=2,
+        SAVE_EVERY_Nth_CHUNK=1,
         Initial_Search=dict(
             # max_initial_combinations=1_000_000,
-            max_initial_combinations=10_000_000,
-            batch_size=1000,
+            # max_initial_combinations=33_000_000,
+            # _extensions available -> csv and gzip
+            path_of_initial_metrics_record='saved_param_metrics.csv',
+            path_of_initial_params_record='saved_initial_params.csv',
+            max_initial_combinations=100_000,
+            stop_after_n_epoch=3,
             force_to_finish=True,  # fixme: logic missing
             #
             parameter_selection=dict(
                 timeframes='all',  # fixme: needs to add settings for how to reduce, these dont do anything
                 windows='grid',  # fixme: needs to add settings for how to reduce, these dont do anything
                 tp_sl=dict(
-                    bar_atr_days=datetime.timedelta(days=60, hours=0, minutes=0, seconds=0),
+                    bar_atr_days=datetime.timedelta(days=90, hours=0, minutes=0, seconds=0),
                     bar_atr_periods=[14],  # todo multiple inputs
                     bar_atr_multiplier=[3],  # todo multiple inputs
                     #
-                    n_ratios=[0.5, 1, 1.5, 2, 2.5],
-                    gamma_ratios=[1, 1.2, 1.5, 1.75, 2, 2.5, 3],
+                    n_ratios=[0.5, 1, 1.5, 2],
+                    gamma_ratios=[0.5, 1.5, 2, 2.5, 3],
                     number_of_bar_trends=1,
                 ),
 
@@ -59,8 +64,8 @@ Run_Time_Settings = dict(
 
         Loss_Function=dict(
             metrics=[
-                'Risk/Reward Ratio',
-                'Risk Adjusted Return',
+                # 'Risk/Reward Ratio',
+                # 'Risk Adjusted Return',
                 'Total Trades',
                 'Win Rate [%]',
                 'Profit Factor',
@@ -166,7 +171,7 @@ Run_Time_Settings = dict(
             # max_orders=-1,
             init_cash=1_000_000,
             size_type='cash',  # 'shares',  # cash or shares
-            size=1_000,  # cash, else set size type to shares for share amount
+            size=25_000,  # cash, else set size type to shares for share amount
             type_percent=False,  # if true then take_profit and stoploss are given in percentages, else cash amount
 
         ),
