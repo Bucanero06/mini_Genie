@@ -6,7 +6,9 @@ Subpackages
 
 .. toctree::
 
+    mini_genie_source.Analysis_Handler
     mini_genie_source.Data_Handler
+    mini_genie_source.Equipment_Handler
     mini_genie_source.Optimization_Module_mini_genie
     mini_genie_source.Simulation_Handler
     mini_genie_source.Utilities

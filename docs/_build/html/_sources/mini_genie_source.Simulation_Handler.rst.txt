@@ -28,6 +28,14 @@ mini\_genie\_source.Simulation\_Handler.simulation\_handler module
     :undoc-members:
     :show-inheritance:
 
+mini\_genie\_source.Simulation\_Handler.super\_trend\_n\_atr\_indicator module
+------------------------------------------------------------------------------
+
+.. automodule:: mini_genie_source.Simulation_Handler.super_trend_n_atr_indicator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

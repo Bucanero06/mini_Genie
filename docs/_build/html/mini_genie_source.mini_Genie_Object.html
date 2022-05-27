@@ -37,7 +37,7 @@
               <div class="local-toc"><ul>
 <li><a class="reference internal" href="#">mini_genie_source.mini_Genie_Object package</a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
-<li><a class="reference internal" href="#mini-genie-source-mini-genie-object-mini-genie-module">mini_genie_source.mini_Genie_Object.mini_genie module</a></li>
+<li><a class="reference internal" href="#module-mini_genie_source.mini_Genie_Object.mini_genie">mini_genie_source.mini_Genie_Object.mini_genie module</a></li>
 <li><a class="reference internal" href="#module-mini_genie_source.mini_Genie_Object">Module contents</a></li>
 </ul>
 </li>
@@ -72,8 +72,90 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 </div>
-<div class="section" id="mini-genie-source-mini-genie-object-mini-genie-module">
-<h2>mini_genie_source.mini_Genie_Object.mini_genie module<a class="headerlink" href="#mini-genie-source-mini-genie-object-mini-genie-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-mini_genie_source.mini_Genie_Object.mini_genie">
+<span id="mini-genie-source-mini-genie-object-mini-genie-module"></span><h2>mini_genie_source.mini_Genie_Object.mini_genie module<a class="headerlink" href="#module-mini_genie_source.mini_Genie_Object.mini_genie" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="mini_genie_source.mini_Genie_Object.mini_genie.mini_genie_trader">
+<em class="property">class </em><code class="descclassname">mini_genie_source.mini_Genie_Object.mini_genie.</code><code class="descname">mini_genie_trader</code><span class="sig-paren">(</span><em>runtime_kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mini_genie_source/mini_Genie_Object/mini_genie.html#mini_genie_trader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mini_genie_source.mini_Genie_Object.mini_genie.mini_genie_trader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>genie_object to be acted on</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>symbol_data (vbt.Data):  symbol_data object from vbt
+…</dd>
+<dt>Attributes:</dt>
+<dd>open_df (df or series):  price during opening of candle
+…</dd>
+<dt>Note:</dt>
+<dd>…</dd>
+</dl>
+<dl class="method">
+<dt id="mini_genie_source.mini_Genie_Object.mini_genie.mini_genie_trader.fetch_and_prepare_input_data">
+<code class="descname">fetch_and_prepare_input_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/mini_genie_source/mini_Genie_Object/mini_genie.html#mini_genie_trader.fetch_and_prepare_input_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mini_genie_source.mini_Genie_Object.mini_genie.mini_genie_trader.fetch_and_prepare_input_data" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Returns:</dt>
+<dd>object:</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="mini_genie_source.mini_Genie_Object.mini_genie.mini_genie_trader.print_dict">
+<code class="descname">print_dict</code><span class="sig-paren">(</span><em>optional_object=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mini_genie_source/mini_Genie_Object/mini_genie.html#mini_genie_trader.print_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mini_genie_source.mini_Genie_Object.mini_genie.mini_genie_trader.print_dict" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Returns:</dt>
+<dd>object:</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="mini_genie_source.mini_Genie_Object.mini_genie.mini_genie_trader.simulate">
+<code class="descname">simulate</code><span class="sig-paren">(</span><em>SAVE_EVERY_Nth_CHUNK=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/mini_genie_source/mini_Genie_Object/mini_genie.html#mini_genie_trader.simulate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mini_genie_source.mini_Genie_Object.mini_genie.mini_genie_trader.simulate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="mini_genie_source.mini_Genie_Object.mini_genie.mini_genie_trader.suggest_parameters">
+<code class="descname">suggest_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/mini_genie_source/mini_Genie_Object/mini_genie.html#mini_genie_trader.suggest_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mini_genie_source.mini_Genie_Object.mini_genie.mini_genie_trader.suggest_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>List of Initial Params:</dt>
+<dd><dl class="first last docutils">
+<dt>Product of:</dt>
+<dd><p class="first">All Categorical Params
+Use a grid-like approach to windows for indicators
+For TP and SL use the avg ATR for the 3 months prior to the optimization date window for every</p>
+<blockquote class="last">
+<div><p>timeframe (when possible do this separately for upwards, downwards and sideways, then use
+these values separately during the strategy or average them for a single value) then:</p>
+<blockquote>
+<div><ol class="arabic">
+<li><p class="first">Using ar{ATR}(TF), define multiple TP_0 and SL_0 for and scale with n ratios [ 0.5, 1, 1.5, 2, 2.5]</p>
+</li>
+<li><p class="first">Use (TP/SL) gamma ratios like [ 1, 1.2, 1.5, 1.75, 2, 2.5, 3]
+(e.g. -&gt; ar{ATR}(TF=’1h’)=1000, n=2 and gamma=1.5, -&gt; R=ar{ATR}(TF=’1h’)/n=500</p>
+<blockquote>
+<div><p>==&gt; TP=750 &amp; SL=-500)</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>(e.g. -&gt; ar{ATR}(TF=’1h’)=1000, n=2 and gamma=1.0, -&gt; R=ar{ATR}(TF=’1h’)/n=500</dt>
+<dd><p class="first last">==&gt; TP=500 &amp; SL=-500)</p>
+</dd>
+<dt>(e.g. -&gt; ar{ATR}(TF=’1h’)=1000, n=2 and gamma=0.5, -&gt; R=ar{ATR}(TF=’1h’)/n=500</dt>
+<dd><p class="first last">==&gt; TP=500 &amp; SL=-750)</p>
+</dd>
+</dl>
+</li>
+</ol>
+</div></blockquote>
+</div></blockquote>
+</dd>
+</dl>
+</dd>
+<dt>Run product of unique param values in each category, use the best N params params as the starting seeds</dt>
+<dd>for Optimization … next</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-mini_genie_source.mini_Genie_Object">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-mini_genie_source.mini_Genie_Object" title="Permalink to this headline">¶</a></h2>

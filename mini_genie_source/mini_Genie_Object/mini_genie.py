@@ -691,7 +691,6 @@ class mini_genie_trader:
                Product of:
                    All Categorical Params
                    Use a grid-like approach to windows for indicators
-                TODO:
                    For TP and SL use the avg ATR for the 3 months prior to the optimization date window for every
                        timeframe (when possible do this separately for upwards, downwards and sideways, then use
                        these values separately during the strategy or average them for a single value) then:
@@ -716,7 +715,7 @@ class mini_genie_trader:
             if not all(self.parameters_lengths_dict):
                 from Utilities.general_utilities import load_dict_from_file
                 self.parameters_lengths_dict = load_dict_from_file(f'{self.misc_dir_path}/_parameters_lengths_dict')
-            # 
+            #
             self._initiate_metric_records(add_ids=True)
 
         '''Fill initial parameter space'''
@@ -852,27 +851,29 @@ class mini_genie_trader:
 
     # TODO CONTINUING SECTIONS
     def simulate(self, SAVE_EVERY_Nth_CHUNK=None):
-        # TODO:
-        #   In batches or similar to Genie[full]:
-        #       1.  Simulate N parameters' indicators
-        #       2.  Simulate N parameters' events
-        #
+        """
+        In chunks/batches:
+           1.  Simulate N parameters' indicators
+           2.  Simulate N parameters' events
+           3.  Compute Metrics
+           4.  Save Results to file
+        """
+
         from Simulation_Handler.simulation_handler import Simulation_Handler
         from Analysis_Handler.analysis_handler import Analysis_Handler
         simulation_handler = Simulation_Handler(self)
         analysis_handler = Analysis_Handler(self)
         #
-        # todo: import analysis_handler object ...
-
         number_of_parameters = len(self.parameters_record)
         batch_size = self.batch_size
         N_chunks = int(np.ceil(number_of_parameters / batch_size))
         #
         highest_profit = -sys.maxsize
         best_parameters = None
-        best_metrics = None
+        #
         initial_cash_total = self.runtime_settings["Simulation_Settings.Portfolio_Settings.init_cash"]
         stop_after_n_epoch = self.runtime_settings["Optimization_Settings.Initial_Search.stop_after_n_epoch"]
+        #
         # todo!!!! do not simulate already_computed params
         for chunk_index in range(N_chunks):  # todo: would like to use ray to scale this (*keep track of index)
             if chunk_index == stop_after_n_epoch:
