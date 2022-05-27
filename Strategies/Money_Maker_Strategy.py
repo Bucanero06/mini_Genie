@@ -34,6 +34,7 @@ def cache_func(open, low, high, close,
 
     # Create a set of all timeframes to resample data to
     timeframes = set(PEAK_and_ATR_timeframes + EMAs_timeframes)
+    #
     for timeframe in timeframes:
         # '''Pre-Resample Data'''
         # OPEN
@@ -73,6 +74,7 @@ def cache_func(open, low, high, close,
     PEAK_and_ATR_timeframes = set(PEAK_and_ATR_timeframes)
     # Create a set of atr_windows
     atr_windows = set(atr_windows)
+    #
     for PEAK_and_ATR_timeframe in PEAK_and_ATR_timeframes:
         for atr_window in atr_windows:
             cache['ATR'][f'{PEAK_and_ATR_timeframe}_{atr_window}'] = vbt.indicators.ATR.run(
@@ -87,11 +89,13 @@ def cache_func(open, low, high, close,
     EMAs_timeframes = set(EMAs_timeframes)
     # Create a set of ema_windows
     ema_windows = set(ema_1_windows + ema_2_windows + ema_3_windows)
+    #
     for EMAs_timeframe in EMAs_timeframes:
         for ema_window in ema_windows:
             cache['EMA'][f'{EMAs_timeframe}_{ema_window}'] = vbt.MA.run(cache['Close'][EMAs_timeframe],
                                                                         window=ema_window,
                                                                         ewm=True).ma
+
     return cache
 
 
@@ -133,6 +137,7 @@ def apply_function(open_data, low_data, high_data, close_data,
     # All indicators and datas in this section use the PEAK_and_ATR_timeframe
 
     # Compute the rolling max of the high_data using a window of size data_lookback_window "highest(3,high)"
+
     rolling_max = ROLLING_MAX_genie(PEAK_and_ATR_timeframe_high.to_numpy(), data_lookback_window)
 
     # Compare where the high_data is the same as the rolling_max "high == highest(3,high)"
@@ -261,26 +266,6 @@ def apply_function(open_data, low_data, high_data, close_data,
            stoploss_points
 
 
-# No Bools
-# PeakLow, PeakHigh, \
-# long_entry_condition_1, long_entry_condition_2, long_entry_condition_3, \
-# short_entry_condition_1, short_entry_condition_2, short_entry_condition_3, \
-# breakeven_1_trigger_points, breakeven_1_distance_points, \
-# breakeven_2_trigger_points, breakeven_2_distance_points, \
-# take_profit_points, \
-# stoploss_points
-
-# ALL
-# PeakLow, PeakHigh, \
-# long_entry_condition_1, long_entry_condition_2, long_entry_condition_3, \
-# short_entry_condition_1, short_entry_condition_2, short_entry_condition_3, \
-# progressive_bool, \
-# breakeven_1_trigger_bool, breakeven_1_trigger_points, breakeven_1_distance_points, \
-# breakeven_2_trigger_bool, breakeven_2_trigger_points, breakeven_2_distance_points, \
-# take_profit_bool, take_profit_points, \
-# stoploss_bool, stoploss_points
-
-
 def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data):
     """MMT_Strategy"""
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -352,7 +337,7 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data):
         execute_kwargs=dict(
             engine='ray',
             # n_chunks='auto',
-            chunk_len='auto',  # del_refs
+            # chunk_len='auto',  # del_refs
             # init_kwargs=dict(),
             init_kwargs={
                 # 'num_cpus': 18,
@@ -520,6 +505,7 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data):
         stoploss_points=Master_Indicator.stoploss_points,
         stoploss_points_parameters=stoploss_points,
     )
+
     # strategy_specific_kwargs = dict()
     return Master_Indicator.long_entries, Master_Indicator.long_exits, \
            Master_Indicator.short_entries, Master_Indicator.short_exits, \
