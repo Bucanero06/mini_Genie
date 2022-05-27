@@ -1,4 +1,3 @@
-import numpy as np
 from logger_tt import logger
 from logger_tt import setup_logging
 
@@ -6,7 +5,6 @@ if __name__ == "__main__":
     setup_logging(full_context=1)
     from mini_genie_source.Configuration_Files.runtime_parameters import Run_Time_Settings
     from mini_genie_source.mini_Genie_Object.mini_genie import mini_genie_trader
-
 
     # Initiate the genie object
     '''
@@ -48,7 +46,7 @@ if __name__ == "__main__":
     #   In batches or similar to Genie[full]:
     #       1.  Simulate N parameters' indicators
     #       2.  Simulate N parameters' events
-    genie_object.simulate()
+    genie_object.simulate(SAVE_EVERY_Nth_CHUNK=Run_Time_Settings["Optimization_Settings"]["SAVE_EVERY_Nth_CHUNK"])
     #
     logger.info(f'IN MAIN LOL')
     logger.info(f'{genie_object.parameters_record = }')
