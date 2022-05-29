@@ -83,7 +83,7 @@ class Data_Handler:
             logger.info(
                 f'Saved Symbol\'s Data to {self.genie_object.runtime_settings["Data_Settings.saved_data_file"]}')
             symbols_data.save(
-                f'{self.genie_object.study_path}/{self.genie_object.runtime_settings["Data_Settings.saved_data_file"]}')
+                f'{self.genie_object.study_dir_path}/{self.genie_object.runtime_settings["Data_Settings.saved_data_file"]}')
 
         setattr(self.genie_object, "symbols_data_id", ray.put(symbols_data))
 
