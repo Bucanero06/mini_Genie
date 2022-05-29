@@ -8,6 +8,9 @@ import vectorbtpro as vbt
 from logger_tt import logger
 from numpy import random
 
+from Configuration_Files.equipment_settings import TEMP_DICT
+from Equipment_Handler.equipment_handler import CHECKTEMPS
+
 
 class mini_genie_trader:
     """
@@ -34,6 +37,8 @@ class mini_genie_trader:
         # ray.init(num_cpus=24)
 
         self.status = '__init__'
+        from Utilities.general_utilities import print_dict
+        self.print_dict = print_dict
         import flatdict
         self.runtime_settings = flatdict.FlatDict(runtime_kwargs, delimiter='.')
 
@@ -100,16 +105,6 @@ class mini_genie_trader:
             # Load precomputed params, values, and stats if continuing study
             self._load_initial_params_n_precomputed_metrics()
 
-    def print_dict(self, optional_object=None):
-        """
-
-        Returns:
-            object:
-        """
-        import pprint
-        pprint.pprint(self.__dict__ if not optional_object else optional_object.__dict__)
-        # pprint.pprint(dict(self) if not optional_object else dict(optional_object))
-
     def _prepare_directory_paths_for_study(self):
         """
         Returns:
@@ -167,32 +162,54 @@ class mini_genie_trader:
 
         path_of_initial_params_record = self.path_of_initial_params_record
         path_of_initial_metrics_record = self.path_of_initial_metrics_record
-        logger.info("_load_initial_params_n_precomputed_metrics")
-        logger.info(path_of_initial_params_record)
+        # #
+        # metrics_df = pd.read_csv(path_of_initial_metrics_record)
+        # # metrics_df = metrics_df.set_index('trial_id')
+        # metrics_df.drop('trial_id', inplace=True, axis=1)
+        #
+        # # metrics_df.dropna(inplace=True)
+        # # metrics_df.replace('1 min', '1_min', inplace=True)
+        # # metrics_df.replace('5 min', '5_min', inplace=True)
+        # # metrics_df.replace('15 min', '15_min', inplace=True)
+        # # metrics_df.replace('30 min', '30_min', inplace=True)
+        # logger.info(metrics_df.head())
+        # metrics_df.to_csv("saved_param_metrics_for_tsne.tsv", sep=f"\t", na_rep='NaN', index=None)
+        #
+        # exit()
+        #
         if os.path.exists(path_of_initial_params_record):
-            if self.compression_of_initial_params_record != 'gzip':
+            if self.compression_of_initial_params_record == '.csv':
                 parameter_df = pd.read_csv(path_of_initial_params_record)
             else:
                 parameter_df = pd.read_parquet(path_of_initial_params_record)
             #
+            logger.info(f'Loaded parameters_record')
+
             initial_params_size = len(parameter_df)
             #
             # Initiate_params_record
-            self._initiate_parameters_records(add_ids=True)
+            self._initiate_parameters_records(add_ids=True, initial_params_size=initial_params_size)
             #
             # Fill values
             for key_name, values in parameter_df.items():
                 self.parameters_record[key_name] = values
+
+            # Clean Data
+            from Utilities.general_utilities import clean_params_record
+            self.parameters_record = clean_params_record(self.parameters_record)
+            initial_params_size = len(self.parameters_record)
+
             #
             if os.path.exists(path_of_initial_metrics_record):
                 # column_names = list(self.key_names) + self.runtime_settings['Optimization_Settings.Loss_Function.metrics']
-                if self.compression_of_initial_metrics_record != 'gzip':
+                if self.compression_of_initial_metrics_record == '.csv':
                     metrics_df = pd.read_csv(path_of_initial_metrics_record)
                 else:
                     metrics_df = pd.read_parquet(path_of_initial_metrics_record)
                 #
+                logger.info(f'Loaded metrics_record')
                 # Initiate_metrics_record
-                self._initiate_metric_records(add_ids=True, initial_params_size=initial_params_size)
+                self._initiate_metric_records(add_ids=True, params_size=initial_params_size)
                 #
                 # Fill values
                 trial_ids_computed = metrics_df["trial_id"]
@@ -201,16 +218,6 @@ class mini_genie_trader:
                         value = metrics_df[key_name][metrics_df["trial_id"] == trial_id].values[0]
                         self.metrics_record[key_name][trial_id] = value
                 #
-
-    # todo everything
-    def _grade_parameter_combinations(self):
-        """Use a loss function to give a value to each parameter combination,..."""
-        # TODO:
-        #   code _grade_parameter_combinations
-        # TODO:
-        #   How should we grade them? For now I think we get stats for as many parameter combinations
-        #       as possible, then we can group strategies to determine the most stable regions, neighbors
-        #       etc ...
 
     def fetch_and_prepare_input_data(self):
         """
@@ -496,10 +503,12 @@ class mini_genie_trader:
 
         if self.parameters_lengths_dict["n_initial_combinations"] > self.runtime_settings[
             "Optimization_Settings.Initial_Search.max_initial_combinations"]:
+            continuing_text = f' because we are continuing the study from file' if self.continuing else None
             logger.warning(
                 f'I know max_initial_combinations was set to '
                 f'{self.runtime_settings["Optimization_Settings.Initial_Search.max_initial_combinations"]} '
                 f'but, I needed at least {self.parameters_lengths_dict["n_initial_combinations"]} initial combinations'
+                f'{continuing_text}'
                 f"\N{smiling face with smiling eyes}"
             )
 
@@ -531,6 +540,9 @@ class mini_genie_trader:
         for index in range(len(initial_param_combinations)):
             value = ((index,) + initial_param_combinations[index][:-1] + initial_param_combinations[index][-1])
             self.parameters_record[index] = value
+
+        from Utilities.general_utilities import delete_non_filled_elements
+        self.parameters_record = delete_non_filled_elements(self.parameters_record)
 
     def _compute_bar_atr(self):
         """
@@ -668,7 +680,7 @@ class mini_genie_trader:
 
         return tp_sl_record
 
-    def _initiate_metric_records(self, add_ids=None, initial_params_size=None):
+    def _initiate_metric_records(self, add_ids=None, params_size=None):
         """
         Returns:
             object:
@@ -676,15 +688,16 @@ class mini_genie_trader:
         """
         metrics_record_dtype = []
         if add_ids:
-            metrics_record_dtype.append(('trial_id', np.int_))
+            metrics_record_dtype.append(('trial_id', 'i8'))
         for metric_name in self.metrics_key_names:
-            metrics_record_dtype.append((metric_name, 'U8'))
+            metrics_record_dtype.append((metric_name, 'f8'))
+        #
         self.metric_data_dtype = np.dtype(metrics_record_dtype)
-        self.metrics_record = np.empty(
-            self.parameters_lengths_dict["n_initial_combinations"] if not initial_params_size else initial_params_size,
+        self.metrics_record = np.zeros(
+            self.parameters_lengths_dict["n_initial_combinations"] if not params_size else params_size,
             dtype=self.metric_data_dtype)
 
-    # todo initial is done but everything for continuation missing
+    # todo initial is almost complete; missing steps in case number of trends setting is more than 1
     def suggest_parameters(self):
         """
           List of Initial Params:
@@ -710,19 +723,11 @@ class mini_genie_trader:
             self.continuing = False
             # Get the lens and sizes of each parameter to determine number of combinations and create a numpy record
             self._initiate_parameters_records(add_ids=True)
-        #
-        if not any(self.metrics_record):
-            if not all(self.parameters_lengths_dict):
-                from Utilities.general_utilities import load_dict_from_file
-                self.parameters_lengths_dict = load_dict_from_file(f'{self.misc_dir_path}/_parameters_lengths_dict')
-            #
-            self._initiate_metric_records(add_ids=True)
 
         '''Fill initial parameter space'''
         #
         timeframe_params = {}
         window_params = {}
-        #
         #
         # todo TP_SL type parameters needs to add steps in case number of trends is more than 1
         if not self.continuing:
@@ -801,16 +806,10 @@ class mini_genie_trader:
             write_dictionary_to_file(f'{self.misc_dir_path}/_parameters_lengths_dict', self.parameters_lengths_dict)
             #
         #
-        else:
-            from Utilities.general_utilities import load_dict_from_file
-            parameters_lengths_dict = load_dict_from_file(f'{self.misc_dir_path}/_parameters_lengths_dict')
-            logger.info(f'{parameters_lengths_dict = }')
-            logger.info(f'\n')
-            logger.info(f'{self.parameters_lengths_dict = }')
-            assert parameters_lengths_dict["n_total_combinations"] == self.parameters_lengths_dict[
-                "n_total_combinations"]
-            assert parameters_lengths_dict["n_initial_combinations"] == self.parameters_lengths_dict[
-                "n_initial_combinations"]
+        # else:
+        #     # from Utilities.general_utilities import load_dict_from_file
+        #     # parameters_lengths_dict = load_dict_from_file(f'{self.misc_dir_path}/_parameters_lengths_dict')
+
         #
         logger.info(f'Total # of Combinations -> {self.parameters_lengths_dict["n_total_combinations"]}\n'
                     f'  * given current definitions for parameter space\n'
@@ -826,19 +825,22 @@ class mini_genie_trader:
         df = pd.DataFrame(self.parameters_record).set_index('trial_id')
         #
         df.to_csv(
-            self.path_of_initial_params_record) if self.compression_of_initial_params_record != 'gzip' else df.to_parquet(
+            self.path_of_initial_params_record) if self.compression_of_initial_params_record == '.csv' else df.to_parquet(
             self.path_of_initial_params_record, compression='gzip')
 
-    def _save_initial_computed_params(self):
+    def _save_initial_computed_params_n_metrics(self):
         """Add to previously created file (or new if it does not exist), in a memory conscious way, the trial number,
-        parameter combination, values, and combination stats"""
+        parameter combination, and combination stats"""
 
         import pandas as pd
         from Utilities.general_utilities import delete_non_filled_elements, rm_field_from_record
         #
         filled_metrics = delete_non_filled_elements(self.metrics_record)
+        #
         filled_params = np.take(self.parameters_record, filled_metrics["trial_id"])
         filled_params = rm_field_from_record(filled_params, 'trial_id')
+        #
+        logger.info(f'Have ran {len(filled_metrics)} parameter combinations ran so far')
         #
         import numpy.lib.recfunctions as rfn
         merged_array = rfn.merge_arrays([filled_params, filled_metrics], flatten=True, usemask=False)
@@ -846,11 +848,10 @@ class mini_genie_trader:
         df = pd.DataFrame(merged_array).set_index('trial_id')
         #
         df.to_csv(
-            self.path_of_initial_metrics_record) if self.compression_of_initial_metrics_record != 'gzip' else df.to_parquet(
+            self.path_of_initial_metrics_record) if self.compression_of_initial_metrics_record == '.csv' else df.to_parquet(
             self.path_of_initial_metrics_record, compression='gzip')
 
-    # TODO CONTINUING SECTIONS
-    def simulate(self, SAVE_EVERY_Nth_CHUNK=None):
+    def simulate_suggestions(self, SAVE_EVERY_Nth_CHUNK=None):
         """
         In chunks/batches:
            1.  Simulate N parameters' indicators
@@ -864,30 +865,44 @@ class mini_genie_trader:
         simulation_handler = Simulation_Handler(self)
         analysis_handler = Analysis_Handler(self)
         #
-        number_of_parameters = len(self.parameters_record)
         batch_size = self.batch_size
-        N_chunks = int(np.ceil(number_of_parameters / batch_size))
         #
         highest_profit = -sys.maxsize
         best_parameters = None
         #
         initial_cash_total = self.runtime_settings["Simulation_Settings.Portfolio_Settings.init_cash"]
         stop_after_n_epoch = self.runtime_settings["Optimization_Settings.Initial_Search.stop_after_n_epoch"]
+
+        # If metrics record empty then initiate
+        if not any(self.metrics_record):
+            self._initiate_metric_records(add_ids=True, params_size=len(self.parameters_record))
+        else:
+            highest_profit = np.max(self.metrics_record["Total Return [%]"])
+
+            # self.parameters_record[]
+        # Get an array of indexes remaining to compute
+        from Utilities.general_utilities import fetch_non_filled_elements_indexes
+        trials_ids_not_computed = fetch_non_filled_elements_indexes(self.metrics_record)
+
+        # Take elements from parameter record that match with trials_ids_not_computed
+        params_left_to_compute = np.take(self.parameters_record, trials_ids_not_computed)
         #
-        # todo!!!! do not simulate already_computed params
-        for chunk_index in range(N_chunks):  # todo: would like to use ray to scale this (*keep track of index)
-            if chunk_index == stop_after_n_epoch:
+        # Get max n_chunks given max batch_size
+        n_chunks = int(np.floor(len(params_left_to_compute) / batch_size)) if batch_size < len(
+            params_left_to_compute) else 1
+        # Split arrays into n_chunks
+        chunks_of_params_left_to_compute = np.array_split(params_left_to_compute, n_chunks)
+
+        for epoch_n, epoch_params_record in enumerate(
+                chunks_of_params_left_to_compute):  # todo: would like to use ray to scale this (*keep track of index)
+            if epoch_n == stop_after_n_epoch:
                 break
             #
             start_time = perf_counter()
-            logger.info(f'\n\n\n')
-            logger.info(f'Epoch --> {chunk_index}, Trials Ran --> {chunk_index * self.batch_size} ')
-            indexes = [chunk_index * self.batch_size, chunk_index * self.batch_size + self.batch_size]
-            epoch_index_range_ = range(indexes[0], indexes[1], 1)
-            epoch_params = np.take(self.parameters_record, epoch_index_range_)
+            CHECKTEMPS(TEMP_DICT)
             #
             long_entries, long_exits, short_entries, short_exits, \
-            strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params)
+            strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params_record)
             #
             pf, extra_sim_info = simulation_handler.simulate_events(long_entries, long_exits,
                                                                     short_entries, short_exits,
@@ -895,10 +910,11 @@ class mini_genie_trader:
             #
             '''Reconstruct Metrics from Order Records and Save'''
             portfolio_combined = analysis_handler.compute_stats(pf, self.metrics_key_names, groupby=self.group_by)
+            analyze_start_timer = perf_counter()
             metrics_this_epoch = portfolio_combined.to_numpy()
             #
             # Fill metric record with new metric values
-            for _index, overall_index in enumerate(epoch_index_range_):
+            for _index, overall_index in enumerate(epoch_params_record["trial_id"]):
                 self.metrics_record[overall_index] = tuple(np.insert(metrics_this_epoch[_index], 0, overall_index))
             #
             # Used for Printing
@@ -915,29 +931,19 @@ class mini_genie_trader:
             #
             logger.info(f' -> highest_profit this epoch {highest_cash_profit_this_epoch} ')
             logger.info(f' -> best_param this epoch {best_parameters_this_epoch}')
-
+            #
+            logger.info(f'Time to Analyze Metrics {perf_counter() - analyze_start_timer}')
             #
             # Concat and save the parameter and metric records to file every Nth epoch
             if SAVE_EVERY_Nth_CHUNK:
-                if chunk_index % SAVE_EVERY_Nth_CHUNK == 0:
-                    self._save_initial_computed_params()
+                if epoch_n % SAVE_EVERY_Nth_CHUNK == 0:
+                    save_start_timer = perf_counter()
+                    self._save_initial_computed_params_n_metrics()
                     #
-                    # TODO:
-                    #  IDEA:
-                    #   * Can you use ray inside of apply_function MMT?
-                    #   * Set up ray clusters which means get this code ready for that
-                    #   * Replace parameters that resulted in NaN each reset?
-                    #   * After a large initial run chunk then run optuna (1 comb at a time without storage) on all or reduced space
-                    #   * How to run ray server across multiple pc? and how fast could it run on AWS?
-                    #   _
-                    #  TASK:
-                    #   * Need to add backtest module/logic (can use np.arrange)
-                    #   * Fill, save and load params,  metrics records (convinient file format) -------------------------
-                    #   * Do not compute or include in chunks, previously computed
-                    #   * ADD EQUIPMENT HANDLER -------------------------------------------------
-                    #
-                    #
-                    logger.info(f'Just saved to file during epoch {chunk_index}')
+                    logger.info(f'Time to Save Records {perf_counter() - save_start_timer} during epoch {epoch_n}')
             #
-            logger.info(f'Epoch {chunk_index} took {perf_counter() - start_time} seconds')
-        exit()
+            logger.info(f'Epoch {epoch_n} took {perf_counter() - start_time} seconds')
+            logger.info(f'\n\n')
+        #
+        # Do a final save !
+        self._save_initial_computed_params_n_metrics()

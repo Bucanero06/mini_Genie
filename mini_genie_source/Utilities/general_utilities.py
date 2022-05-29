@@ -38,6 +38,14 @@ def delete_non_filled_elements(a):
     return np.array(output)
 
 
+def delete_filled_elements(a):
+    output = []
+    for elem in a:
+        if not elem:
+            output.append(elem)
+    return np.array(output)
+
+
 def rm_field_from_record(a, *fieldnames_to_remove):
     return a[[name for name in a.dtype.names if name not in fieldnames_to_remove]]
 
@@ -46,6 +54,14 @@ def _write_header_df(path: object, cols_names: object, compression: object = 'gz
     header_df = pd.DataFrame(columns=cols_names)
     header_df.to_parquet(path, compression=compression)
     return header_df
+
+
+def fetch_non_filled_elements_indexes(a):
+    output = []
+    for index, elem in enumerate(a):
+        if not elem:
+            output.append(index)
+    return np.array(output)
 
 
 class NpEncoder(json.JSONEncoder):
@@ -69,13 +85,26 @@ def load_dict_from_file(input_file_name):
         return json.load(json_file)
 
 
+def print_dict(self, optional_object=None):
+    """
+
+    Returns:
+        object:
+    """
+    import pprint
+    object = self if not optional_object else optional_object
+    if hasattr(object, '__dict__'):
+        pprint.pprint(self.__dict__ if not optional_object else optional_object.__dict__)
+    else:
+        pprint.pprint(object)
+
+
 def shuffle_it(x, n_times=None):
     from sklearn.utils import shuffle
     if not n_times:
         return shuffle(x)
     else:
         for i in range(n_times):
-
             x = shuffle(x)
         return x
 
@@ -95,3 +124,9 @@ def create_dir(dir):
         mkdir(dir)
     else:
         logger.info(f'Found {dir}')
+
+
+def clean_params_record(a):
+    indexes_to_keep = np.where(a["trial_id"] != 0)  #
+    indexes_to_keep = list(np.insert(indexes_to_keep, 0, 0) ) #
+    return np.take(a, indexes_to_keep)
