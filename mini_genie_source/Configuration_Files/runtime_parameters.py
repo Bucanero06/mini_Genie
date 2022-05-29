@@ -9,12 +9,12 @@ Run_Time_Settings = dict(
         load_CSV_from_pickle=True,  # momentary
         data_files_dir='Datas/Forex Majors/',  # momentary
         data_files_names=[
-            # 'AUDUSD',  # momentary
-            # 'EURUSD',  # momentary
+            'AUDUSD',  # momentary
+            'EURUSD',  # momentary
             'GBPUSD',  # momentary
-            # 'NZDUSD',  # momentary
-            # 'USDCAD',  # momentary
-            # 'USDCHF',  # momentary
+            'NZDUSD',  # momentary
+            'USDCAD',  # momentary
+            'USDCHF',  # momentary
         ],  # momentary
         #
         delocalize_data=True,
@@ -26,35 +26,36 @@ Run_Time_Settings = dict(
     ),
 
     Optimization_Settings=dict(
-        study_name='test_name',
+        study_name='ray_test_study',
         optimization_period=dict(
-            start_date=datetime.datetime(month=8, day=1, year=2021),
-            end_date=datetime.datetime(month=1, day=1, year=2022)
+            start_date=datetime.datetime(month=12, day=1, year=2021),
+            end_date=datetime.datetime(month=3, day=16, year=2022)
         ),
         timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # fixme: logic missing
-        Continue=False,
+        Continue=True,
         batch_size=2,
+        # batch_size=500,
         SAVE_EVERY_Nth_CHUNK=1,
         Initial_Search=dict(
-            # max_initial_combinations=1_000_000,
-            # max_initial_combinations=33_000_000,
             # _extensions available -> csv and gzip
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
-            max_initial_combinations=100_000,
-            stop_after_n_epoch=3,
+            #
+            # max_initial_combinations=66_000_000,
+            max_initial_combinations=100,
+            stop_after_n_epoch=None,
             force_to_finish=True,  # fixme: logic missing
             #
             parameter_selection=dict(
                 timeframes='all',  # fixme: needs to add settings for how to reduce, these dont do anything
                 windows='grid',  # fixme: needs to add settings for how to reduce, these dont do anything
                 tp_sl=dict(
-                    bar_atr_days=datetime.timedelta(days=90, hours=0, minutes=0, seconds=0),
+                    bar_atr_days=datetime.timedelta(days=120, hours=0, minutes=0, seconds=0),
                     bar_atr_periods=[14],  # todo multiple inputs
                     bar_atr_multiplier=[3],  # todo multiple inputs
                     #
-                    n_ratios=[0.5, 1, 1.5, 2],
-                    gamma_ratios=[0.5, 1.5, 2, 2.5, 3],
+                    n_ratios=[0.2, 0.5, 1, 1.5, 2],
+                    gamma_ratios=[0.5, 1, 1.5, 2, 2.5, 3],
                     number_of_bar_trends=1,
                 ),
 
@@ -163,7 +164,7 @@ Run_Time_Settings = dict(
             saved_pf_backtest='My_pf_backtest',
             saved_pf_optimization='My_pf_optimization',
             slippage=0,  # 0.0001,
-            trading_fees=0.,  # 0.0000005,
+            trading_fees=0.00005,  # 0.00005 or 0.005%, $5 per $100_000
             cash_sharing=False,
             group_by=[],  # Leave blank
 
@@ -178,25 +179,6 @@ Run_Time_Settings = dict(
     ),
     Strategy_Settings=dict(
         Strategy=MMT_Strategy,  # FIXME: better input of info
-        arguements=dict(
-            fixed_initial_params=[
-            ],
-            optional_initial_params_to_product=dict(
-                PEAK_and_ATR_timeframes=['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d'],
-                # np.random.choice(['5 min', '15 min', '30 min', '1h', '4h', '1d'], size=size_of_test_batch),
-                atr_windows=[2],  # np.random.randint(1, 30, size_of_test_batch),
-                data_lookback_windows=[16],  # np.random.randint(1, 30, size_of_test_batch),
-
-                EMAs_timeframes=['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d'],
-                # np.random.choice(['1 min', '5 min', '15 min', '30 min', '1h', '4h'], size=size_of_test_batch),
-                ema_1_windows=[20],  # np.random.randint(5, 35, size_of_test_batch),
-                ema_2_windows=[30],  # np.random.randint(35, 65, size_of_test_batch),
-                ema_3_windows=[19],  # np.random.randint(19, 49, size_of_test_batch),
-                take_profit_points=[170.0],  # np.random.randint(20, 700, size_of_test_batch),
-                #
-                stoploss_points=[-90.0],  # np.random.randint(20, 700, size_of_test_batch),
-            ),
-        ),
         parameter_windows=dict(
             PEAK_and_ATR_timeframes=dict(type='timeframe',
                                          choices=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
@@ -210,7 +192,10 @@ Run_Time_Settings = dict(
             #
             take_profit_points=dict(type='take_profit', lower_bound=0, upper_bound=1000, min_step=1),
             stoploss_points=dict(type='stop_loss', lower_bound=0, upper_bound=1000, min_step=1),
-        )
-    ),
+        ),
+        #
+        strategy_backtest_params=dict(
 
+        ),
+    ),
 )
