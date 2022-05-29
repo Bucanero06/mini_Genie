@@ -2,8 +2,7 @@ from time import perf_counter
 
 from logger_tt import logger
 
-from Configuration_Files.equipment_settings import TEMP_DICT
-from Equipment_Handler.equipment_handler import CHECKTEMPS
+
 
 
 class Simulation_Handler:
@@ -25,18 +24,8 @@ class Simulation_Handler:
     def __init__(self, genie_object):
         """Constructor for Simulation_Handler"""
         self.genie_object = genie_object
-
-    def print_dict(self, optional_object: object = None) -> object:
-        """
-
-        Args:
-            optional_object: 
-
-        Returns:
-            object: 
-        """
-        import pprint
-        pprint.pprint(self.__dict__ if not optional_object else optional_object.__dict__)
+        from Utilities.general_utilities import print_dict
+        self.print_dict = print_dict
 
     @property
     def compute_bar_atr(self) -> object:
@@ -61,7 +50,6 @@ class Simulation_Handler:
             object:
 
         """
-        CHECKTEMPS(TEMP_DICT)
         # data = [self.genie_object.optimization_open_data, self.genie_object.optimization_low_data,
         #         self.genie_object.optimization_high_data, self.genie_object.optimization_close_data]
         # open_data, low_data, high_data, close_data = get_objects_list_from_ray(data)
@@ -78,7 +66,6 @@ class Simulation_Handler:
                                                                                                     parameters)
 
         logger.info(f'Time to Prepare Entries and Exits Signals {perf_counter() - Start_Timer}')
-        CHECKTEMPS(TEMP_DICT)
         return long_entries, long_exits, short_entries, short_exits, strategy_specific_kwargs
 
     def simulate_events(self, long_entries: object, long_exits: object, short_entries: object, short_exits: object,
@@ -96,7 +83,6 @@ class Simulation_Handler:
             object: 
         '''  # (2b)_n-1
 
-        CHECKTEMPS(TEMP_DICT)
         # data = [self.genie_object.optimization_open_data, self.genie_object.optimization_low_data,
         #         self.genie_object.optimization_high_data, self.genie_object.optimization_close_data]
         # open_data, low_data, high_data, close_data = get_objects_list_from_ray(data)
@@ -118,7 +104,6 @@ class Simulation_Handler:
         '''Save Portfolio after each epoch'''  # (3)_n-1
         pf.save(
             f'{self.genie_object.portfolio_dir_path}/{self.genie_object.runtime_settings["Simulation_Settings.Portfolio_Settings.saved_pf_optimization"]}')
-        CHECKTEMPS(TEMP_DICT)
         return pf, extra_sim_info
 
         ...
