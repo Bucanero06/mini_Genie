@@ -1,15 +1,20 @@
 import os.path
 import sys
+import warnings
 from time import perf_counter
 
 import numpy as np
 import pandas as pd
+import ray
 import vectorbtpro as vbt
 from logger_tt import logger
 from numpy import random
 
 from Configuration_Files.equipment_settings import TEMP_DICT
 from Equipment_Handler.equipment_handler import CHECKTEMPS
+from Utilities.general_utilities import rm_field_from_record
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class mini_genie_trader:
@@ -26,16 +31,10 @@ class mini_genie_trader:
         ...
     """
 
-    def __init__(self, runtime_kwargs):
+    def __init__(self, runtime_kwargs, user_pick):
         """Constructor for mini_genie_trader"""
 
-        # for key, value in runtime_kwargs.items():
-        #     print(key)
-        #     setattr(self, key, value)
-        # todo: need to upgrade to ray
-        # Init Ray
-        # ray.init(num_cpus=24)
-
+        self.parameters_record_length = None
         self.status = '__init__'
         from Utilities.general_utilities import print_dict
         self.print_dict = print_dict
@@ -47,11 +46,15 @@ class mini_genie_trader:
         #
         self.batch_size = self.runtime_settings["Optimization_Settings.batch_size"]
         #
+        self.user_pick = user_pick
+        #
         self.parameter_windows = self.runtime_settings["Strategy_Settings.parameter_windows"]._values
         #
         self.key_names = tuple(self.parameter_windows.keys())
         #
         self.group_by = [f'custom_{key_name}' for key_name in self.key_names]
+        #
+        self.asset_names = self.runtime_settings["Data_Settings.data_files_names"]
         #
         self.metrics_key_names = self.runtime_settings['Optimization_Settings.Loss_Function.metrics']
         self.loss_metrics_settings_dict = self.runtime_settings['Optimization_Settings.Loss_Function.loss_settings']
@@ -98,10 +101,14 @@ class mini_genie_trader:
         #
         # Initial Actions
         #
+        # Init Ray
+        ray.init(num_cpus=self.runtime_settings["RAY_SETTINGS.ray_init_num_cpus"])
+        # ray.init()
+        #
         # Prepare directories and save file paths
         self._prepare_directory_paths_for_study()
         #
-        if self.continuing:
+        if self.continuing and not self.user_pick:
             # Load precomputed params, values, and stats if continuing study
             self._load_initial_params_n_precomputed_metrics()
 
@@ -126,6 +133,9 @@ class mini_genie_trader:
         file_name_of_initial_metrics_record = self.runtime_settings[
             'Optimization_Settings.Initial_Search.path_of_initial_metrics_record']
         #
+        file_name_of_backtest_results = self.runtime_settings[
+            "Strategy_Settings.strategy_backtest_params.output_file_name"]
+        #
         create_dir(studies_directory)
         create_dir(study_dir_path)
         create_dir(portfolio_dir_path)
@@ -142,12 +152,14 @@ class mini_genie_trader:
         #
         self.path_of_initial_params_record = f'{self.study_dir_path}/{file_name_of_initial_params_record}'
         self.path_of_initial_metrics_record = f'{self.study_dir_path}/{file_name_of_initial_metrics_record}'
+        self.file_name_of_backtest_results = f'{self.study_dir_path}/{file_name_of_backtest_results}'
         #
         # pathlib.Path('my_file.txt').suffix
         self.compression_of_initial_params_record = os.path.splitext(file_name_of_initial_params_record)[-1]
         self.compression_of_initial_metrics_record = os.path.splitext(file_name_of_initial_metrics_record)[-1]
         #
 
+    #
     def _load_initial_params_n_precomputed_metrics(self):
         """
         If continuing a previously started study, then we can assume we have computed some parameters already.
@@ -162,67 +174,59 @@ class mini_genie_trader:
 
         path_of_initial_params_record = self.path_of_initial_params_record
         path_of_initial_metrics_record = self.path_of_initial_metrics_record
-        # #
-        # metrics_df = pd.read_csv(path_of_initial_metrics_record)
-        # # metrics_df = metrics_df.set_index('trial_id')
-        # metrics_df.drop('trial_id', inplace=True, axis=1)
-        #
-        # # metrics_df.dropna(inplace=True)
-        # # metrics_df.replace('1 min', '1_min', inplace=True)
-        # # metrics_df.replace('5 min', '5_min', inplace=True)
-        # # metrics_df.replace('15 min', '15_min', inplace=True)
-        # # metrics_df.replace('30 min', '30_min', inplace=True)
-        # logger.info(metrics_df.head())
-        # metrics_df.to_csv("saved_param_metrics_for_tsne.tsv", sep=f"\t", na_rep='NaN', index=None)
-        #
-        # exit()
         #
         if os.path.exists(path_of_initial_params_record):
             if self.compression_of_initial_params_record == '.csv':
                 parameter_df = pd.read_csv(path_of_initial_params_record)
             else:
-                parameter_df = pd.read_parquet(path_of_initial_params_record)
-            #
-            logger.info(f'Loaded parameters_record')
-
-            initial_params_size = len(parameter_df)
+                parameter_df = pd.read_pickle(path_of_initial_params_record)
             #
             # Initiate_params_record
+            initial_params_size = len(parameter_df)
             self._initiate_parameters_records(add_ids=True, initial_params_size=initial_params_size)
             #
             # Fill values
             for key_name, values in parameter_df.items():
                 self.parameters_record[key_name] = values
-
-            # Clean Data
-            from Utilities.general_utilities import clean_params_record
-            self.parameters_record = clean_params_record(self.parameters_record)
-            initial_params_size = len(self.parameters_record)
-
+            #
+            logger.info(f'Loaded parameters_record')
             #
             if os.path.exists(path_of_initial_metrics_record):
                 # column_names = list(self.key_names) + self.runtime_settings['Optimization_Settings.Loss_Function.metrics']
                 if self.compression_of_initial_metrics_record == '.csv':
                     metrics_df = pd.read_csv(path_of_initial_metrics_record)
                 else:
-                    metrics_df = pd.read_parquet(path_of_initial_metrics_record)
+                    metrics_df = pd.read_pickle(path_of_initial_metrics_record)
                 #
-                logger.info(f'Loaded metrics_record')
                 # Initiate_metrics_record
-                self._initiate_metric_records(add_ids=True, params_size=initial_params_size)
+                self._initiate_metric_records(add_ids=True, params_size=initial_params_size * len(self.asset_names))
                 #
                 # Fill values
-                trial_ids_computed = metrics_df["trial_id"]
-                for key_name in self.metrics_record.dtype.names:
-                    for trial_id in trial_ids_computed:
-                        value = metrics_df[key_name][metrics_df["trial_id"] == trial_id].values[0]
-                        self.metrics_record[key_name][trial_id] = value
-                #
+                dtype_names = list(self.metrics_record.dtype.names)
+                for row in metrics_df[dtype_names].to_numpy():
+                    # First row is 'trial_id'
+                    trial_id = row[0]
+                    # Second row is 'asset' name
+                    asset_name = row[1]
+                    ass_index = self.asset_names.index(asset_name)
+                    self.metrics_record[trial_id + (initial_params_size * ass_index)] = tuple(row)
+                logger.info(f'Loaded metrics_record')
+
+            ''''''
+
+            # # Clean Data
+            # trial_ids_not_ran_mask = ~parameter_df["trial_id"].isin(metrics_df["trial_id"])
+            # cleaned_parameter_df = parameter_df["trial_id"][trial_ids_not_ran_mask]
+            # from Utilities.general_utilities import clean_params_record
+            # self.parameters_record = clean_params_record(self.parameters_record)
+            # initial_params_size = len(self.parameters_record)
+
+            #
 
     def fetch_and_prepare_input_data(self):
         """
         Returns:
-            object: 
+            object:
 
         """
         self.status = 'fetch_and_prepare_input_data'
@@ -251,27 +255,27 @@ class mini_genie_trader:
                 object:
             """
 
-            def _compute_n_initial_combinations_carefully(dict):  # fixme: naming is horrible
+            def _compute_n_initial_combinations_carefully(dictionary):  # fixme: naming is horrible
                 """
 
                 Args:
-                    dict:
+                    dictionary:
 
                 Returns:
 
                 """
-                n_reduced_lengths = [dict[f'{key_name}_length'] for key_name in self.key_names
+                n_reduced_lengths = [dictionary[f'{key_name}_length'] for key_name in self.key_names
                                      if self.parameter_windows[key_name][
                                          'type'].lower() not in self.ACCEPTED_TP_SL_TYPES]
-                n_reduced_lengths.append(dict["tp_sl_length"])
+                n_reduced_lengths.append(dictionary["tp_sl_length"])
 
                 return np.product(n_reduced_lengths)
 
-            def _compute_windows_lengths_now(dict, _keynames=None):
+            def _compute_windows_lengths_now(dictionary, _keynames=None):
                 """
 
                 Args:
-                    dict:
+                    dictionary:
                     _keynames:
 
                 Returns:
@@ -281,7 +285,7 @@ class mini_genie_trader:
                 _keynames = self.key_names if not _keynames else _keynames
 
                 return np.product(
-                    [dict[f'{key_name}_length'] for key_name in _keynames if
+                    [dictionary[f'{key_name}_length'] for key_name in _keynames if
                      self.parameter_windows[key_name]['type'].lower() in self.ACCEPTED_WINDOW_TYPES])
 
             # if n_initial_combinations > max_initial_combinations: reduce initial search space
@@ -402,8 +406,7 @@ class mini_genie_trader:
 
                 lengths_dict["using_reduced_window_space"] = True
                 temp_lengths_dict["windows_product"] = _compute_windows_lengths_now(lengths_dict,
-                                                                                    _keynames=
-                                                                                    temp_lengths_dict[
+                                                                                    _keynames=temp_lengths_dict[
                                                                                         "window_keynames_to_be_reduced"])
 
             lengths_dict["n_initial_combinations"] = _compute_n_initial_combinations_carefully(lengths_dict)
@@ -428,7 +431,7 @@ class mini_genie_trader:
             parameters_lengths_dict[f'{key_name}_length'] = 0
 
             if self.parameter_windows[key_name]["type"].lower() in self.ACCEPTED_TF_TYPES:
-                tf_in_key_name = [tf.lower() for tf in self.parameter_windows[key_name]['choices']]
+                tf_in_key_name = [tf.lower() for tf in self.parameter_windows[key_name]['values']]
 
                 if set(tf_in_key_name).issubset(set(self.ACCEPTED_TIMEFRAMES)):
                     parameters_record_dtype.append((key_name, 'U8'))
@@ -443,6 +446,7 @@ class mini_genie_trader:
 
                 parameters_lengths_dict[f'{key_name}_length'] = len(tf_in_key_name)
                 parameters_lengths_dict["all_tf_in_this_study"].extend(tf_in_key_name)
+
 
             elif self.parameter_windows[key_name]["type"].lower() in self.ACCEPTED_WINDOW_TYPES:
                 if isinstance(self.parameter_windows[key_name]['min_step'], int):
@@ -479,43 +483,79 @@ class mini_genie_trader:
                     self.parameter_windows[key_name]["lower_bound"], self.parameter_windows[key_name]["upper_bound"],
                     self.parameter_windows[key_name]["min_step"])
 
-                parameters_lengths_dict[f'tp_sl_length'] = parameters_lengths_dict[f'tp_sl_length'] * \
-                                                           parameters_lengths_dict[f'{key_name}_length'] if \
-                    parameters_lengths_dict[f'tp_sl_length'] else parameters_lengths_dict[f'{key_name}_length']
+                if not self.user_pick:
+                    parameters_lengths_dict[f'tp_sl_length'] = parameters_lengths_dict[f'tp_sl_length'] * \
+                                                               parameters_lengths_dict[f'{key_name}_length'] if \
+                        parameters_lengths_dict[f'tp_sl_length'] else parameters_lengths_dict[f'{key_name}_length']
 
             else:
                 logger.error(f'Parameter {key_name} is defined as type {self.parameter_windows[key_name]["type"]}'
                              f'but that type is not accepted ... yet ;)')
                 sys.exit()
 
-        parameters_lengths_dict["all_tf_in_this_study"] = list(set(parameters_lengths_dict["all_tf_in_this_study"]))
-        # Determine size of complete parameter space combinations with settings given as well reduced space
-        parameters_lengths_dict["n_total_combinations"] = parameters_lengths_dict["n_initial_combinations"] = \
-            np.product([parameters_lengths_dict[f'{key_name}_length'] for key_name in self.key_names])
+        if not self.user_pick:
+            parameters_lengths_dict["all_tf_in_this_study"] = list(set(parameters_lengths_dict["all_tf_in_this_study"]))
+            # Determine size of complete parameter space combinations with settings given as well reduced space
+            parameters_lengths_dict["n_total_combinations"] = parameters_lengths_dict["n_initial_combinations"] = \
+                np.product([parameters_lengths_dict[f'{key_name}_length'] for key_name in self.key_names])
 
-        if not initial_params_size:
-            self.parameters_lengths_dict = _reduce_initial_parameter_space(parameters_lengths_dict,
-                                                                           self.runtime_settings[
-                                                                               "Optimization_Settings.Initial_Search.max_initial_combinations"])
+            '''Get record dimensions'''
+            if not initial_params_size:
+                self.parameters_lengths_dict = _reduce_initial_parameter_space(parameters_lengths_dict,
+                                                                               self.runtime_settings[
+                                                                                   "Optimization_Settings.Initial_Search.max_initial_combinations"])
+            else:
+                parameters_lengths_dict["n_initial_combinations"] = initial_params_size
+                self.parameters_lengths_dict = parameters_lengths_dict
+
+            if self.parameters_lengths_dict["n_initial_combinations"] > self.runtime_settings[
+                "Optimization_Settings.Initial_Search.max_initial_combinations"]:
+                continuing_text = f' because we are continuing the study from file' if self.continuing else ' '
+                logger.warning(
+                    f'I know max_initial_combinations was set to '
+                    f'{self.runtime_settings["Optimization_Settings.Initial_Search.max_initial_combinations"]} '
+                    f'but, I needed at least {self.parameters_lengths_dict["n_initial_combinations"]} initial combinations'
+                    f'{continuing_text}'
+                    f"\N{smiling face with smiling eyes}"
+                )
+
+            self.parameter_data_dtype = np.dtype(parameters_record_dtype)
+            self.parameters_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
+                                              dtype=self.parameter_data_dtype)
+            #
         else:
-            parameters_lengths_dict["n_initial_combinations"] = initial_params_size
-            self.parameters_lengths_dict = parameters_lengths_dict
+            self.parameter_windows = self.runtime_settings[
+                f"Strategy_Settings.strategy_backtest_params.parameter_windows"]
+            #
+            if self.runtime_settings[f"Strategy_Settings.strategy_backtest_params.compute_product"]:
+                n_initial_combinations = np.product(
+                    [len(self.parameter_windows[f'{key_name}.values']) for key_name in self.key_names])
+                #
+                from itertools import product
 
-        if self.parameters_lengths_dict["n_initial_combinations"] > self.runtime_settings[
-            "Optimization_Settings.Initial_Search.max_initial_combinations"]:
-            continuing_text = f' because we are continuing the study from file' if self.continuing else None
-            logger.warning(
-                f'I know max_initial_combinations was set to '
-                f'{self.runtime_settings["Optimization_Settings.Initial_Search.max_initial_combinations"]} '
-                f'but, I needed at least {self.parameters_lengths_dict["n_initial_combinations"]} initial combinations'
-                f'{continuing_text}'
-                f"\N{smiling face with smiling eyes}"
-            )
-
-        self.parameter_data_dtype = np.dtype(parameters_record_dtype)
-        self.parameters_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
-                                          dtype=self.parameter_data_dtype)
-        #
+                initial_param_combinations = list(
+                    set(
+                        product(
+                            *[self.parameter_windows[f'{key_name}.values'] for key_name in self.key_names]
+                        )
+                    )
+                )
+            else:
+                n_initial_combinations = len(self.parameter_windows[f'{self.key_names[0]}.values'])
+                for key_name in self.key_names[1:]:
+                    assert len(self.parameter_windows[f'{key_name}.values']) == n_initial_combinations
+                initial_param_combinations = np.array(
+                    [(self.parameter_windows[f'{key_name}.values']) for key_name in self.key_names]).transpose()
+            #
+            self.parameter_data_dtype = np.dtype(parameters_record_dtype)
+            self.parameters_record = np.empty(n_initial_combinations, dtype=self.parameter_data_dtype)
+            #
+            for index in range(len(initial_param_combinations)):
+                value = ((index,) + tuple(initial_param_combinations[index]))
+                self.parameters_record[index] = value
+            #
+            logger.info(f'Total number of combinations to run backtest on -->  {len(self.parameters_record)}\n'
+                        f'  on {len(self.asset_names)} assets')
 
     def _compute_params_product_n_fill_record(self, params):
         from itertools import product
@@ -547,18 +587,15 @@ class mini_genie_trader:
     def _compute_bar_atr(self):
         """
         Returns:
-            object: 
+            object:
 
         """
         from mini_genie_source.Simulation_Handler.compute_bar_atr import compute_bar_atr
         self.bar_atr = compute_bar_atr(self)
 
     @staticmethod
-    def _fill_tp_sl_n_skip_out_of_bound_suggestions(tp_sl_record, tp_sl_0, n_ratios,
-                                                    gamma_ratios, tick_size,
-                                                    tp_upper_bound, tp_lower_bound,
-                                                    sl_upper_bound,
-                                                    sl_lower_bound,
+    def _fill_tp_sl_n_skip_out_of_bound_suggestions(tp_sl_record, tp_sl_0, n_ratios, gamma_ratios, tick_size,
+                                                    tp_upper_bound, tp_lower_bound, sl_upper_bound, sl_lower_bound,
                                                     skipped_indexes, tf_index):
         """
         tp_sl_0: base
@@ -689,8 +726,14 @@ class mini_genie_trader:
         metrics_record_dtype = []
         if add_ids:
             metrics_record_dtype.append(('trial_id', 'i8'))
+        #
+        metrics_record_dtype.append(('asset', 'U8'))
+        #
         for metric_name in self.metrics_key_names:
-            metrics_record_dtype.append((metric_name, 'f8'))
+            if 'duration' not in metric_name.lower():
+                metrics_record_dtype.append((metric_name, 'f8'))
+            else:
+                metrics_record_dtype.append((metric_name, 'timedelta64'))
         #
         self.metric_data_dtype = np.dtype(metrics_record_dtype)
         self.metrics_record = np.zeros(
@@ -736,7 +779,7 @@ class mini_genie_trader:
                 '''All Categorical Params'''
                 number_of_suggestions = self.parameters_lengths_dict[f'{key_name}_length']
                 #
-                values = self.parameter_windows[key_name]["choices"]
+                values = self.parameter_windows[key_name]["values"]
                 assert number_of_suggestions == len(values)
                 #
                 timeframe_params[key_name] = values
@@ -801,57 +844,50 @@ class mini_genie_trader:
                 params["tp_sl"] = [tp_sl for tp_sl in tp_sl_combinations]
             #
             self._compute_params_product_n_fill_record(params)
-            self._save_initial_param_record()
+            self._save_record_to_file(self.parameters_record, self.path_of_initial_params_record,
+                                      self.compression_of_initial_params_record)
             from Utilities.general_utilities import write_dictionary_to_file
             write_dictionary_to_file(f'{self.misc_dir_path}/_parameters_lengths_dict', self.parameters_lengths_dict)
             #
+        # self.parameters_record = ray.put(self.parameters_record)  # to conserve memory, simulate_suggested relies on ray
         #
-        # else:
-        #     # from Utilities.general_utilities import load_dict_from_file
-        #     # parameters_lengths_dict = load_dict_from_file(f'{self.misc_dir_path}/_parameters_lengths_dict')
+        logger.info(f'Total # of Combinations: {self.parameters_lengths_dict["n_total_combinations"]} per asset\n'
+                    f'  * given current definitions for parameter space')
+        logger.info(f'Initial Parameter Space Reduced to {self.parameters_lengths_dict["n_initial_combinations"]}')
+        logger.info(f'Running on {len(self.asset_names)} assets')
 
-        #
-        logger.info(f'Total # of Combinations -> {self.parameters_lengths_dict["n_total_combinations"]}\n'
-                    f'  * given current definitions for parameter space\n'
-                    f'\n'
-                    f'Initial Parameter Space Reduced to {self.parameters_lengths_dict["n_initial_combinations"]}')
-        for key_name in self.key_names:
-            if key_name not in self.tp_sl_keynames:
-                logger.info(f'# of {key_name} paramters = {self.parameters_lengths_dict[f"{key_name}_length"]} ')
-        logger.info(f'# of TP/SL combinations = {self.parameters_lengths_dict[f"tp_sl_length"]} ')
-
-    def _save_initial_param_record(self):
+    @staticmethod
+    def _save_record_to_file(record, path_to_file, extension=None):
+        if not extension:
+            extension = os.path.splitext(path_to_file)[-1]
         import pandas as pd
-        df = pd.DataFrame(self.parameters_record).set_index('trial_id')
+        df = pd.DataFrame(record).set_index('trial_id')
+        df.to_csv(path_to_file) if extension == '.csv' else df.to_pickle(path_to_file)
         #
-        df.to_csv(
-            self.path_of_initial_params_record) if self.compression_of_initial_params_record == '.csv' else df.to_parquet(
-            self.path_of_initial_params_record, compression='gzip')
 
-    def _save_initial_computed_params_n_metrics(self):
+    def _save_computed_params_metrics(self):
         """Add to previously created file (or new if it does not exist), in a memory conscious way, the trial number,
         parameter combination, and combination stats"""
 
-        import pandas as pd
-        from Utilities.general_utilities import delete_non_filled_elements, rm_field_from_record
+        from Utilities.general_utilities import rm_field_from_record
         #
-        filled_metrics = delete_non_filled_elements(self.metrics_record)
+        #  my_data.astype(','.join(['f4']*n))
+        # filled_metrics = delete_non_filled_elements(self.metrics_record)
+        filled_metrics = self.metrics_record[self.metrics_record["asset"] != '']
         #
+        # filled_params = np.take(ray.get(self.parameters_record), filled_metrics["trial_id"])
         filled_params = np.take(self.parameters_record, filled_metrics["trial_id"])
         filled_params = rm_field_from_record(filled_params, 'trial_id')
         #
-        logger.info(f'Have ran {len(filled_metrics)} parameter combinations ran so far')
+        logger.info(f'Trials completed: {len(filled_metrics)}')
         #
         import numpy.lib.recfunctions as rfn
         merged_array = rfn.merge_arrays([filled_params, filled_metrics], flatten=True, usemask=False)
         #
-        df = pd.DataFrame(merged_array).set_index('trial_id')
-        #
-        df.to_csv(
-            self.path_of_initial_metrics_record) if self.compression_of_initial_metrics_record == '.csv' else df.to_parquet(
-            self.path_of_initial_metrics_record, compression='gzip')
+        file_path = self.path_of_initial_metrics_record if not self.user_pick else self.file_name_of_backtest_results
+        self._save_record_to_file(merged_array, file_path)
 
-    def simulate_suggestions(self, SAVE_EVERY_Nth_CHUNK=None):
+    def simulate(self):
         """
         In chunks/batches:
            1.  Simulate N parameters' indicators
@@ -859,42 +895,114 @@ class mini_genie_trader:
            3.  Compute Metrics
            4.  Save Results to file
         """
+        logger.info("in simulate suggestions")
 
-        from Simulation_Handler.simulation_handler import Simulation_Handler
-        from Analysis_Handler.analysis_handler import Analysis_Handler
-        simulation_handler = Simulation_Handler(self)
-        analysis_handler = Analysis_Handler(self)
-        #
+        def _analyze_n_save(portfolio, params_rec, highest_profit_, best_parameters_, initial_cash_total_, epoch_n_,
+                            save_every_nth_chunk=None):
+            '''Reconstruct Metrics from Order Records and Save'''
+            logger.info(f"Preparing to Save epoch {epoch_n_}")
+
+            tell_metrics_start_timer = perf_counter()
+            #
+            # params_rec = ray.get(params_rec_id)
+            #
+            # Used for Printing
+            highest_profit_this_epoch = portfolio['Total Return [%]'].max()
+            highest_cash_profit_this_epoch = highest_profit_this_epoch * initial_cash_total_ / 100
+            best_parameters_this_epoch = portfolio['Total Return [%]'].idxmax()
+            #
+            if highest_cash_profit_this_epoch > highest_profit_:
+                highest_profit_ = highest_cash_profit_this_epoch
+                best_parameters_ = best_parameters_this_epoch
+            #
+            logger.info(f'Highest Profit so far: {highest_profit_}   \N{money-mouth face}\N{money bag}')
+            logger.info(f'Best Param so far: {best_parameters_}  \N{money with wings}')
+            #
+            logger.info(f' -> highest_profit this epoch {highest_cash_profit_this_epoch} ')
+            logger.info(f' -> best_param this epoch {best_parameters_this_epoch}')
+            #
+            # clean up porfolio
+            portfolio.fillna(0.0)
+            # portfolio.replace(pd.NaT, pd.Timedelta(seconds=0), inplace=True)
+            #
+            # Fill metric record with new metric values
+            for _index, param_record in enumerate(params_rec):
+                trial_id = param_record["trial_id"]
+                param_record = rm_field_from_record(param_record, 'trial_id')
+                #
+                for ass_index, asset in enumerate(self.asset_names):
+                    param_tuple_ = tuple(param_record)
+                    param_tuple_ = param_tuple_ + (asset,)
+                    metrics_np = tuple(portfolio[:].loc[tuple(param_tuple_)])
+                    self.metrics_record[trial_id + (self.parameters_record_length * ass_index)] = (trial_id,
+                                                                                                   asset) + metrics_np
+            logger.info(f'Time to Analyze Metrics {perf_counter() - tell_metrics_start_timer}')
+            #
+            # Concat and save the parameter and metric records to file every Nth epoch
+            if save_every_nth_chunk:
+                if epoch_n_ % save_every_nth_chunk == 0:
+                    logger.info(f"Saving epoch {epoch_n_}")
+                    save_start_timer = perf_counter()
+                    self._save_computed_params_metrics()
+                    #
+                    logger.info(f'Time to Save Records {perf_counter() - save_start_timer} during epoch {epoch_n_}')
+            #
+            return highest_profit_, best_parameters_
+
         batch_size = self.batch_size
+        # self.parameters_record_length = len(ray.get(self.parameters_record))
+        self.parameters_record_length = len(self.parameters_record)
+        #
+        from Simulation_Handler.simulation_handler import Simulation_Handler
+        # from Analysis_Handler.analysis_handler import Analysis_Handler
+        from Analysis_Handler.analysis_handler import compute_stats
+        simulation_handler = Simulation_Handler(self)
+        # analysis_handler = Analysis_Handler(self)
+        #
+        # simulation_handler_id, analysis_handler_id = put_objects_list_to_ray([simulation_handler, analysis_handler])
+        # simulation_handler_id, analysis_handler_id = simulation_handler, analysis_handler
         #
         highest_profit = -sys.maxsize
         best_parameters = None
         #
         initial_cash_total = self.runtime_settings["Simulation_Settings.Portfolio_Settings.init_cash"]
         stop_after_n_epoch = self.runtime_settings["Optimization_Settings.Initial_Search.stop_after_n_epoch"]
-
+        save_every_nth_chunk = self.runtime_settings["Optimization_Settings.save_every_nth_chunk"]
+        #
         # If metrics record empty then initiate
         if not any(self.metrics_record):
-            self._initiate_metric_records(add_ids=True, params_size=len(self.parameters_record))
+            self._initiate_metric_records(add_ids=True, params_size=self.parameters_record_length * len(
+                self.asset_names))  # we need n_assets as many metric elements as there are trial.params
         else:
             highest_profit = np.max(self.metrics_record["Total Return [%]"])
 
             # self.parameters_record[]
-        # Get an array of indexes remaining to compute
-        from Utilities.general_utilities import fetch_non_filled_elements_indexes
-        trials_ids_not_computed = fetch_non_filled_elements_indexes(self.metrics_record)
 
-        # Take elements from parameter record that match with trials_ids_not_computed
-        params_left_to_compute = np.take(self.parameters_record, trials_ids_not_computed)
+        if not self.user_pick:
+            # Get an array of indexes remaining to compute
+            from Utilities.general_utilities import fetch_non_filled_elements_indexes
+            # Since metric_record is n_assets times bigger than parameters_record,and because metrics record just
+            #   repeats every 1/n_assets of the array we only need the first portion it
+            trials_ids_not_computed = fetch_non_filled_elements_indexes(
+                self.metrics_record[:self.parameters_record_length])
+
+            # Take elements from parameter record that match with trials_ids_not_computed
+            # params_to_compute = np.take(ray.get(self.parameters_record), trials_ids_not_computed)
+            params_to_compute = np.take(self.parameters_record, trials_ids_not_computed)
+        else:
+            params_to_compute = self.parameters_record
         #
-        # Get max n_chunks given max batch_size
-        n_chunks = int(np.floor(len(params_left_to_compute) / batch_size)) if batch_size < len(
-            params_left_to_compute) else 1
-        # Split arrays into n_chunks
-        chunks_of_params_left_to_compute = np.array_split(params_left_to_compute, n_chunks)
 
-        for epoch_n, epoch_params_record in enumerate(
-                chunks_of_params_left_to_compute):  # todo: would like to use ray to scale this (*keep track of index)
+        # Get max n_chunks given max batch_size
+        n_chunks = int(np.floor(len(params_to_compute) / batch_size)) if batch_size < len(params_to_compute) else 1
+        # Split arrays into n_chunks
+        chunks_of_params_left_to_compute = np.array_split(params_to_compute, n_chunks)
+        #
+        # from Utilities.general_utilities import put_objects_list_to_ray
+        # chunks_ids_of_params_left_to_compute = put_objects_list_to_ray(chunks_of_params_left_to_compute)
+
+        # for epoch_n, epoch_params_record_id in enumerate(chunks_of_params_left_to_compute):
+        for epoch_n, epoch_params_record in enumerate(chunks_of_params_left_to_compute):
             if epoch_n == stop_after_n_epoch:
                 break
             #
@@ -909,41 +1017,61 @@ class mini_genie_trader:
                                                                     strategy_specific_kwargs)
             #
             '''Reconstruct Metrics from Order Records and Save'''
-            portfolio_combined = analysis_handler.compute_stats(pf, self.metrics_key_names, groupby=self.group_by)
-            analyze_start_timer = perf_counter()
-            metrics_this_epoch = portfolio_combined.to_numpy()
+            func_calls = []
+            split_metric_names = np.array_split(self.metrics_key_names, len(self.metrics_key_names) / 2)
+            for metric_chunk in split_metric_names:
+                func_calls.append(compute_stats.remote(pf, metric_chunk))
+
+            # Compute All metrics in Chunk, returns [*Dataframes]
+            compute_stats_results = ray.get(func_calls)
+
+            # Join all Metrics
+            portfolio_stats = compute_stats_results[0].join(compute_stats_results[1:])
+
+            # portfolio_stats = analysis_handler.compute_stats(pf, self.metrics_key_names)
             #
-            # Fill metric record with new metric values
-            for _index, overall_index in enumerate(epoch_params_record["trial_id"]):
-                self.metrics_record[overall_index] = tuple(np.insert(metrics_this_epoch[_index], 0, overall_index))
-            #
-            # Used for Printing
-            highest_profit_this_epoch = portfolio_combined['Total Return [%]'].max()
-            highest_cash_profit_this_epoch = highest_profit_this_epoch * initial_cash_total / 100
-            best_parameters_this_epoch = portfolio_combined['Total Return [%]'].idxmax()
-            #
-            if highest_cash_profit_this_epoch > highest_profit:
-                highest_profit = highest_cash_profit_this_epoch
-                best_parameters = best_parameters_this_epoch
-            #
-            logger.info(f'Highest Profit so far: {highest_profit}   \N{money-mouth face}\N{money bag}')
-            logger.info(f'Best Param so far: {best_parameters}  \N{money with wings}')
-            #
-            logger.info(f' -> highest_profit this epoch {highest_cash_profit_this_epoch} ')
-            logger.info(f' -> best_param this epoch {best_parameters_this_epoch}')
-            #
-            logger.info(f'Time to Analyze Metrics {perf_counter() - analyze_start_timer}')
-            #
-            # Concat and save the parameter and metric records to file every Nth epoch
-            if SAVE_EVERY_Nth_CHUNK:
-                if epoch_n % SAVE_EVERY_Nth_CHUNK == 0:
-                    save_start_timer = perf_counter()
-                    self._save_initial_computed_params_n_metrics()
-                    #
-                    logger.info(f'Time to Save Records {perf_counter() - save_start_timer} during epoch {epoch_n}')
-            #
+            highest_profit, best_parameters = _analyze_n_save(portfolio_stats, epoch_params_record,
+                                                              highest_profit, best_parameters,
+                                                              initial_cash_total, epoch_n,
+                                                              save_every_nth_chunk=save_every_nth_chunk)
+
             logger.info(f'Epoch {epoch_n} took {perf_counter() - start_time} seconds')
             logger.info(f'\n\n')
         #
         # Do a final save !
-        self._save_initial_computed_params_n_metrics()
+        self._save_computed_params_metrics()
+
+    def prepare_backtest(self):
+        """Simulate parameters passed by user; either explicitly or produced from settings"""
+        ...
+        self._initiate_parameters_records(add_ids=True)
+
+        self.simulate()
+
+    def metric_record_to_tsv(self):
+        original_file_path = self.path_of_initial_metrics_record if not self.user_pick else self.file_name_of_backtest_results
+        #
+        original_file_path_without_extension = os.path.splitext(original_file_path)[:-1]
+        df = pd.DataFrame(self.metrics_record).set_index('trial_id')
+        df.to_csv(f'{original_file_path_without_extension}.tsv', delimiter='\t')
+
+    def metric_csv_file_to_tsv(self):
+        original_file_path = self.path_of_initial_metrics_record if not self.user_pick else self.file_name_of_backtest_results
+        #
+        if os.path.exists(original_file_path):
+            if self.compression_of_initial_metrics_record == '.csv':
+                metrics_df = pd.read_csv(original_file_path)
+            else:
+                metrics_df = pd.read_pickle(original_file_path)
+            #
+            logger.info(f'Loaded metrics csv')
+            #
+            original_file_path_without_extension = os.path.splitext(original_file_path)[0]
+            #
+            metrics_df.set_index('trial_id', inplace=True)
+            metrics_df.to_csv(f'{original_file_path_without_extension}.tsv', sep='\t')
+            #
+            logger.info(f'Successfully created tsv file from csv file')
+        #
+        else:
+            logger.info(f'Could not find {original_file_path} to convert to tsv')
