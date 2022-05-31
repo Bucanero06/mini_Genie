@@ -6,13 +6,6 @@ from logger_tt import setup_logging, logger
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
-# TODO:
-#  TASK:
-#   * Need to add backtest module/logic (can use np.arrange) -----------------------------
-#   * Fill, save and load params,  metrics records (convinient file format) -------------------------
-#   * Do not compute or include in chunks, previously computed params---------------------
-#   * ADD EQUIPMENT HANDLER -------------------------------------------------
-
 def call_genie(args):
     genie_pick = args.genie_pick
     user_pick = args.user_pick
@@ -78,13 +71,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Help for ChargeMigration Interface")
     #
     parser.add_argument("-gp", help="Will simulate using genie picked space based on user settings", dest="genie_pick",
-                        type=str, action='store', default=False)
-    parser.add_argument("-up", help="Will simulate using solely the user picked space", dest="user_pick", type=str,
-                        action='store', default=False)
+                        action='store_false', default=True)
+    parser.add_argument("-up", help="Will simulate using solely the user picked space", dest="user_pick",
+                        action='store_false', default=False)
     parser.add_argument("-tsv",
                         help="Will convert csv to tsv previously computed metric files. File will vary based on "
-                             "whether user or genie pick option was used",
-                        dest="metrics_to_tsv", type=str, action='store', default=False)
+                             "whether user or genie pick option was used.",
+                        dest="metrics_to_tsv", action='store_false', default=False)
     #
     parser.set_defaults(func=call_genie)
     args = parser.parse_args()
