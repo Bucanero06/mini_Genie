@@ -1,26 +1,23 @@
-from logger_tt import logger
-from logger_tt import setup_logging
+import argparse
+import warnings
+
+from logger_tt import setup_logging, logger
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 
 # TODO:
-#  IDEA:
-#   * Can you use ray inside of apply_function MMT?
-#   * Set up ray clusters which means get this code ready for that
-#   * Replace parameters that resulted in NaN each reset?
-#   * After a large initial run chunk then run optuna (1 comb at a time without storage) on all or reduced space
-#   * How to run ray server across multiple pc? and how fast could it run on AWS?
-#   _
 #  TASK:
-#   * Need to add backtest module/logic (can use np.arrange)
+#   * Need to add backtest module/logic (can use np.arrange) -----------------------------
 #   * Fill, save and load params,  metrics records (convinient file format) -------------------------
-#   * Do not compute or include in chunks, previously computed ---------------------
+#   * Do not compute or include in chunks, previously computed params---------------------
 #   * ADD EQUIPMENT HANDLER -------------------------------------------------
 
-
-brute_force_run = True
-backtest_run = False
-
-if __name__ == "__main__":
-    setup_logging(full_context=1)
+def call_genie(args):
+    genie_pick = args.genie_pick
+    user_pick = args.user_pick
+    metrics_to_tsv = args.metrics_to_tsv
+    #
     from mini_genie_source.Configuration_Files.runtime_parameters import Run_Time_Settings
     from mini_genie_source.mini_Genie_Object.mini_genie import mini_genie_trader
 
@@ -29,12 +26,15 @@ if __name__ == "__main__":
     The genie object works as an operator, can act on itself through its methods, can be acted upon by other 
         operators, and must always return the latest state of genie_operator.
      '''
-    genie_object = mini_genie_trader(runtime_kwargs=Run_Time_Settings)
+    genie_object = mini_genie_trader(runtime_kwargs=Run_Time_Settings, user_pick=user_pick)
+
+    if metrics_to_tsv:
+        genie_object.metric_csv_file_to_tsv()
 
     # Load symbols_data, open, low, high, close to genie object.
     genie_object.fetch_and_prepare_input_data()
 
-    if brute_force_run:
+    if genie_pick:
         '''
          List of Initial Params:
               Product of:
@@ -66,14 +66,34 @@ if __name__ == "__main__":
         #    2.  Simulate N parameters' events
         #    3.  Compute Metrics
         #    4.  Save Results to file
-        genie_object.simulate_suggestions(
-            SAVE_EVERY_Nth_CHUNK=Run_Time_Settings["Optimization_Settings"]["SAVE_EVERY_Nth_CHUNK"])
-        #
-        # TODO: LEFT HERE
-        logger.info(f'IN MAIN LOL')
-        logger.info(f'{genie_object.parameters_record = }')
-        logger.info(f'{genie_object.metrics_record = }')
+        genie_object.simulate()
+    #
+    elif user_pick:
+        genie_object.prepare_backtest()
 
+
+if __name__ == "__main__":
+    setup_logging(full_context=1)
+    #
+    parser = argparse.ArgumentParser(description="Help for ChargeMigration Interface")
+    #
+    parser.add_argument("-gp", help="Will simulate using genie picked space based on user settings", dest="genie_pick",
+                        type=str, action='store', default=False)
+    parser.add_argument("-up", help="Will simulate using solely the user picked space", dest="user_pick", type=str,
+                        action='store', default=False)
+    parser.add_argument("-tsv",
+                        help="Will convert csv to tsv previously computed metric files. File will vary based on "
+                             "whether user or genie pick option was used",
+                        dest="metrics_to_tsv", type=str, action='store', default=False)
+    #
+    parser.set_defaults(func=call_genie)
+    args = parser.parse_args()
+    #
+    if not any([vars(args)[i] for i in vars(args) if i != 'func']):
+        logger.warning("No action requested, exiting ...")
+        parser.print_help()
         exit()
-    elif backtest_run:
-        ...
+    #
+    args.func(args)
+    #
+    logger.info('All Done')
