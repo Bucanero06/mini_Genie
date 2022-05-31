@@ -1,7 +1,11 @@
+import warnings
+
 import pandas as pd
 import ray
 import vectorbtpro as vbt
 from logger_tt import logger
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class Data_Handler:
@@ -181,28 +185,28 @@ class Data_Handler:
                                                       self.genie_object.optimization_start_date - one_day)
 
         # # Set Optimization Data Attr's (ray.put)
-        # setattr(self.genie_object, "optimization_open_data", ray.put(optimization_open_data))
-        # setattr(self.genie_object, "optimization_low_data", ray.put(optimization_low_data))
-        # setattr(self.genie_object, "optimization_high_data", ray.put(optimization_high_data))
-        # setattr(self.genie_object, "optimization_close_data", ray.put(optimization_close_data))
-        # #
-        # # Set \bar{ATR} Data Attr's  (ray.put)
-        # setattr(self.genie_object, "bar_atr_open_data", ray.put(bar_atr_open_data))
-        # setattr(self.genie_object, "bar_atr_low_data", ray.put(bar_atr_low_data))
-        # setattr(self.genie_object, "bar_atr_high_data", ray.put(bar_atr_high_data))
-        # setattr(self.genie_object, "bar_atr_close_data", ray.put(bar_atr_close_data))
+        setattr(self.genie_object, "optimization_open_data", ray.put(optimization_open_data))
+        setattr(self.genie_object, "optimization_low_data", ray.put(optimization_low_data))
+        setattr(self.genie_object, "optimization_high_data", ray.put(optimization_high_data))
+        setattr(self.genie_object, "optimization_close_data", ray.put(optimization_close_data))
+        #
+        # Set \bar{ATR} Data Attr's  (ray.put)
+        setattr(self.genie_object, "bar_atr_open_data", ray.put(bar_atr_open_data))
+        setattr(self.genie_object, "bar_atr_low_data", ray.put(bar_atr_low_data))
+        setattr(self.genie_object, "bar_atr_high_data", ray.put(bar_atr_high_data))
+        setattr(self.genie_object, "bar_atr_close_data", ray.put(bar_atr_close_data))
         #
         # Set Optimization Data Attr's
-        setattr(self.genie_object, "optimization_open_data", optimization_open_data)
-        setattr(self.genie_object, "optimization_low_data", optimization_low_data)
-        setattr(self.genie_object, "optimization_high_data", optimization_high_data)
-        setattr(self.genie_object, "optimization_close_data", optimization_close_data)
-        #
-        # Set \bar{ATR} Data Attr's
-        setattr(self.genie_object, "bar_atr_open_data", bar_atr_open_data)
-        setattr(self.genie_object, "bar_atr_low_data", bar_atr_low_data)
-        setattr(self.genie_object, "bar_atr_high_data", bar_atr_high_data)
-        setattr(self.genie_object, "bar_atr_close_data", bar_atr_close_data)
+        # setattr(self.genie_object, "optimization_open_data", optimization_open_data)
+        # setattr(self.genie_object, "optimization_low_data", optimization_low_data)
+        # setattr(self.genie_object, "optimization_high_data", optimization_high_data)
+        # setattr(self.genie_object, "optimization_close_data", optimization_close_data)
+        # #
+        # # Set \bar{ATR} Data Attr's
+        # setattr(self.genie_object, "bar_atr_open_data", bar_atr_open_data)
+        # setattr(self.genie_object, "bar_atr_low_data", bar_atr_low_data)
+        # setattr(self.genie_object, "bar_atr_high_data", bar_atr_high_data)
+        # setattr(self.genie_object, "bar_atr_close_data", bar_atr_close_data)
         return self
 
         ...
