@@ -588,12 +588,12 @@ def Flexible_Simulation_Backtest(runtime_settings, open_data, low_data, high_dat
             short_entries=short_entries,
             short_exits=short_exits,
 
-            order_size=runtime_settings["Simulation_Settings.Portfolio_Settings"]['size'],
-            size_type=1 if runtime_settings["Simulation_Settings.Portfolio_Settings"]['size_type'] == 'cash' else 0,
-            fees=runtime_settings["Simulation_Settings.Portfolio_Settings"]['trading_fees'],
-            slippage=runtime_settings["Simulation_Settings.Portfolio_Settings"]['slippage'],
+            order_size=runtime_settings["Portfolio_Settings"]['size'],
+            size_type=1 if runtime_settings["Portfolio_Settings"]['size_type'] == 'cash' else 0,
+            fees=runtime_settings["Portfolio_Settings"]['trading_fees'],
+            slippage=runtime_settings["Portfolio_Settings"]['slippage'],
             tick_size=runtime_settings["Data_Settings"]['tick_size'],
-            type_percent=runtime_settings["Simulation_Settings.Portfolio_Settings"]['type_percent'],
+            type_percent=runtime_settings["Portfolio_Settings"]['type_percent'],
 
             # strategy Specific Kwargs
             long_progressive_condition=strategy_specific_kwargs['long_progressive_condition'],
@@ -622,9 +622,9 @@ def Flexible_Simulation_Backtest(runtime_settings, open_data, low_data, high_dat
         flexible=True,
         max_orders=close_data.shape[0] * 2,  # do not change
         freq=runtime_settings["Data_Settings"]['timeframe'],
-        init_cash=runtime_settings["Simulation_Settings.Portfolio_Settings"]['init_cash'],
-        # cash_sharing=runtime_settings["Simulation_Settings.Portfolio_Settings"]['cash_sharing'],
-        # group_by=runtime_settings["Simulation_Settings.Portfolio_Settings"]['group_by'],
+        init_cash=runtime_settings["Portfolio_Settings"]['init_cash'],
+        # cash_sharing=runtime_settings["Portfolio_Settings"]['cash_sharing'],
+        # group_by=runtime_settings["Portfolio_Settings"]['group_by'],
         chunked=chunked,
     )
     logger.info(f'Time to Run Portfolio Simulation {perf_counter() - Start_Timer}')
@@ -643,8 +643,8 @@ def Flexible_Simulation_Backtest(runtime_settings, open_data, low_data, high_dat
         strategy_specific_kwargs['take_profit_bool'] and strategy_specific_kwargs['stoploss_bool'] else np.zeros(
         shape=np.array(strategy_specific_kwargs['take_profit_point_parameters']).shape)
     extra_info['init_cash_div_order_size'] = [np.divide(
-        np.multiply(runtime_settings['Simulation_Settings.Portfolio_Settings']['init_cash'], number_of_assets),
-        runtime_settings['Simulation_Settings.Portfolio_Settings']['size'])] * number_of_parameter_comb
+        np.multiply(runtime_settings['Portfolio_Settings']['init_cash'], number_of_assets),
+        runtime_settings['Portfolio_Settings']['size'])] * number_of_parameter_comb
     # """'''''''''''''''''''''''''''''''''''''''''''''''''''''''''"""
     # extra_info = np.empty(number_of_parameter_comb * number_of_assets, dtype=extra_info_dtype)
     # take_profit_point_parameters = [680, 480]
@@ -654,8 +654,8 @@ def Flexible_Simulation_Backtest(runtime_settings, open_data, low_data, high_dat
     # extra_info['risk_reward_ratio'] = append_flatten_lists([np.divide(take_profit_point_parameters,
     #                                                                   stoploss_points_parameters)] * number_of_assets)
     # extra_info['init_cash_div_order_size'] = append_flatten_lists(
-    #     [[np.divide(runtime_settings['Simulation_Settings.Portfolio_Settings']['init_cash'],
-    #                 runtime_settings['Simulation_Settings.Portfolio_Settings'][
+    #     [[np.divide(runtime_settings['Portfolio_Settings']['init_cash'],
+    #                 runtime_settings['Portfolio_Settings'][
     #                     'size'])] * number_of_parameter_comb] * number_of_assets)
     # for i in extra_info:
     #     print(
@@ -669,7 +669,7 @@ def Flexible_Simulation_Backtest(runtime_settings, open_data, low_data, high_dat
     #     [np.inf, -np.inf], np.nan, inplace=False)
     # print(f'\n{portfolio_combined = }')  # For Debugging    # For Debugging    # For Debugging
     #
-    portfolio_grouped = pf.stats(agg_func=None, group_by=runtime_settings["Simulation_Settings.Portfolio_Settings"][
+    portfolio_grouped = pf.stats(agg_func=None, group_by=runtime_settings["Portfolio_Settings"][
         'group_by']).replace(
         [np.inf, -np.inf], np.nan, inplace=False)
     print(f'\n{portfolio_grouped = }')  # For Debugging    # For Debugging    # For Debugging
@@ -772,12 +772,12 @@ def Flexible_Simulation_Optimization(runtime_settings,
             short_entries=short_entries,
             short_exits=short_exits,
             #
-            order_size=runtime_settings["Simulation_Settings.Portfolio_Settings.size"],
-            size_type=1 if runtime_settings["Simulation_Settings.Portfolio_Settings.size_type"] == 'cash' else 0,
-            fees=runtime_settings["Simulation_Settings.Portfolio_Settings.trading_fees"],
-            slippage=runtime_settings["Simulation_Settings.Portfolio_Settings.slippage"],
+            order_size=runtime_settings["Portfolio_Settings.size"],
+            size_type=1 if runtime_settings["Portfolio_Settings.size_type"] == 'cash' else 0,
+            fees=runtime_settings["Portfolio_Settings.trading_fees"],
+            slippage=runtime_settings["Portfolio_Settings.slippage"],
             tick_size=runtime_settings["Data_Settings.tick_size"],
-            type_percent=runtime_settings["Simulation_Settings.Portfolio_Settings.type_percent"],
+            type_percent=runtime_settings["Portfolio_Settings.type_percent"],
 
             # strategy Specific Kwargs
             long_progressive_condition=strategy_specific_kwargs['long_progressive_condition'],
@@ -805,10 +805,10 @@ def Flexible_Simulation_Optimization(runtime_settings,
         ),
         flexible=True,
         max_orders=close_data.shape[0] * 2,  # do not change
-        freq=runtime_settings["Simulation_Settings.Portfolio_Settings.sim_timeframe"],
-        init_cash=runtime_settings["Simulation_Settings.Portfolio_Settings.init_cash"],
+        freq=runtime_settings["Portfolio_Settings.sim_timeframe"],
+        init_cash=runtime_settings["Portfolio_Settings.init_cash"],
         # cash_sharing=True,
-        # group_by=runtime_settings["Simulation_Settings.Portfolio_Settings"]['group_by'],
+        # group_by=runtime_settings["Portfolio_Settings"]['group_by'],
         chunked=chunked,
     )
     logger.info(f'Time to Run Portfolio Simulation {perf_counter() - Start_Timer}')
@@ -828,8 +828,8 @@ def Flexible_Simulation_Optimization(runtime_settings,
         strategy_specific_kwargs["take_profit_bool"] and strategy_specific_kwargs["stoploss_bool"] else np.zeros(
         shape=np.array(strategy_specific_kwargs["take_profit_point_parameters"]).shape)
     extra_info["init_cash_div_order_size"] = [np.divide(
-        np.multiply(runtime_settings["Simulation_Settings.Portfolio_Settings.init_cash"], number_of_assets),
-        runtime_settings["Simulation_Settings.Portfolio_Settings.size"])] * number_of_parameter_comb
+        np.multiply(runtime_settings["Portfolio_Settings.init_cash"], number_of_assets),
+        runtime_settings["Portfolio_Settings.size"])] * number_of_parameter_comb
 
     # from genie_trader.data_n_analysis_modules.Analyze import Compute_Stats
     # Portfolio_Stats = Compute_Stats(pf)[

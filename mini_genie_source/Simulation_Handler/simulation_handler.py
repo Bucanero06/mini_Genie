@@ -107,7 +107,7 @@ class Simulation_Handler:
         batch_size_ = int(long_entries.shape[1] / len(close_data.keys()))
 
         pf, extra_sim_info = self.genie_object.runtime_settings[
-            "Simulation_Settings.Portfolio_Settings.Simulator.optimization"](
+            "Portfolio_Settings.Simulator.optimization"](
             self.genie_object.runtime_settings,
             open_data, low_data, high_data, close_data,
             long_entries, long_exits, short_entries,
@@ -117,7 +117,7 @@ class Simulation_Handler:
 
         '''Save Portfolio after each epoch'''  # (3)_n-1
         pf.save(
-            f'{self.genie_object.portfolio_dir_path}/{self.genie_object.runtime_settings["Simulation_Settings.Portfolio_Settings.saved_pf_optimization"]}')
+            f'{self.genie_object.portfolio_dir_path}/{self.genie_object.runtime_settings["Portfolio_Settings.saved_pf_optimization"]}')
         return pf, extra_sim_info
 
         ...
