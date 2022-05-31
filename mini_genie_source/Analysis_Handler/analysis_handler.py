@@ -41,7 +41,6 @@ class Analysis_Handler:
             portfolio_combined = Portfolio.stats(metrics=only_these_stats, agg_func=None, group_by=groupby).replace(
                 [np.inf, -np.inf], np.nan, inplace=False)
         logger.info(f'Time to Reconstruct Metrics {perf_counter() - start_time}')
-        print(f'Time to Reconstruct Metrics {perf_counter() - start_time}')
         return portfolio_combined
 
     # @ray.remote
@@ -73,9 +72,6 @@ class Analysis_Handler:
 
 @ray.remote
 def compute_stats(Portfolio, only_these_stats, groupby=None):
-    logger.info('Reconstructing Portfolio Stats')
-    print('Reconstructing Portfolio Stats')
-    start_time = perf_counter()
     only_these_stats = [vbtmetricsdictionary[string] for string in only_these_stats]
     if groupby is None:
         portfolio_combined = Portfolio.stats(metrics=only_these_stats, agg_func=None).replace(
@@ -83,6 +79,4 @@ def compute_stats(Portfolio, only_these_stats, groupby=None):
     else:
         portfolio_combined = Portfolio.stats(metrics=only_these_stats, agg_func=None, group_by=groupby).replace(
             [np.inf, -np.inf], np.nan, inplace=False)
-    logger.info(f'Time to Reconstruct Metrics {perf_counter() - start_time}')
-    print(f'Time to Reconstruct Metrics {perf_counter() - start_time}')
     return portfolio_combined
