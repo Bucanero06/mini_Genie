@@ -1,7 +1,9 @@
-# --- ↓ Do not remove these libs ↓ -------------------------------------------------------------------------------------
-import sys
+import warnings
 from time import perf_counter
 
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+# --- ↓ Do not remove these libs ↓ -------------------------------------------------------------------------------------
 import numpy as np
 import pandas as pd
 import vectorbtpro as vbt
@@ -15,7 +17,6 @@ from vectorbtpro.portfolio.enums import Direction, NoOrder, OrderStatus, OrderSi
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
-large_number = float(sys.maxsize)
 
 # defines how the inputs will be chunked and to execute with 'dask'
 chunked = dict(

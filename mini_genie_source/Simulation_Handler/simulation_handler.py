@@ -1,8 +1,16 @@
-from time import perf_counter
+import gc
+import warnings
 
+from Utilities.general_utilities import get_objects_list_from_ray
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+# --- ↓ Do not remove these libs ↓ -------------------------------------------------------------------------------------
+from time import perf_counter
 from logger_tt import logger
 
 
+# --- ↑ Do not remove these libs ↑ -------------------------------------------------------------------------------------
 
 
 class Simulation_Handler:
@@ -40,22 +48,26 @@ class Simulation_Handler:
         setattr(self.genie_object, "bar_atr", bar_atr)
         return self
 
-    def simulate_signals(self, parameters: object) -> object:
+    # @ray.remote
+    def simulate_signals(self, parameters, ray_sim_n_cpus="auto"):
         """
 
         Args:
+            ray_sim_n_cpus:
             parameters:
 
         Returns:
             object:
 
         """
-        # data = [self.genie_object.optimization_open_data, self.genie_object.optimization_low_data,
-        #         self.genie_object.optimization_high_data, self.genie_object.optimization_close_data]
-        # open_data, low_data, high_data, close_data = get_objects_list_from_ray(data)
-        open_data, low_data, \
-        high_data, close_data = self.genie_object.optimization_open_data, self.genie_object.optimization_low_data, \
-                                self.genie_object.optimization_high_data, self.genie_object.optimization_close_data
+        logger.info(f"Simulating Signals")
+        gc.collect()
+        data = [self.genie_object.optimization_open_data, self.genie_object.optimization_low_data,
+                self.genie_object.optimization_high_data, self.genie_object.optimization_close_data]
+        open_data, low_data, high_data, close_data = get_objects_list_from_ray(data)
+        # open_data, low_data, \
+        # high_data, close_data = self.genie_object.optimization_open_data, self.genie_object.optimization_low_data, \
+        #                         self.genie_object.optimization_high_data, self.genie_object.optimization_close_data
 
         Start_Timer = perf_counter()
         long_entries, long_exits, \
@@ -63,7 +75,8 @@ class Simulation_Handler:
         strategy_specific_kwargs = self.genie_object.runtime_settings["Strategy_Settings.Strategy"](open_data, low_data,
                                                                                                     high_data,
                                                                                                     close_data,
-                                                                                                    parameters)
+                                                                                                    parameters,
+                                                                                                    ray_sim_n_cpus)
 
         logger.info(f'Time to Prepare Entries and Exits Signals {perf_counter() - Start_Timer}')
         return long_entries, long_exits, short_entries, short_exits, strategy_specific_kwargs
@@ -82,13 +95,14 @@ class Simulation_Handler:
         Returns:
             object: 
         '''  # (2b)_n-1
-
-        # data = [self.genie_object.optimization_open_data, self.genie_object.optimization_low_data,
-        #         self.genie_object.optimization_high_data, self.genie_object.optimization_close_data]
-        # open_data, low_data, high_data, close_data = get_objects_list_from_ray(data)
-        open_data, low_data, \
-        high_data, close_data = self.genie_object.optimization_open_data, self.genie_object.optimization_low_data, \
-                                self.genie_object.optimization_high_data, self.genie_object.optimization_close_data
+        logger.info(f"Simulating Events")
+        gc.collect()
+        data = [self.genie_object.optimization_open_data, self.genie_object.optimization_low_data,
+                self.genie_object.optimization_high_data, self.genie_object.optimization_close_data]
+        open_data, low_data, high_data, close_data = get_objects_list_from_ray(data)
+        # open_data, low_data, \
+        # high_data, close_data = self.genie_object.optimization_open_data, self.genie_object.optimization_low_data, \
+        #                         self.genie_object.optimization_high_data, self.genie_object.optimization_close_data
 
         batch_size_ = int(long_entries.shape[1] / len(close_data.keys()))
 

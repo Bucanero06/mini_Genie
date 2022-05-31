@@ -1,9 +1,13 @@
+import warnings
+
 import numpy as np
 import vectorbtpro as vbt
 from numba import njit
 
 from mini_genie_source.Utilities.bars_utilities import resample_olhc_genie, split_uptrend_n_downtrend_atr
-from mini_genie_source.Utilities.general_utilities import compute_np_arrays_mean_nb
+from mini_genie_source.Utilities.general_utilities import compute_np_arrays_mean_nb, get_objects_list_from_ray
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class SuperTrendAIS(vbt.tp.NamedTuple):
@@ -244,15 +248,14 @@ def compute_bar_atr(genie_object):
         multiplier_windows=3
     )
 
-    # open_data = ray.get(genie_object.bar_atr_open_data)
-    # low_data = ray.get(genie_object.bar_atr_low_data)
-    # high_data = ray.get(genie_object.bar_atr_high_data)
-    # close_data = ray.get(genie_object.bar_atr_close_data)
+    data = [genie_object.optimization_open_data, genie_object.optimization_low_data,
+            genie_object.optimization_high_data, genie_object.optimization_close_data]
+    open_data, low_data, high_data, close_data = get_objects_list_from_ray(data)
     #
-    open_data = genie_object.bar_atr_open_data
-    low_data = genie_object.bar_atr_low_data
-    high_data = genie_object.bar_atr_high_data
-    close_data = genie_object.bar_atr_close_data
+    # open_data = genie_object.bar_atr_open_data
+    # low_data = genie_object.bar_atr_low_data
+    # high_data = genie_object.bar_atr_high_data
+    # close_data = genie_object.bar_atr_close_data
 
     # Change timeframes
     resampled_data_dict = resample_olhc_genie(timeframes=timeframes,
