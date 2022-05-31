@@ -25,24 +25,24 @@ Run_Time_Settings = dict(
         tick_size=0.00001
     ),
 
-    Optimization_Settings=dict(
-        study_name='ray_test_study',
+    Simulation_Settings=dict(
+        study_name='MMT_0',
         optimization_period=dict(
             start_date=datetime.datetime(month=12, day=1, year=2021),
             end_date=datetime.datetime(month=3, day=16, year=2022)
         ),
-        timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # fixme: logic missing
+        #
+        timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # fixme: logic missing,not used/needed
         Continue=True,
         batch_size=2,
-        # batch_size=500,
-        SAVE_EVERY_Nth_CHUNK=1,
+        save_every_nth_chunk=1,
         Initial_Search=dict(
             # _extensions available -> csv and gzip
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            # max_initial_combinations=66_000_000,
-            max_initial_combinations=100,
+            # max_initial_combinations=33_000_000,
+            max_initial_combinations=500,
             stop_after_n_epoch=None,
             force_to_finish=True,  # fixme: logic missing
             #
@@ -58,24 +58,44 @@ Run_Time_Settings = dict(
                     gamma_ratios=[0.5, 1, 1.5, 2, 2.5, 3],
                     number_of_bar_trends=1,
                 ),
-
             ),
-
         ),
 
         Loss_Function=dict(
             metrics=[
-                # 'Risk/Reward Ratio',
-                # 'Risk Adjusted Return',
+                # # 'Risk/Reward Ratio',
+                # # 'Risk Adjusted Return',
+                # 'Total Trades',
+                # 'Win Rate [%]',
+                # 'Profit Factor',
+                # 'Sortino Ratio',
+                # 'Omega Ratio',
+                # 'Total Return [%]',
+                # 'Max Drawdown [%]',
+                # # 'Max Gross Exposure [%]'
+                #
+                'Total Return [%]',
+                'Benchmark Return [%]',
+                'Max Gross Exposure [%]',
+                'Total Fees Paid',
+                'Max Drawdown [%]',
+                # 'Max Drawdown Duration',
                 'Total Trades',
                 'Win Rate [%]',
+                'Best Trade [%]',
+                'Worst Trade [%]',
+                'Avg Winning Trade [%]',
+                'Avg Losing Trade [%]',
+                # 'Avg Winning Trade Duration',
+                # 'Avg Losing Trade Duration',
                 'Profit Factor',
-                'Sortino Ratio',
+                # 'Expectancy',
+                'Sharpe Ratio',
+                # 'Calmar Ratio',
                 'Omega Ratio',
-                'Total Return [%]',
-                'Max Drawdown [%]',
-                # 'Max Gross Exposure [%]'
+                'Sortino Ratio',
             ],
+
             loss_settings=dict(
                 total_profit=dict(
                     total_profit_weight=1,
@@ -151,51 +171,70 @@ Run_Time_Settings = dict(
             multi_objective_bool=None, )
 
     ),
-    Simulation_Settings=dict(
-        Portfolio_Settings=dict(
-            # Simulation Settings
-            Simulator=dict(
-                backtesting=Flexible_Simulation_Backtest,
-                optimization=Flexible_Simulation_Optimization,
-            ),
-            #
-            sim_timeframe='1m',
-            JustLoadpf=False,
-            saved_pf_backtest='My_pf_backtest',
-            saved_pf_optimization='My_pf_optimization',
-            slippage=0,  # 0.0001,
-            trading_fees=0.00005,  # 0.00005 or 0.005%, $5 per $100_000
-            cash_sharing=False,
-            group_by=[],  # Leave blank
-
-            # Strategy
-            # max_orders=-1,
-            init_cash=1_000_000,
-            size_type='cash',  # 'shares',  # cash or shares
-            size=25_000,  # cash, else set size type to shares for share amount
-            type_percent=False,  # if true then take_profit and stoploss are given in percentages, else cash amount
-
+    Portfolio_Settings=dict(
+        # Simulation Settings
+        Simulator=dict(
+            backtesting=Flexible_Simulation_Backtest,
+            optimization=Flexible_Simulation_Optimization,
         ),
+        #
+        sim_timeframe='1m',
+        JustLoadpf=False,
+        saved_pf_backtest='My_pf_backtest',
+        saved_pf_optimization='My_pf_optimization',
+        slippage=0,  # 0.0001,
+        trading_fees=0.00005,  # 0.00005 or 0.005%, $5 per $100_000
+        cash_sharing=False,
+        group_by=[],  # Leave blank
+
+        # Strategy
+        # max_orders=-1,
+        init_cash=1_000_000,
+        size_type='cash',  # 'shares',  # cash or shares
+        size=25_000,  # cash, else set size type to shares for share amount
+        type_percent=False,  # if true then take_profit and stoploss are given in percentages, else cash amount
+
     ),
     Strategy_Settings=dict(
         Strategy=MMT_Strategy,  # FIXME: better input of info
         parameter_windows=dict(
             PEAK_and_ATR_timeframes=dict(type='timeframe',
-                                         choices=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
+                                         values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
 
             atr_windows=dict(type='window', lower_bound=1, upper_bound=10, min_step=1),
             data_lookback_windows=dict(type='window', lower_bound=2, upper_bound=16, min_step=1),
-            EMAs_timeframes=dict(type='timeframe', choices=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
+            EMAs_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
             ema_1_windows=dict(type='window', lower_bound=5, upper_bound=45, min_step=1),
             ema_2_windows=dict(type='window', lower_bound=20, upper_bound=60, min_step=1),
-            ema_3_windows=dict(type='window', lower_bound=19, upper_bound=20, min_step=1),
             #
             take_profit_points=dict(type='take_profit', lower_bound=0, upper_bound=1000, min_step=1),
             stoploss_points=dict(type='stop_loss', lower_bound=0, upper_bound=1000, min_step=1),
         ),
         #
-        strategy_backtest_params=dict(
 
+        strategy_backtest_params=dict(
+            output_file_name='backtest_result.csv',
+            # if compute_product then will compute the product of all the parameter values passed,
+            #   else parameter values length must be equal
+            compute_product=True,
+            # Can use  -->  values = np.arrange(start,stop,step) or np.linespace(start,stop,#)
+            parameter_windows=dict(
+                PEAK_and_ATR_timeframes=dict(type='timeframe', values=['1d', '30 min']),
+                #
+                atr_windows=dict(type='window', values=[5]),
+                data_lookback_windows=dict(type='window', values=[3]),
+                EMAs_timeframes=dict(type='timeframe', values=['30 min']),
+                ema_1_windows=dict(type='window', values=[36]),
+                ema_2_windows=dict(type='window', values=[19]),
+                #
+                take_profit_points=dict(type='take_profit', values=[100]),
+                stoploss_points=dict(type='stop_loss', values=[-100]),
+            )
         ),
     ),
+    #
+    RAY_SETTINGS=dict(
+        ray_init_num_cpus=28,
+        simulate_signals_num_cpus=24
+    )
 )
