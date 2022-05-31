@@ -64,6 +64,14 @@ def fetch_non_filled_elements_indexes(a):
     return np.array(output)
 
 
+def fetch_filled_elements_indexes(a):
+    output = []
+    for index, elem in enumerate(a):
+        if elem:
+            output.append(index)
+    return np.array(output)
+
+
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
@@ -128,5 +136,5 @@ def create_dir(dir):
 
 def clean_params_record(a):
     indexes_to_keep = np.where(a["trial_id"] != 0)  #
-    indexes_to_keep = list(np.insert(indexes_to_keep, 0, 0) ) #
+    indexes_to_keep = list(np.insert(indexes_to_keep, 0, 0))  #
     return np.take(a, indexes_to_keep)
