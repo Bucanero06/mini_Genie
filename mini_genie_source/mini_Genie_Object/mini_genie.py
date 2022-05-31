@@ -42,9 +42,9 @@ class mini_genie_trader:
         self.runtime_settings = flatdict.FlatDict(runtime_kwargs, delimiter='.')
 
         # Define frequently used variables in first level
-        self.study_name = self.runtime_settings["Optimization_Settings.study_name"]
+        self.study_name = self.runtime_settings["Simulation_Settings.study_name"]
         #
-        self.batch_size = self.runtime_settings["Optimization_Settings.batch_size"]
+        self.batch_size = self.runtime_settings["Simulation_Settings.batch_size"]
         #
         self.user_pick = user_pick
         #
@@ -56,21 +56,21 @@ class mini_genie_trader:
         #
         self.asset_names = self.runtime_settings["Data_Settings.data_files_names"]
         #
-        self.metrics_key_names = self.runtime_settings['Optimization_Settings.Loss_Function.metrics']
-        self.loss_metrics_settings_dict = self.runtime_settings['Optimization_Settings.Loss_Function.loss_settings']
+        self.metrics_key_names = self.runtime_settings['Simulation_Settings.Loss_Function.metrics']
+        self.loss_metrics_settings_dict = self.runtime_settings['Simulation_Settings.Loss_Function.loss_settings']
         number_of_outputs = 0
         for metric_name in self.loss_metrics_settings_dict._values:
             if self.loss_metrics_settings_dict[f'{metric_name}.{metric_name}_weight'] != 0:
                 number_of_outputs += 1
         self.number_of_outputs = number_of_outputs
         #
-        self.optimization_start_date = self.runtime_settings['Optimization_Settings.optimization_period.start_date']
-        self.optimization_end_date = self.runtime_settings['Optimization_Settings.optimization_period.end_date']
+        self.optimization_start_date = self.runtime_settings['Simulation_Settings.optimization_period.start_date']
+        self.optimization_end_date = self.runtime_settings['Simulation_Settings.optimization_period.end_date']
         #
         # Miscellaneous
         from datetime import datetime
-        self.stop_sim_time = self.runtime_settings['Optimization_Settings.timer_limit'] + datetime.now()
-        self.continuing = self.runtime_settings["Optimization_Settings.Continue"]
+        self.stop_sim_time = self.runtime_settings['Simulation_Settings.timer_limit'] + datetime.now()
+        self.continuing = self.runtime_settings["Simulation_Settings.Continue"]
         #
         self.ACCEPTED_TIMEFRAMES = ['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']
         self.ACCEPTED_TF_TYPES = ['timeframe', 'tf']
@@ -93,7 +93,7 @@ class mini_genie_trader:
         assert len(self.tp_keyname) == len(self.sl_keyname) == 1
         #
         self.tp_sl_selection_space = self.runtime_settings[
-            "Optimization_Settings.Initial_Search.parameter_selection.tp_sl"]
+            "Simulation_Settings.Initial_Search.parameter_selection.tp_sl"]
         #
         self.parameters_record = [None]
         self.metrics_record = [None]
@@ -129,9 +129,9 @@ class mini_genie_trader:
         misc_dir_path = f'{study_dir_path}/misc'
         #
         file_name_of_initial_params_record = self.runtime_settings[
-            'Optimization_Settings.Initial_Search.path_of_initial_params_record']
+            'Simulation_Settings.Initial_Search.path_of_initial_params_record']
         file_name_of_initial_metrics_record = self.runtime_settings[
-            'Optimization_Settings.Initial_Search.path_of_initial_metrics_record']
+            'Simulation_Settings.Initial_Search.path_of_initial_metrics_record']
         #
         file_name_of_backtest_results = self.runtime_settings[
             "Strategy_Settings.strategy_backtest_params.output_file_name"]
@@ -192,7 +192,7 @@ class mini_genie_trader:
             logger.info(f'Loaded parameters_record')
             #
             if os.path.exists(path_of_initial_metrics_record):
-                # column_names = list(self.key_names) + self.runtime_settings['Optimization_Settings.Loss_Function.metrics']
+                # column_names = list(self.key_names) + self.runtime_settings['Simulation_Settings.Loss_Function.metrics']
                 if self.compression_of_initial_metrics_record == '.csv':
                     metrics_df = pd.read_csv(path_of_initial_metrics_record)
                 else:
@@ -503,17 +503,17 @@ class mini_genie_trader:
             if not initial_params_size:
                 self.parameters_lengths_dict = _reduce_initial_parameter_space(parameters_lengths_dict,
                                                                                self.runtime_settings[
-                                                                                   "Optimization_Settings.Initial_Search.max_initial_combinations"])
+                                                                                   "Simulation_Settings.Initial_Search.max_initial_combinations"])
             else:
                 parameters_lengths_dict["n_initial_combinations"] = initial_params_size
                 self.parameters_lengths_dict = parameters_lengths_dict
 
             if self.parameters_lengths_dict["n_initial_combinations"] > self.runtime_settings[
-                "Optimization_Settings.Initial_Search.max_initial_combinations"]:
+                "Simulation_Settings.Initial_Search.max_initial_combinations"]:
                 continuing_text = f' because we are continuing the study from file' if self.continuing else ' '
                 logger.warning(
                     f'I know max_initial_combinations was set to '
-                    f'{self.runtime_settings["Optimization_Settings.Initial_Search.max_initial_combinations"]} '
+                    f'{self.runtime_settings["Simulation_Settings.Initial_Search.max_initial_combinations"]} '
                     f'but, I needed at least {self.parameters_lengths_dict["n_initial_combinations"]} initial combinations'
                     f'{continuing_text}'
                     f"\N{smiling face with smiling eyes}"
@@ -965,9 +965,9 @@ class mini_genie_trader:
         highest_profit = -sys.maxsize
         best_parameters = None
         #
-        initial_cash_total = self.runtime_settings["Simulation_Settings.Portfolio_Settings.init_cash"]
-        stop_after_n_epoch = self.runtime_settings["Optimization_Settings.Initial_Search.stop_after_n_epoch"]
-        save_every_nth_chunk = self.runtime_settings["Optimization_Settings.save_every_nth_chunk"]
+        initial_cash_total = self.runtime_settings["Portfolio_Settings.init_cash"]
+        stop_after_n_epoch = self.runtime_settings["Simulation_Settings.Initial_Search.stop_after_n_epoch"]
+        save_every_nth_chunk = self.runtime_settings["Simulation_Settings.save_every_nth_chunk"]
         #
         # If metrics record empty then initiate
         if not any(self.metrics_record):
@@ -1017,18 +1017,19 @@ class mini_genie_trader:
                                                                     strategy_specific_kwargs)
             #
             '''Reconstruct Metrics from Order Records and Save'''
+            logger.info('Reconstructing Portfolio Stats')
+            compute_stats_timer = perf_counter()
             func_calls = []
             split_metric_names = np.array_split(self.metrics_key_names, len(self.metrics_key_names) / 2)
             for metric_chunk in split_metric_names:
                 func_calls.append(compute_stats.remote(pf, metric_chunk))
-
+            #
             # Compute All metrics in Chunk, returns [*Dataframes]
             compute_stats_results = ray.get(func_calls)
-
+            #
             # Join all Metrics
             portfolio_stats = compute_stats_results[0].join(compute_stats_results[1:])
-
-            # portfolio_stats = analysis_handler.compute_stats(pf, self.metrics_key_names)
+            logger.info(f'Time to Reconstruct Metrics {perf_counter() - compute_stats_timer}')
             #
             highest_profit, best_parameters = _analyze_n_save(portfolio_stats, epoch_params_record,
                                                               highest_profit, best_parameters,
