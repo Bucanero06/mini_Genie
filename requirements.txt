@@ -124,7 +124,7 @@ entrypoints~=0.4
 pyparsing~=3.0.9
 pycparser~=2.21
 pyrsistent~=0.18.1
-kiwisolver~=1.4.2pandas~=1.4.2
+kiwisolver~=1.4.2
 ray~=1.12.1
 numpy~=1.21.6
 py~=1.11.0
