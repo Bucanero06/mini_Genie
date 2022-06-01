@@ -39,6 +39,9 @@ def set_up_mini_genie():
 
                 )
     #
+    if path.exists('.working_directory_.txt'):
+        system('rm -f .working_directory_.txt')
+    #
     system('pip install .')
     system('pip install -r requirements.txt')
     create_dir('Datas')
@@ -49,6 +52,7 @@ def set_up_mini_genie():
     if not path.exists('mini_genie.py'):
         system('chmod +x mini_genie_source/main_mini_genie.py')
         system('ln -s mini_genie_source/main_mini_genie.py genie_trader.py')
+        system('touch .working_directory_.txt')
     #
     logger.info("\n\n"
                 "Im done getting ready, check me out 🦾\N{Smiling Face With Smiling Eyes}\n"
