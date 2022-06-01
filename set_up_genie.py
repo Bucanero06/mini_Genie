@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-from logger_tt import setup_logging, logger
-
-setup_logging(full_context=1)
-
 
 def create_dir(directories):
     """
@@ -18,45 +14,47 @@ def create_dir(directories):
     if not isinstance(directories, str):
         for dir in directories:
             if not path.exists(directories):
-                logger.info(f'Creating directory {dir}')
+                print(f'Creating directory {dir}')
                 mkdir(directories)
             else:
-                logger.info(f'Found {dir}')
+                print(f'Found {dir}')
     else:
         if not path.exists(directories):
-            logger.info(f'Creating directory {directories}')
+            print(f'Creating directory {directories}')
             mkdir(directories)
         else:
-            logger.info(f'Found {directories}')
+            print(f'Found {directories}')
 
 
 def set_up_mini_genie():
     from os import system, path
-    logger.info("Setting Up mini-Genie "
-                "\N{Smiling Face With Heart-Shaped Eyes}"
-                "\N{Smiling Face With Smiling Eyes And Hand Covering Mouth}"
-                "\N{money-mouth face}🦾"
+    print("Setting Up mini-Genie "
+          "\N{Smiling Face With Heart-Shaped Eyes}"
+          "\N{Smiling Face With Smiling Eyes And Hand Covering Mouth}"
+          "\N{money-mouth face}🦾"
 
-                )
+          )
+    #
+    system("python3 -m venv .")
     #
     if path.exists('.working_directory_.txt'):
         system('rm -f .working_directory_.txt')
     #
-    system('pip install .')
-    system('pip install -r requirements.txt')
+    system('pip3 install .')
+    system('pip3 install -r requirements.txt')
     create_dir('Datas')
     create_dir('Studies')
+    system('touch .working_directory_.txt')
     system(
-        'pip install -U \"vectorbtpro[full] @ git+https://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@github.com/polakowo/vectorbt.pro.git\"')
+        'pip3 install -U \"vectorbtpro[full] @ git+https://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@github.com/polakowo/vectorbt.pro.git\"')
     #
     if not path.exists('mini_genie.py'):
         system('chmod +x mini_genie_source/main_mini_genie.py')
         system('ln -s mini_genie_source/main_mini_genie.py genie_trader.py')
-        system('touch .working_directory_.txt')
     #
-    logger.info("\n\n"
-                "Im done getting ready, check me out 🦾\N{Smiling Face With Smiling Eyes}\n"
-                "Im done getting ready, check me out 🦿")
+    print("\n\n"
+          "Im done getting ready, check me out 🦾\N{Smiling Face With Smiling Eyes}\n"
+          "Im done getting ready, check me out 🦿")
     system('./genie_trader.py --help')
 
     #

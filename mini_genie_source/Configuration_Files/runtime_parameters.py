@@ -34,15 +34,15 @@ Run_Time_Settings = dict(
         #
         timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # fixme: logic missing,not used/needed
         Continue=True,
-        batch_size=500,
+        batch_size=2,
         save_every_nth_chunk=1,
         Initial_Search=dict(
             # _extensions available -> csv and gzip
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            max_initial_combinations=33_000_000,
-            #max_initial_combinations=500,
+            #max_initial_combinations=33_000_000,
+            max_initial_combinations=500,
             stop_after_n_epoch=None,
             force_to_finish=True,  # fixme: logic missing
             #

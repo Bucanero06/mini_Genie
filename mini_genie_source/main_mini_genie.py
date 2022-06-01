@@ -84,9 +84,11 @@ if __name__ == "__main__":
     parser.set_defaults(func=call_genie)
     args = parser.parse_args()
     #
+
+
+
     if not os.path.exists(".working_directory_.txt"):
         from Utilities.general_utilities import set_up_mini_genie
-
         #
         set_up_mini_genie()
         parser.print_help()
