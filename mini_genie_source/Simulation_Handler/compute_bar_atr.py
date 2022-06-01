@@ -4,8 +4,8 @@ import numpy as np
 import vectorbtpro as vbt
 from numba import njit
 
-from mini_genie_source.Utilities.bars_utilities import resample_olhc_genie, split_uptrend_n_downtrend_atr
-from mini_genie_source.Utilities.general_utilities import compute_np_arrays_mean_nb, get_objects_list_from_ray
+from Utilities.bars_utilities import resample_olhc_genie, split_uptrend_n_downtrend_atr
+from Utilities.general_utilities import compute_np_arrays_mean_nb, get_objects_list_from_ray
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -215,7 +215,7 @@ def superfast_supertrend_nb(low, high, close, period=7, multiplier=3):
     return trend, dir_, long, short, atr
 
 
-# from mini_genie_source.Utilities.bars_utilities import resample_olhc_genie
+# from Utilities.bars_utilities import resample_olhc_genie
 from numba import jit
 
 

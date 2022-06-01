@@ -208,7 +208,7 @@ def superfast_supertrend_nb(low, high, close, period=7, multiplier=3):
     return trend, dir_, long, short, atr
 
 
-# from mini_genie_source.Utilities.bars_utilities import resample_olhc_genie
+# from Utilities.bars_utilities import resample_olhc_genie
 from numba import jit
 
 

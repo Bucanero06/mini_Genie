@@ -590,7 +590,7 @@ class mini_genie_trader:
             object:
 
         """
-        from mini_genie_source.Simulation_Handler.compute_bar_atr import compute_bar_atr
+        from Simulation_Handler.compute_bar_atr import compute_bar_atr
         self.bar_atr = compute_bar_atr(self)
 
     @staticmethod

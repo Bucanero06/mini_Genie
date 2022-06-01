@@ -1,13 +1,23 @@
+import gc
+import warnings
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+# --- ↓ Do not remove these libs ↓ -------------------------------------------------------------------------------------
 import numpy as np
 import pandas as pd
 import vectorbtpro as vbt
 
-from mini_genie_source.Utilities.bars_utilities import BARSINCE_genie, ROLLING_MAX_genie, ROLLING_MIN_genie
+from Utilities.bars_utilities import BARSINCE_genie, ROLLING_MAX_genie, ROLLING_MIN_genie
+
+
+# --- ↑ Do not remove these libs ↑ -------------------------------------------------------------------------------------
 
 
 def cache_func(open, low, high, close,
                PEAK_and_ATR_timeframes, atr_windows, data_lookback_windows,
-               EMAs_timeframes, ema_1_windows, ema_2_windows, ema_3_windows,
+               EMAs_timeframes, ema_1_windows, ema_2_windows,
+               # ema_3_windows,
                # progressive_bool,
                # breakeven_1_trigger_bool,
                # breakeven_1_trigger_points, breakeven_1_distance_points,
@@ -77,6 +87,7 @@ def cache_func(open, low, high, close,
     #
     for PEAK_and_ATR_timeframe in PEAK_and_ATR_timeframes:
         for atr_window in atr_windows:
+            gc.collect()
             cache['ATR'][f'{PEAK_and_ATR_timeframe}_{atr_window}'] = vbt.indicators.ATR.run(
                 cache['High'][PEAK_and_ATR_timeframe],
                 cache['Low'][PEAK_and_ATR_timeframe],
@@ -88,10 +99,12 @@ def cache_func(open, low, high, close,
     # Create a set of EMAs_timeframes
     EMAs_timeframes = set(EMAs_timeframes)
     # Create a set of ema_windows
-    ema_windows = set(ema_1_windows + ema_2_windows + ema_3_windows)
+    # ema_windows = set(ema_1_windows + ema_2_windows + ema_3_windows)
+    ema_windows = set(ema_1_windows + ema_2_windows)
     #
     for EMAs_timeframe in EMAs_timeframes:
         for ema_window in ema_windows:
+            gc.collect()
             cache['EMA'][f'{EMAs_timeframe}_{ema_window}'] = vbt.MA.run(cache['Close'][EMAs_timeframe],
                                                                         window=ema_window,
                                                                         ewm=True).ma
@@ -101,7 +114,8 @@ def cache_func(open, low, high, close,
 
 def apply_function(open_data, low_data, high_data, close_data,
                    PEAK_and_ATR_timeframe, atr_window, data_lookback_window,
-                   EMAs_timeframe, ema_1_window, ema_2_window, ema_3_window,
+                   EMAs_timeframe, ema_1_window, ema_2_window,
+                   # ema_3_window,
                    # progressive_bool,
                    # breakeven_1_trigger_bool,
                    # breakeven_1_trigger_points, breakeven_1_distance_points,
@@ -164,7 +178,7 @@ def apply_function(open_data, low_data, high_data, close_data,
     # Fetch pre-computed ema from cache. Uses EMAs_timeframe
     ema_1_indicator = cache['EMA'][f'{EMAs_timeframe}_{ema_1_window}']
     ema_2_indicator = cache['EMA'][f'{EMAs_timeframe}_{ema_2_window}']
-    ema_3_indicator = cache['EMA'][f'{EMAs_timeframe}_{ema_3_window}']
+    # ema_3_indicator = cache['EMA'][f'{EMAs_timeframe}_{ema_3_window}']
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
     '''Resample Indicators Back To 1 minute'''
@@ -184,8 +198,8 @@ def apply_function(open_data, low_data, high_data, close_data,
         EMAs_timeframe_to_1min_Resampler) if EMAs_timeframe_to_1min_Resampler else ema_1_indicator
     ema_2_indicator = ema_2_indicator.vbt.resample_closing(
         EMAs_timeframe_to_1min_Resampler) if EMAs_timeframe_to_1min_Resampler else ema_2_indicator
-    ema_3_indicator = ema_3_indicator.vbt.resample_closing(
-        EMAs_timeframe_to_1min_Resampler) if EMAs_timeframe_to_1min_Resampler else ema_3_indicator
+    # ema_3_indicator = ema_3_indicator.vbt.resample_closing(
+    #     EMAs_timeframe_to_1min_Resampler) if EMAs_timeframe_to_1min_Resampler else ema_3_indicator
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
     '''Long Entries Conditions'''
@@ -252,21 +266,17 @@ def apply_function(open_data, low_data, high_data, close_data,
     ).vbt.signals.fshift()
     short_exits = long_exits
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    # # DEBUGGING
-    # print(
-    #     f"{long_entries.sum() =}"
-    #     f"{short_entries.sum() =}"
-    # )
     # exit()
+    gc.collect()
     return long_entries, long_exits, short_entries, short_exits, \
-           atr_indicator, PeakLow, PeakHigh, ema_1_indicator, ema_2_indicator, ema_3_indicator, \
-           long_entry_condition_1, long_entry_condition_2, long_entry_condition_2_b, long_entry_condition_3, \
-           short_entry_condition_1, short_entry_condition_2, short_entry_condition_2_b, short_entry_condition_3, \
+           atr_indicator, PeakLow, PeakHigh, ema_1_indicator, ema_2_indicator, \
+           long_entry_condition_1, long_entry_condition_2, long_entry_condition_2_b, \
+           short_entry_condition_1, short_entry_condition_2, short_entry_condition_2_b, \
            take_profit_points, \
            stoploss_points
 
 
-def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data):
+def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray_sim_n_cpus):
     """MMT_Strategy"""
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -277,7 +287,7 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data):
     EMAs_timeframes = np.array(parameter_data["EMAs_timeframes"])
     ema_1_windows = np.array(parameter_data["ema_1_windows"])
     ema_2_windows = np.array(parameter_data["ema_2_windows"])
-    ema_3_windows = np.array(parameter_data["ema_3_windows"])
+    # ema_3_windows = np.array(parameter_data["ema_3_windows"])
     # progressive_bool = np.array(data_and_parameter_dictionary["progressive_bool"])
     #
     # breakeven_1_trigger_bool = np.array(data_and_parameter_dictionary["breakeven_1_trigger_bool"])
@@ -301,7 +311,8 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data):
             'open_data', 'low_data', 'high_data', 'close_data',
         ],
         param_names=['PEAK_and_ATR_timeframes', 'atr_windows', 'data_lookback_windows',
-                     'EMAs_timeframes', 'ema_1_windows', 'ema_2_windows', 'ema_3_windows',
+                     'EMAs_timeframes', 'ema_1_windows', 'ema_2_windows',
+                     # 'ema_3_windows',
                      # 'progressive_bool',
                      # 'breakeven_1_trigger_bool',
                      # 'breakeven_1_trigger_points', 'breakeven_1_distance_points',
@@ -314,11 +325,12 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data):
                      ],
         output_names=[
             'long_entries', 'long_exits', 'short_entries', 'short_exits',
-            'atr_indicator', 'PeakLow', 'PeakHigh', 'ema_1_indicator', 'ema_2_indicator', 'ema_3_indicator',
+            'atr_indicator', 'PeakLow', 'PeakHigh', 'ema_1_indicator', 'ema_2_indicator',
+            # 'ema_3_indicator',
             'long_entry_condition_1', 'long_entry_condition_2', 'long_entry_condition_2_b',
-            'long_entry_condition_3',
+            # 'long_entry_condition_3',
             'short_entry_condition_1', 'short_entry_condition_2', 'short_entry_condition_2_b',
-            'short_entry_condition_3',
+            # 'short_entry_condition_3',
             # 'progressive_bool',
             # 'breakeven_1_trigger_bool',
             # 'breakeven_1_trigger_points', 'breakeven_1_distance_points',
@@ -336,13 +348,10 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data):
         param_product=False,
         execute_kwargs=dict(
             engine='ray',
-            # n_chunks='auto',
             # chunk_len='auto',  # del_refs
-            # init_kwargs=dict(),
             init_kwargs={
-                # 'num_cpus': 18,
-                'num_cpus': 28,
-                # 'del_refs': False,
+                'address': 'auto',
+                'num_cpus': ray_sim_n_cpus,
                 # 'ignore_reinit_error': True
             },
             # # remote_kwargs={'num_cpus': 18},
@@ -355,7 +364,7 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data):
         EMAs_timeframes='1h',
         ema_1_windows=13,
         ema_2_windows=50,
-        ema_3_windows=34,
+        # ema_3_windows=34,
         # #
         # progressive_bool=True,
         # #
@@ -460,7 +469,7 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data):
         EMAs_timeframes=EMAs_timeframes,
         ema_1_windows=ema_1_windows,
         ema_2_windows=ema_2_windows,
-        ema_3_windows=ema_3_windows,
+        # ema_3_windows=ema_3_windows,
         # #
         # progressive_bool=progressive_bool,
         # #

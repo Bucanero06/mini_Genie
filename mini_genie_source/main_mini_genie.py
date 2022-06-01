@@ -11,8 +11,8 @@ def call_genie(args):
     user_pick = args.user_pick
     metrics_to_tsv = args.metrics_to_tsv
     #
-    from mini_genie_source.Configuration_Files.runtime_parameters import Run_Time_Settings
-    from mini_genie_source.mini_Genie_Object.mini_genie import mini_genie_trader
+    from Configuration_Files.runtime_parameters import Run_Time_Settings
+    from mini_Genie_Object.mini_genie import mini_genie_trader
 
     # Initiate the genie object
     '''
