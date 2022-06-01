@@ -85,6 +85,7 @@ if __name__ == "__main__":
     #
     if not os.path.exists("Datas"):
         logger.info("Please run setup.py ...")
+        exit()
     if not any([vars(args)[i] for i in vars(args) if i != 'func']):
         logger.warning("No action requested, exiting ...")
         parser.print_help()
