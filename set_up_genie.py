@@ -39,6 +39,7 @@ def set_up_mini_genie():
                 )
     #
     system('touch .working_directory_.txt')
+    system('pip install .')
     system('pip install -r requirements.txt')
     create_dir('Datas')
     create_dir('Studies')
