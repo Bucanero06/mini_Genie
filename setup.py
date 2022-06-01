@@ -1,10 +1,9 @@
-from setuptools import setup
+from os import system
 
 from setuptools import setup
 
 with open("README.md", 'r') as f:
     long_description = f.read()
-
 
 setup(
     name='mini_Genie',
@@ -19,3 +18,8 @@ setup(
     long_description=long_description,
 
 )
+
+system('pip install -r requirements.txt')
+
+system(
+    'pip install -U \"vectorbtpro[full] @ git+https://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@github.com/polakowo/vectorbt.pro.git\"')
