@@ -269,3 +269,4 @@ schedule~=1.1.0
 inflection~=0.5.1
 msgpack~=1.0.3
 msgpack~=1.0.3
+flatdict~=4.0.1

@@ -142,7 +142,6 @@ class mini_genie_trader:
         create_dir(reports_dir_path)
         create_dir(data_dir_path)
         create_dir(misc_dir_path)
-        create_dir(f'Strategies')
 
         self.study_dir_path = study_dir_path
         self.portfolio_dir_path = portfolio_dir_path
