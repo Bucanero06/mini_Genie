@@ -3,12 +3,17 @@ import argparse
 import os
 import warnings
 
-from logger_tt import setup_logging, logger
-
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 def call_genie(args):
+    from logger_tt import setup_logging, logger
+    setup_logging(full_context=1)
+    if not any([vars(args)[i] for i in vars(args) if i != 'func']):
+        logger.warning("No action requested, exiting ...")
+        parser.print_help()
+        exit()
+    #
     genie_pick = args.genie_pick
     user_pick = args.user_pick
     metrics_to_tsv = args.metrics_to_tsv
@@ -68,7 +73,6 @@ def call_genie(args):
 
 
 if __name__ == "__main__":
-    setup_logging(full_context=1)
     #
     parser = argparse.ArgumentParser(description="Help for ChargeMigration Interface")
     #
@@ -80,6 +84,9 @@ if __name__ == "__main__":
                         help="Will convert csv to tsv previously computed metric files. File will vary based on "
                              "whether user or genie pick option was used.",
                         dest="metrics_to_tsv", action='store_true', default=False)
+    parser.add_argument("-setup",
+                        help="Set up genie (not added yet)",
+                        dest="setup_bool", action='store_true', default=False)
     #
     parser.set_defaults(func=call_genie)
     args = parser.parse_args()
@@ -88,14 +95,12 @@ if __name__ == "__main__":
     if not os.path.exists(".working_directory_.txt"):
         from Utilities.general_utilities import set_up_mini_genie
 
+        if args.setup_bool:
+            set_up_mini_genie()
         #
-        set_up_mini_genie()
         parser.print_help()
         exit()
-    if not any([vars(args)[i] for i in vars(args) if i != 'func']):
-        logger.warning("No action requested, exiting ...")
-        parser.print_help()
-        exit()
+
     #
     args.func(args)
     #
