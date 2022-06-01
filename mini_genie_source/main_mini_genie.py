@@ -72,13 +72,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Help for ChargeMigration Interface")
     #
     parser.add_argument("-gp", help="Will simulate using genie picked space based on user settings", dest="genie_pick",
-                        action='store_false', default=True)
+                        action='store_true', default=False)
     parser.add_argument("-up", help="Will simulate using solely the user picked space", dest="user_pick",
-                        action='store_false', default=False)
+                        action='store_true', default=False)
     parser.add_argument("-tsv",
                         help="Will convert csv to tsv previously computed metric files. File will vary based on "
                              "whether user or genie pick option was used.",
-                        dest="metrics_to_tsv", action='store_false', default=False)
+                        dest="metrics_to_tsv", action='store_true', default=False)
     #
     parser.set_defaults(func=call_genie)
     args = parser.parse_args()
