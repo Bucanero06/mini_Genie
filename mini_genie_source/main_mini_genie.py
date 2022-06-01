@@ -74,10 +74,10 @@ def call_genie(args):
 
 if __name__ == "__main__":
     #
-    parser = argparse.ArgumentParser(description="Help for ChargeMigration Interface")
+    parser = argparse.ArgumentParser(description="Help for mini-Genie Trader")
     #
     parser.add_argument("-gp", help="Simulate using genie picked space based on user settings", dest="genie_pick",
-                        action='store_true', default=True)
+                        action='store_true', default=False)
     parser.add_argument("-up", help="Simulate using solely the user picked space", dest="user_pick",
                         action='store_true', default=False)
     parser.add_argument("-tsv",
