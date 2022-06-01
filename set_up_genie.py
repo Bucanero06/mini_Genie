@@ -31,14 +31,14 @@ def create_dir(directories):
 
 
 def set_up_mini_genie():
-    from os import system
+    from os import system, path
     logger.info("Setting Up mini-Genie "
                 "\N{Smiling Face With Heart-Shaped Eyes}"
                 "\N{Smiling Face With Smiling Eyes And Hand Covering Mouth}"
-                "\N{money-mouth face}"
+                "\N{money-mouth face}🦾"
+
                 )
     #
-    system('touch .working_directory_.txt')
     system('pip install .')
     system('pip install -r requirements.txt')
     create_dir('Datas')
@@ -46,10 +46,13 @@ def set_up_mini_genie():
     system(
         'pip install -U \"vectorbtpro[full] @ git+https://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@github.com/polakowo/vectorbt.pro.git\"')
     #
-    system('chmod +x mini_genie_source/main_mini_genie.py')
+    if not path.exists('mini_genie.py'):
+        system('chmod +x mini_genie_source/main_mini_genie.py')
+        system('ln -s mini_genie_source/main_mini_genie.py mini_genie.py')
     #
-    system('ln -s mini_genie_source/main_mini_genie.py mini_genie.py')
-    system('Im done getting ready, check me out \N{Smiling Face With Smiling Eyes}')
+    logger.info("\n\nIm done getting ready, check me out 🦾\N{Smiling Face With Smiling Eyes}")
+    system('./mini_genie.py --help')
+
     #
 
 
