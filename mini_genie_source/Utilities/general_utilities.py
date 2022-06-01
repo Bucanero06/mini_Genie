@@ -117,7 +117,7 @@ def shuffle_it(x, n_times=None):
         return x
 
 
-def create_dir(dir):
+def create_dir(directories):
     """
 
     Args:
@@ -127,11 +127,33 @@ def create_dir(dir):
         object:
     """
     from os import path, mkdir
-    if not path.exists(dir):
-        logger.info(f'Creating directory {dir}')
-        mkdir(dir)
+
+    if not isinstance(directories, str):
+        for dir in directories:
+            if not path.exists(directories):
+                logger.info(f'Creating directory {dir}')
+                mkdir(directories)
+            else:
+                logger.info(f'Found {dir}')
     else:
-        logger.info(f'Found {dir}')
+        if not path.exists(directories):
+            logger.info(f'Creating directory {directories}')
+            mkdir(directories)
+        else:
+            logger.info(f'Found {directories}')
+
+
+def set_up_mini_genie():
+    from os import system
+    logger.info("Setting Up mini-Genie")
+    #
+    system('touch .working_directory_.txt')
+    system('pip install -r requirements.txt')
+    create_dir('Datas')
+    create_dir('Studies')
+    system(
+        'pip install -U \"vectorbtpro[full] @ git+https://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@github.com/polakowo/vectorbt.pro.git\"')
+    #
 
 
 def clean_params_record(a):

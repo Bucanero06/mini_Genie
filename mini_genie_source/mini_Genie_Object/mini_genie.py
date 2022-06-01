@@ -1020,8 +1020,9 @@ class mini_genie_trader:
             compute_stats_timer = perf_counter()
             func_calls = []
             split_metric_names = np.array_split(self.metrics_key_names, len(self.metrics_key_names) / 2)
+            pf_id = ray.put(pf)
             for metric_chunk in split_metric_names:
-                func_calls.append(compute_stats.remote(pf, metric_chunk))
+                func_calls.append(compute_stats.remote(pf_id, metric_chunk))
             #
             # Compute All metrics in Chunk, returns [*Dataframes]
             compute_stats_results = ray.get(func_calls)

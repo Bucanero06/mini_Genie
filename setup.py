@@ -16,12 +16,6 @@ setup(
     author='Ruben Fernandez Carbon',
     author_email='',
     long_description=long_description,
-
 )
 
-system('pip install -r requirements.txt')
-system('mkdir Datas')
-system('mkdir Studies')
 
-system(
-    'pip install -U \"vectorbtpro[full] @ git+https://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@github.com/polakowo/vectorbt.pro.git\"')

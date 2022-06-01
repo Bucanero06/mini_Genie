@@ -83,8 +83,12 @@ if __name__ == "__main__":
     parser.set_defaults(func=call_genie)
     args = parser.parse_args()
     #
-    if not os.path.exists("Datas"):
-        logger.info("Please run setup.py ...")
+    if not os.path.exists(".working_directory_.txt"):
+        from Utilities.general_utilities import set_up_mini_genie
+
+        #
+        set_up_mini_genie()
+        parser.print_help()
         exit()
     if not any([vars(args)[i] for i in vars(args) if i != 'func']):
         logger.warning("No action requested, exiting ...")
