@@ -39,6 +39,8 @@ def set_up_mini_genie():
     #
     if path.exists('.working_directory_.txt'):
         system('rm -f .working_directory_.txt')
+        system('python3 -m venv .')
+    #
     #
     system(
         'pip3 install -U \"vectorbtpro[full] @ git+https://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@github.com/polakowo/vectorbt.pro.git\"')
