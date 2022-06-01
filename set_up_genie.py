@@ -48,12 +48,12 @@ def set_up_mini_genie():
     #
     if not path.exists('mini_genie.py'):
         system('chmod +x mini_genie_source/main_mini_genie.py')
-        system('ln -s mini_genie_source/main_mini_genie.py mini_genie.py')
+        system('ln -s mini_genie_source/main_mini_genie.py genie_trader.py')
     #
     logger.info("\n\n"
                 "Im done getting ready, check me out 🦾\N{Smiling Face With Smiling Eyes}\n"
                 "Im done getting ready, check me out 🦿")
-    system('./mini_genie.py --help')
+    system('./genie_trader.py --help')
 
     #
 
