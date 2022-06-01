@@ -73,7 +73,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Help for ChargeMigration Interface")
     #
     parser.add_argument("-gp", help="Simulate using genie picked space based on user settings", dest="genie_pick",
-                        action='store_true', default=False)
+                        action='store_true', default=True)
     parser.add_argument("-up", help="Simulate using solely the user picked space", dest="user_pick",
                         action='store_true', default=False)
     parser.add_argument("-tsv",
@@ -85,10 +85,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     #
 
-
-
     if not os.path.exists(".working_directory_.txt"):
         from Utilities.general_utilities import set_up_mini_genie
+
         #
         set_up_mini_genie()
         parser.print_help()

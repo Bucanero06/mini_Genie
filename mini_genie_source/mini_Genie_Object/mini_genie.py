@@ -894,8 +894,6 @@ class mini_genie_trader:
            3.  Compute Metrics
            4.  Save Results to file
         """
-        logger.info("in simulate suggestions")
-
         def _analyze_n_save(portfolio, params_rec, highest_profit_, best_parameters_, initial_cash_total_, epoch_n_,
                             save_every_nth_chunk=None):
             '''Reconstruct Metrics from Order Records and Save'''

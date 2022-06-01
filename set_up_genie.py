@@ -35,7 +35,7 @@ def set_up_mini_genie():
 
           )
     #
-    system("python3 -m venv .")
+    # system("python3 -m venv .")
     #
     if path.exists('.working_directory_.txt'):
         system('rm -f .working_directory_.txt')
