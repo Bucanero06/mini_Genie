@@ -51,8 +51,8 @@ def set_up_mini_genie():
         system('ln -s mini_genie_source/main_mini_genie.py mini_genie.py')
     #
     logger.info("\n\n"
-                "Im done getting ready, check me out 🦾\N{Smiling Face With Smiling Eyes}\n")
-    logger.info("Im done getting ready, check me out 🦿")
+                "Im done getting ready, check me out 🦾\N{Smiling Face With Smiling Eyes}\n"
+                "Im done getting ready, check me out 🦿")
     system('./mini_genie.py --help')
 
     #
