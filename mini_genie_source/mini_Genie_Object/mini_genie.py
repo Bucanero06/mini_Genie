@@ -8,7 +8,6 @@ import pandas as pd
 import ray
 import vectorbtpro as vbt
 from logger_tt import logger
-from numpy import random
 
 from Configuration_Files.equipment_settings import TEMP_DICT
 from Equipment_Handler.equipment_handler import CHECKTEMPS
@@ -57,12 +56,6 @@ class mini_genie_trader:
         self.asset_names = self.runtime_settings["Data_Settings.data_files_names"]
         #
         self.metrics_key_names = self.runtime_settings['Simulation_Settings.Loss_Function.metrics']
-        self.loss_metrics_settings_dict = self.runtime_settings['Simulation_Settings.Loss_Function.loss_settings']
-        number_of_outputs = 0
-        for metric_name in self.loss_metrics_settings_dict._values:
-            if self.loss_metrics_settings_dict[f'{metric_name}.{metric_name}_weight'] != 0:
-                number_of_outputs += 1
-        self.number_of_outputs = number_of_outputs
         #
         self.optimization_start_date = self.runtime_settings['Simulation_Settings.optimization_period.start_date']
         self.optimization_end_date = self.runtime_settings['Simulation_Settings.optimization_period.end_date']
@@ -134,7 +127,10 @@ class mini_genie_trader:
             'Simulation_Settings.Initial_Search.path_of_initial_metrics_record']
         #
         file_name_of_backtest_results = self.runtime_settings[
-            "Strategy_Settings.strategy_backtest_params.output_file_name"]
+            "Strategy_Settings.strategy_user_picked_params.output_file_name"]
+        #
+        user_defined_param_file = self.runtime_settings[
+            "Strategy_Settings.strategy_user_picked_params.read_user_defined_param_file"]
         #
         create_dir(studies_directory)
         create_dir(study_dir_path)
@@ -152,6 +148,7 @@ class mini_genie_trader:
         self.path_of_initial_params_record = f'{self.study_dir_path}/{file_name_of_initial_params_record}'
         self.path_of_initial_metrics_record = f'{self.study_dir_path}/{file_name_of_initial_metrics_record}'
         self.file_name_of_backtest_results = f'{self.study_dir_path}/{file_name_of_backtest_results}'
+        self.user_defined_param_file = f'{self.study_dir_path}/{user_defined_param_file}'
         #
         # pathlib.Path('my_file.txt').suffix
         self.compression_of_initial_params_record = os.path.splitext(file_name_of_initial_params_record)[-1]
@@ -233,6 +230,45 @@ class mini_genie_trader:
         from Data_Handler.data_handler import Data_Handler
         data_processing = Data_Handler(self).fetch_data()  # Load symbols_data (attr)
         data_processing.break_up_olhc_data_from_symbols_data()  # splits ^ into open, low, high, close, *alt (attrs)
+
+    def _define_backtest_parameters(self):
+        n_initial_combinations, initial_param_combinations, parameter_df = None, None, pd.DataFrame()
+        self.user_defined_param_file_bool = os.path.exists(self.user_defined_param_file)
+        #
+        # If parameter file given
+        if self.user_defined_param_file_bool:
+            # load parameters (will only use parameter columns), create empty record with same length, fill with set of parameters
+            parameter_df = pd.read_csv(self.user_defined_param_file) \
+                if os.path.splitext(self.user_defined_param_file)[-1] == '.csv' \
+                else pd.read_pickle(self.user_defined_param_file)  # fixme looks ugly
+            #
+            parameter_df = parameter_df[list(self.key_names)]
+            n_initial_combinations = len(parameter_df)
+            #
+        # if product of user picked parameters
+        elif self.runtime_settings[f"Strategy_Settings.strategy_user_picked_params.compute_product"]:
+            n_initial_combinations = np.product(
+                [len(self.parameter_windows[f'{key_name}.values']) for key_name in self.key_names])
+            #
+            from itertools import product
+
+            initial_param_combinations = list(
+                set(
+                    product(
+                        *[self.parameter_windows[f'{key_name}.values'] for key_name in self.key_names]
+                    )
+                )
+            )
+        # If user picked parameter combinations
+        else:
+            n_initial_combinations = len(self.parameter_windows[f'{self.key_names[0]}.values'])
+            for key_name in self.key_names[1:]:
+                assert len(self.parameter_windows[f'{key_name}.values']) == n_initial_combinations
+            initial_param_combinations = np.array(
+                [(self.parameter_windows[f'{key_name}.values']) for key_name in self.key_names]).transpose()
+        #
+        initial_param_combinations = initial_param_combinations if parameter_df.empty else parameter_df
+        return n_initial_combinations, initial_param_combinations
 
     def _initiate_parameters_records(self, add_ids=None, initial_params_size=None):
         def _total_possible_values_in_window(lower, upper, step):
@@ -523,38 +559,36 @@ class mini_genie_trader:
                                               dtype=self.parameter_data_dtype)
             #
         else:
+            ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
             self.parameter_windows = self.runtime_settings[
-                f"Strategy_Settings.strategy_backtest_params.parameter_windows"]
+                f"Strategy_Settings.strategy_user_picked_params.parameter_windows"]
             #
-            if self.runtime_settings[f"Strategy_Settings.strategy_backtest_params.compute_product"]:
-                n_initial_combinations = np.product(
-                    [len(self.parameter_windows[f'{key_name}.values']) for key_name in self.key_names])
-                #
-                from itertools import product
-
-                initial_param_combinations = list(
-                    set(
-                        product(
-                            *[self.parameter_windows[f'{key_name}.values'] for key_name in self.key_names]
-                        )
-                    )
-                )
-            else:
-                n_initial_combinations = len(self.parameter_windows[f'{self.key_names[0]}.values'])
-                for key_name in self.key_names[1:]:
-                    assert len(self.parameter_windows[f'{key_name}.values']) == n_initial_combinations
-                initial_param_combinations = np.array(
-                    [(self.parameter_windows[f'{key_name}.values']) for key_name in self.key_names]).transpose()
+            '''Prepare'''
+            # Determine Parameter Combinations (returns either a list of tuple params or a df of params)
+            n_initial_combinations, initial_param_combinations = self._define_backtest_parameters()
             #
+            # Create empty parameter record
             self.parameter_data_dtype = np.dtype(parameters_record_dtype)
             self.parameters_record = np.empty(n_initial_combinations, dtype=self.parameter_data_dtype)
             #
-            for index in range(len(initial_param_combinations)):
-                value = ((index,) + tuple(initial_param_combinations[index]))
-                self.parameters_record[index] = value
+            # Fill parameter records
+            if not self.user_defined_param_file_bool:  # (List of param combination tuples)
+                for index in range(len(initial_param_combinations)):
+                    value = ((index,) + tuple(initial_param_combinations[index]))
+                    self.parameters_record[index] = value
+            else:
+                # fixme: left here
+                self.parameters_record["trial_id"] = np.arange(0, len(initial_param_combinations), 1)
+                #
+                for key_name, values in initial_param_combinations.items():
+                    self.parameters_record[key_name] = values
             #
             logger.info(f'Total number of combinations to run backtest on -->  {len(self.parameters_record)}\n'
                         f'  on {len(self.asset_names)} assets')
+
+            logger.info(self.parameters_record)
+            from Utilities.general_utilities import delete_non_filled_elements
+            self.parameters_record = delete_non_filled_elements(self.parameters_record)
 
     def _compute_params_product_n_fill_record(self, params):
         from itertools import product
@@ -669,7 +703,7 @@ class mini_genie_trader:
         #
 
         dtype = 'i8' if isinstance(self.parameter_windows[self.tp_keyname[0]]['lower_bound'], int) else 'f4'
-        tp_sl_record = np.empty(self.parameters_lengths_dict["tp_sl_length"],
+        tp_sl_record = np.zeros(self.parameters_lengths_dict["tp_sl_length"],
                                 dtype=np.dtype([
                                     ('take_profit', dtype),
                                     ('stop_loss', dtype)
@@ -698,23 +732,26 @@ class mini_genie_trader:
                                                                                                  sl_lower_bound,
                                                                                                  skipped_indexes,
                                                                                                  tf_index)
+        # Deletes combinations with a take profit of 0, that makes no sense
+        tp_sl_record = tp_sl_record[tp_sl_record["take_profit"] != 0]
+        #
 
         #
         #   Fill missing indexes that weren't in bounds
-        tp_range = np.arange(tp_lower_bound + tp_min_step, tp_upper_bound, tp_min_step)
-        sl_range = np.arange(sl_lower_bound + sl_min_step, sl_upper_bound, sl_min_step)
+        # tp_range = np.arange(tp_lower_bound + tp_min_step, tp_upper_bound, tp_min_step)
+        # sl_range = np.arange(sl_lower_bound + sl_min_step, sl_upper_bound, sl_min_step)
         #
-        if skipped_indexes:
-            logger.warning(
-                f'Redefinding a total of {len(skipped_indexes)} tp_n_sl\'s that did not reside within the bounds of their p-space \n'
-                f'  ** these are selected at random, however, change the initial n and gamma ratios to something more appropriate to minimize this process**')
-            for missing_index in skipped_indexes:
-                tp_sl_record["take_profit"][missing_index] = random.choice(
-                    [x for x in tp_range if x not in tp_sl_record["take_profit"]])
-                tp_sl_record["stop_loss"][missing_index] = random.choice(
-                    [x for x in sl_range if x not in tp_sl_record["stop_loss"]])
+        # if skipped_indexes:
+        #     logger.warning(
+        #         f'Redefinding a total of {len(skipped_indexes)} tp_n_sl\'s that did not reside within the bounds of their p-space \n'
+        #         f'  ** these are selected at random, however, change the initial n and gamma ratios to something more appropriate to minimize this process**')
+        #     for missing_index in skipped_indexes:
+        #         tp_sl_record["take_profit"][missing_index] = random.choice(
+        #             [x for x in tp_range if x not in tp_sl_record["take_profit"]])
+        #         tp_sl_record["stop_loss"][missing_index] = random.choice(
+        #             [x for x in sl_range if x not in tp_sl_record["stop_loss"]])
 
-        return tp_sl_record
+        return tp_sl_record, skipped_indexes
 
     def _initiate_metric_records(self, add_ids=None, params_size=None):
         """
@@ -813,9 +850,9 @@ class mini_genie_trader:
                 number_of_suggestions = self.parameters_lengths_dict[f'tp_sl_length']
                 #
                 # todo we need to apply steps in case number of trends is more than 1
-                tp_sl_record = self._compute_tp_n_sl_from_tp_sl_0
+                tp_sl_record, skipped_indexes = self._compute_tp_n_sl_from_tp_sl_0
                 #
-                assert number_of_suggestions == len(tp_sl_record)
+                assert number_of_suggestions == len(tp_sl_record) + len(skipped_indexes)
                 params["tp_sl"] = [(tp, sl) for tp, sl in zip(tp_sl_record["take_profit"], tp_sl_record["stop_loss"])]
             #
             else:
@@ -894,6 +931,7 @@ class mini_genie_trader:
            3.  Compute Metrics
            4.  Save Results to file
         """
+
         def _analyze_n_save(portfolio, params_rec, highest_profit_, best_parameters_, initial_cash_total_, epoch_n_,
                             save_every_nth_chunk=None):
             '''Reconstruct Metrics from Order Records and Save'''
@@ -912,11 +950,15 @@ class mini_genie_trader:
                 highest_profit_ = highest_cash_profit_this_epoch
                 best_parameters_ = best_parameters_this_epoch
             #
-            logger.info(f'Highest Profit so far: {highest_profit_}   \N{money-mouth face}\N{money bag}')
+            logger.info(
+                f'Highest Profit so far: {highest_profit_}   \N{money-mouth face}\N{money bag}: '
+                f'{highest_profit_this_epoch} of a ${initial_cash_total_} account\n')
             logger.info(f'Best Param so far: {best_parameters_}  \N{money with wings}')
             #
-            logger.info(f' -> highest_profit this epoch {highest_cash_profit_this_epoch} ')
-            logger.info(f' -> best_param this epoch {best_parameters_this_epoch}')
+            logger.info(
+                f'  -> highest_profit this epoch {highest_cash_profit_this_epoch}  \n'
+                f'  -> best_param this epoch {best_parameters_this_epoch}')
+
             #
             # clean up porfolio
             portfolio.fillna(0.0)
@@ -951,7 +993,7 @@ class mini_genie_trader:
         self.parameters_record_length = len(self.parameters_record)
         #
         from Simulation_Handler.simulation_handler import Simulation_Handler
-        # from Analysis_Handler.analysis_handler import Analysis_Handler
+        # from Analysis_Handler.analysis_handler import Analysis_Handler`
         from Analysis_Handler.analysis_handler import compute_stats
         simulation_handler = Simulation_Handler(self)
         # analysis_handler = Analysis_Handler(self)
@@ -1044,8 +1086,6 @@ class mini_genie_trader:
         """Simulate parameters passed by user; either explicitly or produced from settings"""
         ...
         self._initiate_parameters_records(add_ids=True)
-
-        self.simulate()
 
     def metric_record_to_tsv(self):
         original_file_path = self.path_of_initial_metrics_record if not self.user_pick else self.file_name_of_backtest_results

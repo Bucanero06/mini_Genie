@@ -1,10 +1,10 @@
+import gc
 from time import perf_counter
 
 import numpy as np
 import ray
-from logger_tt import logger
-
 from Configuration_Files.vbtmetricsdictionary import vbtmetricsdictionary
+from logger_tt import logger
 
 
 class Analysis_Handler:
@@ -69,9 +69,9 @@ class Analysis_Handler:
     #     return portfolio_combined
 
 
-
 @ray.remote
 def compute_stats(Portfolio, only_these_stats, groupby=None):
+    gc.collect()
     only_these_stats = [vbtmetricsdictionary[string] for string in only_these_stats]
     if groupby is None:
         portfolio_combined = Portfolio.stats(metrics=only_these_stats, agg_func=None).replace(
@@ -79,4 +79,5 @@ def compute_stats(Portfolio, only_these_stats, groupby=None):
     else:
         portfolio_combined = Portfolio.stats(metrics=only_these_stats, agg_func=None, group_by=groupby).replace(
             [np.inf, -np.inf], np.nan, inplace=False)
+    gc.collect()
     return portfolio_combined

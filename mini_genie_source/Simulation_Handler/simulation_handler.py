@@ -60,7 +60,7 @@ class Simulation_Handler:
             object:
 
         """
-        logger.info(f"Simulating Signals")
+        logger.info(f"Simulating Signals 🤙")
         gc.collect()
         data = [self.genie_object.optimization_open_data, self.genie_object.optimization_low_data,
                 self.genie_object.optimization_high_data, self.genie_object.optimization_close_data]
@@ -95,7 +95,7 @@ class Simulation_Handler:
         Returns:
             object: 
         '''  # (2b)_n-1
-        logger.info(f"Simulating Events")
+        logger.info(f"Simulating Events 💥")
         gc.collect()
         data = [self.genie_object.optimization_open_data, self.genie_object.optimization_low_data,
                 self.genie_object.optimization_high_data, self.genie_object.optimization_close_data]

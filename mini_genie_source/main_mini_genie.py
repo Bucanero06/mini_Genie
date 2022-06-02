@@ -51,9 +51,8 @@ def call_genie(args):
                                   ==> TP=500 & SL=-500)
                               (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=0.5, -> R=\bar{ATR}(TF='1h')/n=500
                                   ==> TP=500 & SL=-750)
-          Run product of unique param values in each category, use the best N params params as the starting seeds
-              for Optimization ... next
-        '''
+            Run product of unique param values in each category, and remove out of bound tp and sl combinations.
+          '''
 
         # Determine initial search space size and content
         #   Initiates:       genie_object._initiate_parameters_records
@@ -70,6 +69,10 @@ def call_genie(args):
     #
     elif user_pick:
         genie_object.prepare_backtest()
+        #
+        genie_object.simulate()
+    #
+    logger.info('All Done')
 
 
 if __name__ == "__main__":
@@ -77,7 +80,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Help for mini-Genie Trader")
     #
     parser.add_argument("-gp", help="Simulate using genie picked space based on user settings", dest="genie_pick",
-                        action='store_true', default=True)
+                        action='store_true', default=False)
     parser.add_argument("-up", help="Simulate using solely the user picked space", dest="user_pick",
                         action='store_true', default=False)
     parser.add_argument("-tsv",
@@ -92,16 +95,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     #
 
-    if not os.path.exists(".working_directory_.txt"):
+    if not os.path.exists(".working_directory_.txt") or args.setup_bool:
         from Utilities.general_utilities import set_up_mini_genie
 
-        if args.setup_bool:
-            set_up_mini_genie()
-        #
+        set_up_mini_genie()
         parser.print_help()
         exit()
 
     #
     args.func(args)
     #
-    logger.info('All Done')
