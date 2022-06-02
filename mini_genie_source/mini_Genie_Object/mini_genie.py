@@ -794,8 +794,7 @@ class mini_genie_trader:
                                    ==> TP=500 & SL=-500)
                                (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=0.5, -> R=\bar{ATR}(TF='1h')/n=500
                                    ==> TP=500 & SL=-750)
-           Run product of unique param values in each category, use the best N params params as the starting seeds
-               for Optimization ... next
+           Run product of unique param values in each category, and remove out of bound tp and sl combinations.
         """
 
         if not all(self.parameters_record):

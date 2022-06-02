@@ -96,7 +96,7 @@ if __name__ == "__main__":
     #
 
     if not os.path.exists(".working_directory_.txt") or args.setup_bool:
-        from Utilities.general_utilities import set_up_mini_genie
+        from Utilities.set_up_genie import set_up_mini_genie
 
         set_up_mini_genie()
         parser.print_help()
