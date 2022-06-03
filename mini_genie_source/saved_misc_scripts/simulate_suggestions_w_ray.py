@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.9
 def simulate_suggestions(self):
     """
     In chunks/batches:

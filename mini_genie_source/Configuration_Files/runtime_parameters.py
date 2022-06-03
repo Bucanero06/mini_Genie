@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.9
 import datetime
 
 from Simulation_Handler.flexible_simulation import Flexible_Simulation_Optimization, Flexible_Simulation_Backtest

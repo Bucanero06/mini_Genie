@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.9
 def compute_np_arrays_mean_nb(values):
     if isinstance(values, list):
         result = []

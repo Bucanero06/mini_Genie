@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.9
 import os.path
 import sys
 import warnings

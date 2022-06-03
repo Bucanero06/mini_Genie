@@ -1,4 +1,28 @@
-from Utilities.general_utilities import create_dir
+#!/usr/bin/env python3.9
+def create_dir(directories):
+    """
+
+    Args:
+        dir:
+
+    Returns:
+        object:
+    """
+    from os import path, mkdir
+
+    if not isinstance(directories, str):
+        for dir in directories:
+            if not path.exists(directories):
+                logger.info(f'Creating directory {dir}')
+                mkdir(directories)
+            else:
+                logger.info(f'Found {dir}')
+    else:
+        if not path.exists(directories):
+            logger.info(f'Creating directory {directories}')
+            mkdir(directories)
+        else:
+            logger.info(f'Found {directories}')
 
 
 def set_up_mini_genie():
