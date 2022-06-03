@@ -1,19 +1,30 @@
-from setuptools import setup
+from setuptools import setup, find_packages
+
+# setup(
+#     name='mini_Genie',
+#     version='',
+#     packages=['mini_genie_source', 'mini_genie_source.Utilities', 'mini_genie_source.Strategies',
+#               'mini_genie_source.Data_Handler', 'mini_genie_source.Error_Handler', 'mini_genie_source.Analysis_Handler',
+#               'mini_genie_source.Equipment_Handler', 'mini_genie_source.mini_Genie_Object',
+#               'mini_genie_source.Simulation_Handler', 'mini_genie_source.Configuration_Files',
+#               'mini_genie_source.Optimization_Module_mini_genie'],
+#     url='',
+#     license='',
+#     author='Ruben Fernandez Carbon',
+#     author_email='',
+#     description=''
+# )
+
+
 
 setup(
     name='mini_Genie',
     version='',
-    packages=['mini_genie_source', 'mini_genie_source.Utilities', 'mini_genie_source.Strategies',
-              'mini_genie_source.Data_Handler', 'mini_genie_source.Error_Handler', 'mini_genie_source.Analysis_Handler',
-              'mini_genie_source.Equipment_Handler', 'mini_genie_source.mini_Genie_Object',
-              'mini_genie_source.Simulation_Handler', 'mini_genie_source.Configuration_Files',
-              'mini_genie_source.Optimization_Module_mini_genie'],
-    url='',
-    license='',
-    author='Ruben Fernandez Carbon',
-    author_email='',
-    description=''
+    packages=find_packages(),
 )
+from os import system
+
+system('pip3 install .')
 # from os import system
 #
 # from setuptools import setup

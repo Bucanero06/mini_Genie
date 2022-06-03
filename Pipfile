@@ -1,0 +1,22 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+mini-genie = {editable = true, path = "."}
+numpy = "~=1.22.4"
+pandas = "~=1.4.2"
+numba = "~=0.55.2"
+scipy = "~=1.8.1"
+ray = "~=1.12.1"
+psutil = "~=5.9.1"
+logger-tt = "~=1.7.0"
+protobuf = "<=3.20.0"
+flatdict = "~=4.0.1"
+vectorbtpro = {extras = ["full"], editable = true, git = "https://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@github.com/polakowo/vectorbt.pro.git"}
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"

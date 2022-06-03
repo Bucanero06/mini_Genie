@@ -951,7 +951,7 @@ class mini_genie_trader:
             #
             logger.info(
                 f'Highest Profit so far: {highest_profit_}   \N{money-mouth face}\N{money bag}: '
-                f'{highest_profit_this_epoch} of a ${initial_cash_total_} account\n')
+                f'{highest_profit_this_epoch} of a ${initial_cash_total_} account')
             logger.info(f'Best Param so far: {best_parameters_}  \N{money with wings}')
             #
             logger.info(
