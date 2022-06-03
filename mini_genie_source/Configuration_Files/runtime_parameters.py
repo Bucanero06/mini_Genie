@@ -45,15 +45,15 @@ Run_Time_Settings = dict(
         reset_withouts_those_with_negative_profits=False,  # todo: section of code missing
         reset_withouts_any_ran_ones=False,  # todo: section of code missing
         #
-        batch_size=300,
+        batch_size=2,
         save_every_nth_chunk=1,
         Initial_Search=dict(
             # _extensions available -> csv and gzip
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            max_initial_combinations=33_000_000,
-            # max_initial_combinations=500,
+            # max_initial_combinations=33_000_000,
+            max_initial_combinations=500,
             stop_after_n_epoch=None,
             force_to_finish=True,  # todo: logic missing
             #
