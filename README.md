@@ -13,7 +13,7 @@ Installation Steps:
 	3. Clone git repository
 	4. $cd mini_genie
 	5. $./mini_genie_source/main_mini_genie.py -setup
-	5. $./mini_genie_source/main_mini_genie.py -setup
+	5. $pipenv run (*python3.9) mini_genie_source/main_mini_genie.py
 	6. Done, this is your executable.
     7. Preffered method of running is pipenv run method
     ...
