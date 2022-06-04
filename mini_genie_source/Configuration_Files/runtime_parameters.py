@@ -55,8 +55,8 @@ Run_Time_Settings = dict(
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            # max_initial_combinations=33_000_000,
-            max_initial_combinations=500,
+            max_initial_combinations=33_000_000,
+            # max_initial_combinations=500,
             stop_after_n_epoch=None,
             # force_to_finish=True,  # todo: logic missing
             #
