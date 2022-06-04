@@ -12,7 +12,8 @@ Installation Steps:
 
 	3. Clone git repository
 	4. $cd mini_genie
-	5. $./mini_genie_source/main_mini_genie.py
+	5. $./mini_genie_source/main_mini_genie.py -setup
+	5. $./mini_genie_source/main_mini_genie.py -setup
 	6. Done, this is your executable.
     7. Preffered method of running is pipenv run method
     ...
@@ -22,6 +23,6 @@ If this fails, mini-genie can be set up manually using commands:
 
     5b. pipenv --rm
     6b. pipenv install
-    7b. touch .working_directory.txt'
+    7b. touch .mini_genie' 
 
 ** Subject to change at any point ...

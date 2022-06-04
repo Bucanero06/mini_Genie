@@ -25,9 +25,10 @@ def create_dir(directories):
             print(f'Found {directories}')
 
 
-def Find(filename, *args):
+def find(filename, *args):
     directories = [*args]
     foundfile = False
+    from os import path
     for searchdirectory in directories:
         if path.exists(searchdirectory + "/" + filename):
             if searchdirectory == ".":
@@ -36,20 +37,19 @@ def Find(filename, *args):
                 print("Found " + str(filename) + " inside " + str(searchdirectory) + " directory")
             foundfile = True
             return searchdirectory
-            exit()
+
     # if not exited by now it means that the file was not found in any of the given directories thus rise error
     if foundfile != True:
         print(str(filename) + " not found inside " + str(directories) + "\n exiting...")
-        sys.exit()
+        exit()
 
 
 def set_up_mini_genie():
-    from os import system, path
+    from os import system, getcwd
     print("Setting Up mini-Genie "
           "\N{Smiling Face With Heart-Shaped Eyes}"
           "\N{Smiling Face With Smiling Eyes And Hand Covering Mouth}"
           "\N{money-mouth face}"
-
           )
     #
 
@@ -58,17 +58,29 @@ def set_up_mini_genie():
     # Go to directory
 
     # Do stuff
-    if path.exists('.working_directory.txt'):
-        system('rm -f .working_directory.txt')
-    #
-    system('pip install pipenv')
-    system('pip install pipenv --upgrade')
-    system('pipenv --rm')
-    system('pipenv install')
-    create_dir('Datas')
-    create_dir('Studies')
-    system('touch .working_directory.txt')
 
+    # if path.exists('.mini_genie'):
+    #     system('rm -f .mini_genie')
+
+    current_directory = getcwd()
+    system(f'cd .. && pwd')
+
+    searchdirectory = find(".mini_genie", current_directory, "..", "mini_Genie")
+
+    system(
+        f'cd {searchdirectory} && '
+        f'pip install pipenv && '
+        f'pip install pipenv --upgrade && '
+        f'pipenv --rm && '
+        f'pipenv install')
+
+    # #
+    # system('pip install pipenv')
+    # system('pip install pipenv --upgrade')
+    # system('pipenv --rm')
+    # system('pipenv install')
+    # create_dir('Datas')
+    # create_dir('Studies')
     #
     print("\n\n"
           "Im done getting ready, check me out 🦾\N{Smiling Face With Smiling Eyes}\n"
