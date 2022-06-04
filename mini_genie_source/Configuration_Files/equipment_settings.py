@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.9
+#!/usr/bin/env python3
 TEMP_DICT = dict(
     Time_Dalay=0.1,  # in Seconds to cool
 

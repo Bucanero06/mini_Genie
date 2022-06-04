@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.9
+#!/usr/bin/env python3
 import numpy as np
 from numba import njit
 import vectorbtpro as vbt

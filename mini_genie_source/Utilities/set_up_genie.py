@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.9
+#!/usr/bin/env python3
 def create_dir(directories):
     """
 
@@ -13,17 +13,33 @@ def create_dir(directories):
     if not isinstance(directories, str):
         for dir in directories:
             if not path.exists(directories):
-                logger.info(f'Creating directory {dir}')
+                print(f'Creating directory {dir}')
                 mkdir(directories)
             else:
-                logger.info(f'Found {dir}')
+                print(f'Found {dir}')
     else:
         if not path.exists(directories):
-            logger.info(f'Creating directory {directories}')
+            print(f'Creating directory {directories}')
             mkdir(directories)
         else:
-            logger.info(f'Found {directories}')
+            print(f'Found {directories}')
 
+def Find(filename, *args):
+    directories=[*args]
+    foundfile = False
+    for searchdirectory in directories:
+        if path.exists(searchdirectory + "/" + filename):
+            if searchdirectory == ".":
+                print("Found " + str(filename) + " inside the current directory")
+            else:
+                print("Found " + str(filename) +  " inside " + str(searchdirectory) + " directory")
+            foundfile = True
+            return searchdirectory
+            exit()
+    # if not exited by now it means that the file was not found in any of the given directories thus rise error
+    if foundfile != True:
+        print(str(filename) + " not found inside " + str(directories) + "\n exiting...")
+        sys.exit()
 
 def set_up_mini_genie():
     from os import system, path
@@ -34,8 +50,12 @@ def set_up_mini_genie():
 
           )
     #
-    # system("python3 -m venv .")
-    #
+
+    # Find .working_directory file path
+
+    # Go to directory
+
+    # Do stuff
     if path.exists('.working_directory_.txt'):
         system('rm -f .working_directory_.txt')
     #
@@ -48,7 +68,11 @@ def set_up_mini_genie():
     #
     print("\n\n"
           "Im done getting ready, check me out 🦾\N{Smiling Face With Smiling Eyes}\n"
-          "Im done getting ready, check me out 🦿")
+          "                                    🦿")
     system('./genie_trader.py --help')
 
     #
+
+
+if __name__ == "__main__":
+    set_up_mini_genie()

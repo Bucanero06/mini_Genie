@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.9
+#!/usr/bin/env python3
 import datetime
 
 from Simulation_Handler.flexible_simulation import Flexible_Simulation_Optimization, Flexible_Simulation_Backtest
@@ -35,28 +35,30 @@ Run_Time_Settings = dict(
         #
         timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # todo: logic missing,not used/needed
         Continue=True,
-        # whenever continuing, load parameter combs, then delete all with no trade ones, shuffle, fill in values with trades, then start run with the ones that are missing
-        soft_reset=False,  # todo: section of code missing
-        # Same as soft reset, but saves ones with trades in a different file and computes the rest
-        medium_reset=False,  # todo: section of code missing
-        # Deletes files and starts again from scratch with settings
-        hard_reset=False,  # todo: section of code missing
         #
-        reset_withouts_those_with_no_trials=False,  # todo: section of code missing
-        reset_withouts_those_with_negative_profits=False,  # todo: section of code missing
-        reset_withouts_any_ran_ones=False,  # todo: section of code missing
+        # # whenever continuing, load parameter combs, then delete all with no trade ones, shuffle,
+        # # fill in values with trades, then start run with the ones that are missing
+        # soft_reset=False,  # todo: section of code missing
+        # # Same as soft reset, but saves ones with trades in a different file and computes the rest
+        # medium_reset=False,  # todo: section of code missing
+        # # Deletes files and starts again from scratch with settings
+        # hard_reset=False,  # todo: section of code missing
+        # #
+        # reset_withouts_those_with_no_trials=False,  # todo: section of code missing
+        # reset_withouts_those_with_negative_profits=False,  # todo: section of code missing
+        # reset_withouts_any_ran_ones=False,  # todo: section of code missing
         #
-        batch_size=2,
+        batch_size=300,
         save_every_nth_chunk=1,
         Initial_Search_Space=dict(
             # _extensions available -> csv and gzip
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            # max_initial_combinations=33_000_000,
-            max_initial_combinations=500,
+            max_initial_combinations=33_000_000,
+            # max_initial_combinations=500,
             stop_after_n_epoch=None,
-            force_to_finish=True,  # todo: logic missing
+            # force_to_finish=True,  # todo: logic missing
             #
             parameter_selection=dict(
                 timeframes='all',  # todo: needs to add settings for how to reduce, these dont do anything
@@ -140,6 +142,7 @@ Run_Time_Settings = dict(
     ),
     Strategy_Settings=dict(
         Strategy=MMT_Strategy,
+        # The order of parameter key_names should be honored across all files
         parameter_windows=dict(
             PEAK_and_ATR_timeframes=dict(type='timeframe',
                                          values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
@@ -160,12 +163,13 @@ Run_Time_Settings = dict(
             # if compute_product then will compute the product of all the parameter values passed,
             #   else parameter values length must be equal
             compute_product=False,
-
+            #
             # Can Read Parameters from file instead if the path to it is provided
             # read_user_defined_param_file='backtest_result.csv',
             read_user_defined_param_file=None,  # todo: logic missing
             #
             # Can use  -->  values = np.arrange(start,stop,step) or np.linespace(start,stop,#)
+            # The order of parameter key_names should be honored across all files
             parameter_windows=dict(
                 PEAK_and_ATR_timeframes=dict(type='timeframe', values=['5 min']),
                 #
@@ -180,7 +184,7 @@ Run_Time_Settings = dict(
             )
         ),
     ),
-    #
+    # It faster when values given, if not pass 'auto' and I will do my best
     RAY_SETTINGS=dict(
         ray_init_num_cpus=28,
         simulate_signals_num_cpus=28
