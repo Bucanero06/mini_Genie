@@ -24,15 +24,16 @@ def create_dir(directories):
         else:
             print(f'Found {directories}')
 
+
 def Find(filename, *args):
-    directories=[*args]
+    directories = [*args]
     foundfile = False
     for searchdirectory in directories:
         if path.exists(searchdirectory + "/" + filename):
             if searchdirectory == ".":
                 print("Found " + str(filename) + " inside the current directory")
             else:
-                print("Found " + str(filename) +  " inside " + str(searchdirectory) + " directory")
+                print("Found " + str(filename) + " inside " + str(searchdirectory) + " directory")
             foundfile = True
             return searchdirectory
             exit()
@@ -40,6 +41,7 @@ def Find(filename, *args):
     if foundfile != True:
         print(str(filename) + " not found inside " + str(directories) + "\n exiting...")
         sys.exit()
+
 
 def set_up_mini_genie():
     from os import system, path
@@ -56,21 +58,21 @@ def set_up_mini_genie():
     # Go to directory
 
     # Do stuff
-    if path.exists('.working_directory_.txt'):
-        system('rm -f .working_directory_.txt')
+    if path.exists('.working_directory.txt'):
+        system('rm -f .working_directory.txt')
     #
+    system('pip install pipenv')
+    system('pip install pipenv --upgrade')
     system('pipenv --rm')
     system('pipenv install')
     create_dir('Datas')
     create_dir('Studies')
-    system('touch .working_directory_.txt')
+    system('touch .working_directory.txt')
 
     #
     print("\n\n"
           "Im done getting ready, check me out 🦾\N{Smiling Face With Smiling Eyes}\n"
           "                                    🦿")
-    system('./genie_trader.py --help')
-
     #
 
 

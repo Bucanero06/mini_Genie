@@ -95,7 +95,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     #
 
-    if not os.path.exists(".working_directory_.txt") or args.setup_bool:
+    if not os.path.exists(".working_directory.txt") or args.setup_bool:
         from Utilities.set_up_genie import set_up_mini_genie
 
         set_up_mini_genie()
