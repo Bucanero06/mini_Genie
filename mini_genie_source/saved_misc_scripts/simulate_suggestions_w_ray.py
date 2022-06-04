@@ -78,7 +78,7 @@ def simulate_suggestions(self):
     best_parameters = None
     #
     initial_cash_total = self.runtime_settings["Portfolio_Settings.init_cash"]
-    stop_after_n_epoch = self.runtime_settings["Simulation_Settings.Initial_Search.stop_after_n_epoch"]
+    stop_after_n_epoch = self.runtime_settings["Simulation_Settings.Initial_Search_Space.stop_after_n_epoch"]
     save_every_nth_chunk = self.runtime_settings["Simulation_Settings.save_every_nth_chunk"]
     #
     # If metrics record empty then initiate

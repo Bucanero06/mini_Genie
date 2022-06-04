@@ -87,7 +87,7 @@ class mini_genie_trader:
         assert len(self.tp_keyname) == len(self.sl_keyname) == 1
         #
         self.tp_sl_selection_space = self.runtime_settings[
-            "Simulation_Settings.Initial_Search.parameter_selection.tp_sl"]
+            "Simulation_Settings.Initial_Search_Space.parameter_selection.tp_sl"]
         #
         self.parameters_record = [None]
         self.metrics_record = [None]
@@ -123,9 +123,9 @@ class mini_genie_trader:
         misc_dir_path = f'{study_dir_path}/misc'
         #
         file_name_of_initial_params_record = self.runtime_settings[
-            'Simulation_Settings.Initial_Search.path_of_initial_params_record']
+            'Simulation_Settings.Initial_Search_Space.path_of_initial_params_record']
         file_name_of_initial_metrics_record = self.runtime_settings[
-            'Simulation_Settings.Initial_Search.path_of_initial_metrics_record']
+            'Simulation_Settings.Initial_Search_Space.path_of_initial_metrics_record']
         #
         file_name_of_backtest_results = self.runtime_settings[
             "Strategy_Settings.strategy_user_picked_params.output_file_name"]
@@ -173,22 +173,26 @@ class mini_genie_trader:
         path_of_initial_metrics_record = self.path_of_initial_metrics_record
         #
         if os.path.exists(path_of_initial_params_record):
+            logger.info(f'Loading parameters from file {path_of_initial_params_record}  ...')
             if self.compression_of_initial_params_record == '.csv':
                 parameter_df = pd.read_csv(path_of_initial_params_record)
             else:
                 parameter_df = pd.read_pickle(path_of_initial_params_record)
             #
             # Initiate_params_record
+            logger.info(f'Initiating parameters record  ...')
             initial_params_size = len(parameter_df)
             self._initiate_parameters_records(add_ids=True, initial_params_size=initial_params_size)
             #
             # Fill values
+            logger.info(f'Filling record  ...')
             for key_name, values in parameter_df.items():
                 self.parameters_record[key_name] = values
             #
             logger.info(f'Loaded parameters_record')
             #
             if os.path.exists(path_of_initial_metrics_record):
+                logger.info(f'Loading metrics from file {path_of_initial_metrics_record}  ...')
                 # column_names = list(self.key_names) + self.runtime_settings['Simulation_Settings.Loss_Function.metrics']
                 if self.compression_of_initial_metrics_record == '.csv':
                     metrics_df = pd.read_csv(path_of_initial_metrics_record)
@@ -196,9 +200,11 @@ class mini_genie_trader:
                     metrics_df = pd.read_pickle(path_of_initial_metrics_record)
                 #
                 # Initiate_metrics_record
+                logger.info(f'Initiating metrics record  ...')
                 self._initiate_metric_records(add_ids=True, params_size=initial_params_size * len(self.asset_names))
                 #
                 # Fill values
+                logger.info(f'Filling record ...')
                 dtype_names = list(self.metrics_record.dtype.names)
                 for row in metrics_df[dtype_names].to_numpy():
                     # First row is 'trial_id'
@@ -539,17 +545,17 @@ class mini_genie_trader:
             if not initial_params_size:
                 self.parameters_lengths_dict = _reduce_initial_parameter_space(parameters_lengths_dict,
                                                                                self.runtime_settings[
-                                                                                   "Simulation_Settings.Initial_Search.max_initial_combinations"])
+                                                                                   "Simulation_Settings.Initial_Search_Space.max_initial_combinations"])
             else:
                 parameters_lengths_dict["n_initial_combinations"] = initial_params_size
                 self.parameters_lengths_dict = parameters_lengths_dict
 
             if self.parameters_lengths_dict["n_initial_combinations"] > self.runtime_settings[
-                "Simulation_Settings.Initial_Search.max_initial_combinations"]:
+                "Simulation_Settings.Initial_Search_Space.max_initial_combinations"]:
                 continuing_text = f' because we are continuing the study from file' if self.continuing else ' '
                 logger.warning(
                     f'I know max_initial_combinations was set to '
-                    f'{self.runtime_settings["Simulation_Settings.Initial_Search.max_initial_combinations"]} '
+                    f'{self.runtime_settings["Simulation_Settings.Initial_Search_Space.max_initial_combinations"]} '
                     f'but, I needed at least {self.parameters_lengths_dict["n_initial_combinations"]} initial combinations'
                     f'{continuing_text}'
                     f"\N{smiling face with smiling eyes}"
@@ -936,8 +942,6 @@ class mini_genie_trader:
                             initial_cash_total_, epoch_n_,
                             save_every_nth_chunk=None):
             '''Reconstruct Metrics from Order Records and Save'''
-            logger.info(f"Preparing to Save epoch {epoch_n_}")
-
             tell_metrics_start_timer = perf_counter()
             #
             # params_rec = ray.get(params_rec_id)
@@ -1007,7 +1011,7 @@ class mini_genie_trader:
         best_parameters = None
         #
         initial_cash_total = self.runtime_settings["Portfolio_Settings.init_cash"]
-        stop_after_n_epoch = self.runtime_settings["Simulation_Settings.Initial_Search.stop_after_n_epoch"]
+        stop_after_n_epoch = self.runtime_settings["Simulation_Settings.Initial_Search_Space.stop_after_n_epoch"]
         save_every_nth_chunk = self.runtime_settings["Simulation_Settings.save_every_nth_chunk"]
         #
         # If metrics record empty then initiate
@@ -1017,9 +1021,7 @@ class mini_genie_trader:
         else:
             highest_profit_perc = np.max(self.metrics_record["Total Return [%]"])
             #
-            highest_profit_cash = highest_profit_perc * initial_cash_total_ / 100
-            best_parameters_this_epoch = portfolio['Total Return [%]'].idxmax()
-
+            highest_profit_cash = highest_profit_perc * initial_cash_total / 100
             # self.parameters_record[]
 
         if not self.user_pick:
@@ -1064,7 +1066,8 @@ class mini_genie_trader:
             logger.info('Reconstructing Portfolio Stats')
             compute_stats_timer = perf_counter()
             func_calls = []
-            split_metric_names = np.array_split(self.metrics_key_names, len(self.metrics_key_names) / 2)
+            # split_metric_names = np.array_split(self.metrics_key_names, len(self.metrics_key_names) / 2)
+            split_metric_names = np.array_split(self.metrics_key_names, len(self.metrics_key_names) / 3)
             pf_id = ray.put(pf)
             for metric_chunk in split_metric_names:
                 func_calls.append(compute_stats.remote(pf_id, metric_chunk))
@@ -1076,8 +1079,10 @@ class mini_genie_trader:
             portfolio_stats = compute_stats_results[0].join(compute_stats_results[1:])
             logger.info(f'Time to Reconstruct Metrics {perf_counter() - compute_stats_timer}')
             #
-            highest_profit_cash, best_parameters = _analyze_n_save(portfolio_stats, epoch_params_record, highest_profit_cash,
-                                                                   highest_profit_perc, best_parameters, initial_cash_total,
+            highest_profit_cash, best_parameters = _analyze_n_save(portfolio_stats, epoch_params_record,
+                                                                   highest_profit_cash,
+                                                                   highest_profit_perc, best_parameters,
+                                                                   initial_cash_total,
                                                                    epoch_n, save_every_nth_chunk=save_every_nth_chunk)
 
             logger.info(f'Epoch {epoch_n} took {perf_counter() - start_time} seconds')

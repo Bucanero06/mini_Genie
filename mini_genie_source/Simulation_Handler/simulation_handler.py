@@ -79,6 +79,7 @@ class Simulation_Handler:
                                                                                                     parameters,
                                                                                                     ray_sim_n_cpus)
 
+        gc.collect()
         logger.info(f'Time to Prepare Entries and Exits Signals {perf_counter() - Start_Timer}')
         return long_entries, long_exits, short_entries, short_exits, strategy_specific_kwargs
 
@@ -119,6 +120,8 @@ class Simulation_Handler:
         '''Save Portfolio after each epoch'''  # (3)_n-1
         pf.save(
             f'{self.genie_object.portfolio_dir_path}/{self.genie_object.runtime_settings["Portfolio_Settings.saved_pf_optimization"]}')
+
+        gc.collect()
         return pf, extra_sim_info
 
         ...
