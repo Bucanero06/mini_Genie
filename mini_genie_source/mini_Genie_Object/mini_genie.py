@@ -593,7 +593,6 @@ class mini_genie_trader:
             logger.info(f'Total number of combinations to run backtest on -->  {len(self.parameters_record)}\n'
                         f'  on {len(self.asset_names)} assets')
 
-            logger.info(self.parameters_record)
             from Utilities.general_utilities import delete_non_filled_elements
             self.parameters_record = delete_non_filled_elements(self.parameters_record)
 
@@ -938,7 +937,7 @@ class mini_genie_trader:
            4.  Save Results to file
         """
 
-        def _analyze_n_save(portfolio, params_rec, highest_profit_cash, highest_profit_perc, best_parameters_,
+        def _analyze_n_save(portfolio, params_rec, highest_profit_cash_, highest_profit_perc_, best_parameters_,
                             initial_cash_total_, epoch_n_,
                             save_every_nth_chunk=None):
             '''Reconstruct Metrics from Order Records and Save'''
@@ -951,14 +950,14 @@ class mini_genie_trader:
             highest_cash_profit_this_epoch = highest_profit_this_epoch * initial_cash_total_ / 100
             best_parameters_this_epoch = portfolio['Total Return [%]'].idxmax()
             #
-            if highest_cash_profit_this_epoch > highest_profit_cash:
-                highest_profit_cash = highest_cash_profit_this_epoch
-                highest_profit_perc = highest_profit_this_epoch
+            if highest_cash_profit_this_epoch > highest_profit_cash_:
+                highest_profit_cash_ = highest_cash_profit_this_epoch
+                highest_profit_perc_ = highest_profit_this_epoch
                 best_parameters_ = best_parameters_this_epoch
             #
             logger.info(
-                f'Highest Profit so far: {highest_profit_cash}   \N{money-mouth face}\N{money bag}: '
-                f'{highest_profit_perc} of a ${initial_cash_total_} account')
+                f'Highest Profit so far: {highest_profit_cash_}   \N{money-mouth face}\N{money bag}: '
+                f'{highest_profit_perc_} of a ${initial_cash_total_} account')
             logger.info(f'Best Param so far: {best_parameters_}  \N{money with wings}')
             #
             logger.info(f'  -> highest_profit_cash this epoch {highest_cash_profit_this_epoch}')
@@ -991,7 +990,7 @@ class mini_genie_trader:
                     #
                     logger.info(f'Time to Save Records {perf_counter() - save_start_timer} during epoch {epoch_n_}')
             #
-            return highest_profit_cash, best_parameters_
+            return highest_profit_cash_, highest_profit_perc_, best_parameters_
 
         batch_size = self.batch_size
         # self.parameters_record_length = len(ray.get(self.parameters_record))
@@ -1079,11 +1078,13 @@ class mini_genie_trader:
             portfolio_stats = compute_stats_results[0].join(compute_stats_results[1:])
             logger.info(f'Time to Reconstruct Metrics {perf_counter() - compute_stats_timer}')
             #
-            highest_profit_cash, best_parameters = _analyze_n_save(portfolio_stats, epoch_params_record,
-                                                                   highest_profit_cash,
-                                                                   highest_profit_perc, best_parameters,
-                                                                   initial_cash_total,
-                                                                   epoch_n, save_every_nth_chunk=save_every_nth_chunk)
+            highest_profit_cash, highest_profit_perc, best_parameters = _analyze_n_save(portfolio_stats,
+                                                                                        epoch_params_record,
+                                                                                        highest_profit_cash,
+                                                                                        highest_profit_perc,
+                                                                                        best_parameters,
+                                                                                        initial_cash_total, epoch_n,
+                                                                                        save_every_nth_chunk=save_every_nth_chunk)
 
             logger.info(f'Epoch {epoch_n} took {perf_counter() - start_time} seconds')
             logger.info(f'\n\n')

@@ -10,14 +10,14 @@ Run_Time_Settings = dict(
         load_CSV_from_pickle=True,  # momentary
         data_files_dir='Datas',  # momentary
         data_files_names=[
-            # 'AUDUSD',  # momentary
-            # 'EURUSD',  # momentary
-            # 'GBPUSD',  # momentary
-            # 'NZDUSD',  # momentary
-            # 'USDCAD',  # momentary
-            # 'USDCHF',  # momentary
-            "DAX",  # momentary
-            "DAXC",  # momentary
+            'AUDUSD',  # momentary
+            'EURUSD',  # momentary
+            'GBPUSD',  # momentary
+            'NZDUSD',  # momentary
+            'USDCAD',  # momentary
+            'USDCHF',  # momentary
+            # "DAX",  # momentary
+            # "DAXC",  # momentary
 
         ],  # momentary
 
@@ -26,20 +26,20 @@ Run_Time_Settings = dict(
         ffill=False,
         fill_dates=False,
         saved_data_file='SymbolData',
-        tick_size=0.01
-        # tick_size=0.00001
+        # tick_size=0.01
+        tick_size=0.00001
     ),
 
     Simulation_Settings=dict(
-        study_name='debugging',
+        # study_name='debugging',
+        study_name='MMT_0',
         optimization_period=dict(
             start_date=datetime.datetime(month=9, day=1, year=2021),
-            # end_date=datetime.datetime(month=3, day=16, year=2022)
-            end_date=datetime.datetime(month=10, day=16, year=2022)
+            end_date=datetime.datetime(month=3, day=16, year=2022)
         ),
         #
         timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # todo: logic missing,not used/needed
-        Continue=False,
+        Continue=True,
         #
         # # whenever continuing, load parameter combs, then delete all with no trade ones, shuffle,
         # # fill in values with trades, then start run with the ones that are missing
@@ -53,15 +53,15 @@ Run_Time_Settings = dict(
         # reset_withouts_those_with_negative_profits=False,  # todo: section of code missing
         # reset_withouts_any_ran_ones=False,  # todo: section of code missing
         #
-        batch_size=2,
+        batch_size=100,
         save_every_nth_chunk=1,
         Initial_Search_Space=dict(
             # _extensions available -> csv and gzip
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            # max_initial_combinations=33_000_000,
-            max_initial_combinations=500,
+            max_initial_combinations=33_000_000,
+            # max_initial_combinations=500,
             stop_after_n_epoch=None,
             # force_to_finish=True,  # todo: logic missing
             #
@@ -161,8 +161,8 @@ Run_Time_Settings = dict(
             # take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=1000, min_step=1),
             # stoploss_points=dict(type='stop_loss', lower_bound=1, upper_bound=1000, min_step=1),
             #
-            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=20000, min_step=1),
-            stoploss_points=dict(type='stop_loss', lower_bound=1, upper_bound=20000, min_step=1),
+            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=1000, min_step=1),
+            stoploss_points=dict(type='stop_loss', lower_bound=1, upper_bound=1000, min_step=1),
 
         ),
         # strategy_user_picked_params
@@ -174,7 +174,7 @@ Run_Time_Settings = dict(
             #
             # Can Read Parameters from file instead if the path to it is provided
             # read_user_defined_param_file='backtest_result.csv',
-            read_user_defined_param_file=None,  # todo: logic missing
+            read_user_defined_param_file='backtest_parameters.csv',  # todo: logic missing
             #
             # Can use  -->  values = np.arrange(start,stop,step) or np.linespace(start,stop,#)
             # The order of parameter key_names should be honored across all files
