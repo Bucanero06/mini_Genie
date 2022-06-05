@@ -64,7 +64,7 @@ class Data_Handler:
         if self.genie_object.runtime_settings['Data_Settings.load_CSV_from_pickle']:
             logger.warning("Loading data from pickle not reading from CSV")
             symbols_data = vbt.Data.load(
-                f'{self.genie_object.data_dir_path}/{self.genie_object.runtime_settings["Data_Settings.saved_data_file"]}')
+                f'{self.genie_object.study_dir_path}/{self.genie_object.runtime_settings["Data_Settings.saved_data_file"]}')
 
         else:
             import multiprocessing as mp

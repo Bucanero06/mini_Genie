@@ -112,7 +112,7 @@ def cache_func(open, low, high, close,
 
     return cache
 
-
+from logger_tt import logger
 def apply_function(open_data, low_data, high_data, close_data,
                    PEAK_and_ATR_timeframe, atr_window, data_lookback_window,
                    EMAs_timeframe, ema_1_window, ema_2_window,
@@ -187,6 +187,7 @@ def apply_function(open_data, low_data, high_data, close_data,
     # Fetch the resamplers from cache for a given timeframe
     PEAK_and_ATR_timeframe_to_1min_Resampler = cache['Resamplers'][PEAK_and_ATR_timeframe]
     EMAs_timeframe_to_1min_Resampler = cache['Resamplers'][EMAs_timeframe]
+
 
     # Resample indicators to 1m
     atr_indicator = atr_indicator.vbt.resample_closing(
