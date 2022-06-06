@@ -7,17 +7,18 @@ from Strategies.Money_Maker_Strategy import MMT_Strategy
 Run_Time_Settings = dict(
     # Data Settings
     Data_Settings=dict(
-        load_CSV_from_pickle=True,  # momentary
+        load_CSV_from_pickle=False,  # momentary
         data_files_dir='Datas',  # momentary
         data_files_names=[
-            'AUDUSD',  # momentary
-            'EURUSD',  # momentary
-            'GBPUSD',  # momentary
-            'NZDUSD',  # momentary
-            'USDCAD',  # momentary
-            'USDCHF',  # momentary
+            # 'AUDUSD',  # momentary
+            # 'EURUSD',  # momentary
+            # 'GBPUSD',  # momentary
+            # 'NZDUSD',  # momentary
+            # 'USDCAD',  # momentary
+            # 'USDCHF',  # momentary
             # "DAX",  # momentary
-            # "DAXC",  # momentary
+            "DAXC_E",  # momentary
+            # "DAXE",  # momentary
 
         ],  # momentary
 
@@ -26,16 +27,17 @@ Run_Time_Settings = dict(
         ffill=False,
         fill_dates=False,
         saved_data_file='SymbolData',
-        # tick_size=0.01
-        tick_size=0.00001
+        tick_size=0.01
+        # tick_size=0.00001
     ),
 
     Simulation_Settings=dict(
-        # study_name='debugging',
-        study_name='MMT_0',
+        study_name='debugging',
+        # study_name='MMT_0',
         optimization_period=dict(
             start_date=datetime.datetime(month=9, day=1, year=2021),
-            end_date=datetime.datetime(month=3, day=16, year=2022)
+            # end_date=datetime.datetime(month=3, day=16, year=2022)
+            end_date=datetime.datetime(month=10, day=1, year=2021)
         ),
         #
         timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # todo: logic missing,not used/needed
@@ -53,15 +55,16 @@ Run_Time_Settings = dict(
         # reset_withouts_those_with_negative_profits=False,  # todo: section of code missing
         # reset_withouts_any_ran_ones=False,  # todo: section of code missing
         #
-        batch_size=100,
+        # batch_size=300,
+        batch_size=2,
         save_every_nth_chunk=1,
         Initial_Search_Space=dict(
             # _extensions available -> csv and gzip
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            max_initial_combinations=33_000_000,
-            # max_initial_combinations=500,
+            # max_initial_combinations=33_000_000,
+            max_initial_combinations=500,
             stop_after_n_epoch=None,
             # force_to_finish=True,  # todo: logic missing
             #

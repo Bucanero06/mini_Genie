@@ -884,6 +884,13 @@ class mini_genie_trader:
                 #
                 params["tp_sl"] = [tp_sl for tp_sl in tp_sl_combinations]
             #
+            if not len(params["tp_sl"]):
+                logger.warning(
+                    f'Hi there! I (genie) could not produce any TP and SL combinations that fit within your '
+                    f'restrictions ... sometimes the issue is a result of the wrong tick size for the dataset or upper/lower TP and SL '
+                    f'bound should be expanded')
+                sys.exit()
+            #
             self._compute_params_product_n_fill_record(params)
             self._save_record_to_file(self.parameters_record, self.path_of_initial_params_record,
                                       self.compression_of_initial_params_record)

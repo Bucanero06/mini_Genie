@@ -107,7 +107,7 @@ class Data_Handler:
             Cut DF
         """
         df_index = df.index
-        mask = (df_index > start_date) & (df_index <= end_date)
+        mask = (df_index >= start_date) & (df_index <= end_date)
         return df.loc[mask]
 
     def break_up_olhc_data_from_symbols_data(self) -> object:
@@ -184,6 +184,14 @@ class Data_Handler:
         bar_atr_close_data = self.fetch_dates_from_df(close_data,
                                                       self.genie_object.optimization_start_date - bar_atr_days,
                                                       self.genie_object.optimization_start_date - one_day)
+
+        logger.info(f'\bar_ATR Warm-Up Data')
+        logger.info(
+            f'Optimization Data -> From: {bar_atr_close_data.index[0]} to {bar_atr_close_data.index[len(bar_atr_close_data) - 1]}')
+        #
+        logger.info(f'\n')
+        logger.info(
+            f'Optimization Data -> From: {optimization_close_data.index[0]} to {optimization_close_data.index[len(optimization_close_data) - 1]}')
 
         # # Set Optimization Data Attr's (ray.put)
         setattr(self.genie_object, "optimization_open_data", ray.put(optimization_open_data))
