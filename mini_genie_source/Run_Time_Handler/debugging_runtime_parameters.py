@@ -16,9 +16,7 @@ Run_Time_Settings = dict(
             # 'NZDUSD',  # momentary
             # 'USDCAD',  # momentary
             # 'USDCHF',  # momentary
-            # "DAX",  # momentary
-            "DAXC_E",  # momentary
-            # "DAXE",  # momentary
+            "DAX",  # momentary
 
         ],  # momentary
 
@@ -41,7 +39,8 @@ Run_Time_Settings = dict(
         ),
         #
         timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # todo: logic missing,not used/needed
-        Continue=True,
+        Continue=False,
+        speed_mode="eco_friendly",  # ["eco_friendly","ludicrous","plaid_plus"]
         #
         # # whenever continuing, load parameter combs, then delete all with no trade ones, shuffle,
         # # fill in values with trades, then start run with the ones that are missing

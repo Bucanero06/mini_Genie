@@ -4,7 +4,7 @@ from time import perf_counter
 
 import numpy as np
 import ray
-from Configuration_Files.vbtmetricsdictionary import vbtmetricsdictionary
+from Run_Time_Handler.vbtmetricsdictionary import vbtmetricsdictionary
 from logger_tt import logger
 
 

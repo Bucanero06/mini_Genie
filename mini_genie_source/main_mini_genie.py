@@ -1,39 +1,25 @@
 #!/usr/bin/env python3
-import argparse
 import warnings
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
-def call_genie(args):
-    from logger_tt import setup_logging, logger
-    setup_logging(full_context=1)
-    if not any([vars(args)[i] for i in vars(args) if i != 'func']):
-        logger.warning("No action requested, exiting ...")
-        parser.print_help()
-        exit()
-    #
-    genie_pick = args.genie_pick
-    user_pick = args.user_pick
-    metrics_to_tsv = args.metrics_to_tsv
-    #
-    from Configuration_Files.runtime_parameters import Run_Time_Settings
-    from mini_Genie_Object.mini_genie import mini_genie_trader
-
+def call_genie(run_time_settings, arg_parser_values):
     # Initiate the genie object
+    from mini_Genie_Object.mini_genie import mini_genie_trader
     '''
     The genie object works as an operator, can act on itself through its methods, can be acted upon by other 
         operators, and must always return the latest state of genie_operator.
      '''
-    genie_object = mini_genie_trader(runtime_kwargs=Run_Time_Settings, user_pick=user_pick)
+    genie_object = mini_genie_trader(runtime_kwargs=run_time_settings, user_pick=arg_parser_values.user_pick)
 
-    if metrics_to_tsv:
+    if arg_parser_values.metrics_to_tsv:
         genie_object.metric_csv_file_to_tsv()
 
     # Load symbols_data, open, low, high, close to genie object.
     genie_object.fetch_and_prepare_input_data()
 
-    if genie_pick:
+    if arg_parser_values.genie_pick:
         # todo update with new changes  in dev branch
         '''
          List of Initial Params:
@@ -47,12 +33,12 @@ def call_genie(args):
                           2.  Use (TP/SL) \gamma ratios like [ 1, 1.2, 1.5, 1.75, 2, 2.5, 3]
                               (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=1.5, -> R=\bar{ATR}(TF='1h') * n=500
                                   ==> TP=750 & SL=-500)
-                              (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=1.0, -> R=\bar{ATR}(TF='1h')/n=500
+                              (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=1.0, -> R=\bar{ATR}(TF='1h') * n=500
                                   ==> TP=500 & SL=-500)
-                              (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=0.5, -> R=\bar{ATR}(TF='1h')/n=500
+                              (e.g. -> \bar{ATR}(TF='1h')=1000, n=2 and \gamma=0.5, -> R=\bar{ATR}(TF='1h') * n=500
                                   ==> TP=500 & SL=-750
                                   
-                              (e.g. -> \bar{ATR}(TF='1d')=2600, n=1 and \gamma=1, -> R=\bar{ATR}(TF='1h')/n=2600
+                              (e.g. -> \bar{ATR}(TF='1d')=2600, n=1 and \gamma=1, -> R=\bar{ATR}(TF='1h') * n=2600
                                   ==> TP=2600 & SL=-2600
                                   
             Run product of unique param values in each category, and remove out of bound tp and sl combinations.
@@ -71,7 +57,7 @@ def call_genie(args):
         #    4.  Save Results to file
         genie_object.simulate()
     #
-    elif user_pick:
+    elif arg_parser_values.user_pick:
         genie_object.prepare_backtest()
         #
         genie_object.simulate()
@@ -80,46 +66,10 @@ def call_genie(args):
 
 
 if __name__ == "__main__":
-    #
-    parser = argparse.ArgumentParser(description="Help for mini-Genie Trader")
-    #
-    parser.add_argument("-gp", help="Simulate using genie picked space based on user settings", dest="genie_pick",
-                        action='store_true', default=True)
-    parser.add_argument("-up", help="Simulate using solely the user picked space", dest="user_pick",
-                        action='store_true', default=False)
-    parser.add_argument("-tsv",
-                        help="Will convert csv to tsv previously computed metric files. File will vary based on "
-                             "whether user or genie pick option was used.",
-                        dest="metrics_to_tsv", action='store_true', default=False)
+    from logger_tt import setup_logging, logger
+    from Run_Time_Handler.run_time_handler import run_time_handler
 
-    parser.set_defaults(func=call_genie)
-    args = parser.parse_args()
+    setup_logging(full_context=1)
     #
-    # if not os.path.exists(".mini_genie"):
-    #     print(
-    #         "Wither re-clone repository or if only .mini_genie is missing, use $touch .mini_genie under \"mini_Genie\"")
-    # if args.setup_bool:
-    #     from Utilities.set_up_genie import set_up_mini_genie
-    #
-    #     set_up_mini_genie()
-    #     parser.print_help()
-    #     exit()
-
-    # import pandas as pd
-    # from datetime import datetime
-    #
-    # custom_date_parser = lambda x: datetime.strptime(x, "%d.%m.%Y %H:%M:%S")
-    # df = pd.read_csv('Datas/DAX.csv',
-    # df = pd.read_csv('Datas/DAX.csv',
-    # df = pd.read_csv('Datas/DAX.csv',
-    #                  parse_dates=['Datetime'],
-    #                  date_parser=custom_date_parser)
-    #
-    # df["Datetime"] = pd.to_datetime(df["Datetime"]).dt.strftime("%m.%d.%Y %H:%M:%S")
-    # df.set_index("Datetime",inplace=True)
-    # df.to_csv('Datas/DAXC_E.csv')
-    # print(df)
-    # exit()
-    #
-    args.func(args)
-    #
+    run_time_handler = run_time_handler(run_function=call_genie)
+    run_time_handler.call_run_function()

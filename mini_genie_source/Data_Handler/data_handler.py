@@ -185,7 +185,7 @@ class Data_Handler:
                                                       self.genie_object.optimization_start_date - bar_atr_days,
                                                       self.genie_object.optimization_start_date - one_day)
 
-        logger.info(f'\bar_ATR Warm-Up Data')
+        logger.info(f'\\bar_ATR Warm-Up Data')
         logger.info(
             f'Optimization Data -> From: {bar_atr_close_data.index[0]} to {bar_atr_close_data.index[len(bar_atr_close_data) - 1]}')
         #
@@ -219,3 +219,18 @@ class Data_Handler:
         return self
 
         ...
+
+    # def set_to_m_d_y_h_m_s(self,):
+    #     import pandas as pd
+    #     from datetime import datetime
+    #
+    #     custom_date_parser = lambda x: datetime.strptime(x, "%d.%m.%Y %H:%M:%S")
+    #     df = pd.read_csv('Datas/DAX.csv',
+    #                      parse_dates=['Datetime'],
+    #                      date_parser=custom_date_parser)
+    #
+    #     df["Datetime"] = pd.to_datetime(df["Datetime"]).dt.strftime("%m.%d.%Y %H:%M:%S")
+    #     df.set_index("Datetime", inplace=True)
+    #     df.to_csv('Datas/DAX.csv')
+    #     print(df)
+    #     exit()
