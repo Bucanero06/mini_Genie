@@ -903,7 +903,8 @@ class mini_genie_trader:
         logger.info(f'Total # of Combinations: {self.parameters_lengths_dict["n_total_combinations"]} per asset\n'
                     f'  * given current definitions for parameter space')
         logger.info(f'Initial Parameter Space Reduced to {self.parameters_lengths_dict["n_initial_combinations"]}')
-        logger.info(f'Running on {len(self.asset_names)} assets')
+        s = '' if len(self.asset_names) == 1 else 's'
+        logger.info(f'Running on {len(self.asset_names)} asset{s}')
 
     @staticmethod
     def _save_record_to_file(record, path_to_file, extension=None):
@@ -946,12 +947,11 @@ class mini_genie_trader:
         """
 
         if self.speed_mode == 'plaid_plus':
-            self._simulate_with_ray()
+            self._simulate_in_plaid_plus_mode()
             return
 
         def _analyze_n_save(portfolio, params_rec, highest_profit_cash_, highest_profit_perc_, best_parameters_,
-                            initial_cash_total_, epoch_n_,
-                            save_every_nth_chunk=None):
+                            initial_cash_total_, epoch_n_, save_every_nth_chunk=None):
             '''Reconstruct Metrics from Order Records and Save'''
             tell_metrics_start_timer = perf_counter()
             #
@@ -1104,7 +1104,7 @@ class mini_genie_trader:
         # Do a final save !
         self._save_computed_params_metrics()
 
-    def _simulate_with_ray(self):
+    def _simulate_in_plaid_plus_mode(self):
         """
         In chunks/batches:
            1.  Simulate N parameters' indicators
@@ -1112,7 +1112,7 @@ class mini_genie_trader:
            3.  Compute Metrics
            4.  Save Results to file
         """
-        logger.info("HI")
+        logger.info("Simulating in Plaid Plus Mode")
         exit()
 
         def _analyze_n_save(portfolio, params_rec, highest_profit_cash_, highest_profit_perc_, best_parameters_,
@@ -1275,7 +1275,7 @@ class mini_genie_trader:
         ...
         self._initiate_parameters_records(add_ids=True)
 
-    def metric_record_to_tsv(self):
+    def _metric_record_to_tsv(self):
         original_file_path = self.path_of_initial_metrics_record if not self.user_pick else self.file_name_of_backtest_results
         #
         original_file_path_without_extension = os.path.splitext(original_file_path)[:-1]

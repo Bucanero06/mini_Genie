@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import gc
 import warnings
 
 import pandas as pd
@@ -61,7 +62,11 @@ class Data_Handler:
         """
         logger.info(f'Fetching Data')
         #
-        if self.genie_object.runtime_settings['Data_Settings.load_CSV_from_pickle']:
+
+        load_from_pickle = self.genie_object.runtime_settings['Data_Settings.load_CSV_from_pickle']
+        continuing_study = self.genie_object.runtime_settings["Simulation_Settings.Continue"]
+
+        if load_from_pickle and continuing_study:
             logger.warning("Loading data from pickle not reading from CSV")
             symbols_data = vbt.Data.load(
                 f'{self.genie_object.study_dir_path}/{self.genie_object.runtime_settings["Data_Settings.saved_data_file"]}')
@@ -205,17 +210,7 @@ class Data_Handler:
         setattr(self.genie_object, "bar_atr_high_data", ray.put(bar_atr_high_data))
         setattr(self.genie_object, "bar_atr_close_data", ray.put(bar_atr_close_data))
         #
-        # Set Optimization Data Attr's
-        # setattr(self.genie_object, "optimization_open_data", optimization_open_data)
-        # setattr(self.genie_object, "optimization_low_data", optimization_low_data)
-        # setattr(self.genie_object, "optimization_high_data", optimization_high_data)
-        # setattr(self.genie_object, "optimization_close_data", optimization_close_data)
-        # #
-        # # Set \bar{ATR} Data Attr's
-        # setattr(self.genie_object, "bar_atr_open_data", bar_atr_open_data)
-        # setattr(self.genie_object, "bar_atr_low_data", bar_atr_low_data)
-        # setattr(self.genie_object, "bar_atr_high_data", bar_atr_high_data)
-        # setattr(self.genie_object, "bar_atr_close_data", bar_atr_close_data)
+        gc.collect()
         return self
 
         ...
