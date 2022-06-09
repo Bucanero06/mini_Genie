@@ -348,18 +348,18 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         cache_func=cache_func,
         keep_pd=True,
         param_product=False,
-        # execute_kwargs=dict(
-        #     engine='ray',
-        #     # chunk_len='auto',  # del_refs
-        #     init_kwargs={
-        #         'address': 'auto',
-        #         'num_cpus': ray_sim_n_cpus,
-        #         # 'ignore_reinit_error': True
-        #     },
-        #     # # remote_kwargs={'num_cpus': 18},
-        #     # remote_kwargs={'num_cpus': 14},
-        #     show_progress=True
-        # ),
+        execute_kwargs=dict(
+            engine='ray',
+            # chunk_len='auto',  # del_refs
+            init_kwargs={
+                'address': 'auto',
+                'num_cpus': ray_sim_n_cpus,
+                # 'ignore_reinit_error': True
+            },
+            # # remote_kwargs={'num_cpus': 18},
+            # remote_kwargs={'num_cpus': 14},
+            show_progress=True
+        ),
         PEAK_and_ATR_timeframes='1d',
         atr_windows=5,
         data_lookback_windows=3,

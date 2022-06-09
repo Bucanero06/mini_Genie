@@ -1113,7 +1113,7 @@ class mini_genie_trader:
            4.  Save Results to file
         """
         logger.info("Simulating in Plaid Plus Mode")
-        exit()
+        # exit()
 
         def _analyze_n_save(portfolio, params_rec, highest_profit_cash_, highest_profit_perc_, best_parameters_,
                             initial_cash_total_, epoch_n_,

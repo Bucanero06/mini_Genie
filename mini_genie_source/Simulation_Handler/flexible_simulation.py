@@ -552,7 +552,6 @@ def Flexible_Simulation_Backtest(runtime_settings, open_data, low_data, high_dat
     logger.info(f'Time to Prepare Entries and Exits Signals {perf_counter() - Start_Timer}')
 
     '''Run Simulation'''
-    logger.info('Running Simulations of Portfolio')
     Start_Timer = perf_counter()
     pf = vbt.Portfolio.from_order_func(
         close_data,
@@ -737,7 +736,6 @@ def Flexible_Simulation_Optimization(runtime_settings,
 
     """What do I do"""
     '''Run Simulation'''
-    logger.info('Running Simulations of Portfolio')
     Start_Timer = perf_counter()
     pf = vbt.Portfolio.from_order_func(
         close_data,
