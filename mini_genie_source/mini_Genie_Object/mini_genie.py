@@ -1054,6 +1054,7 @@ class mini_genie_trader:
         n_chunks = int(np.floor(len(params_to_compute) / batch_size)) if batch_size < len(params_to_compute) else 1
         # Split arrays into n_chunks
         chunks_of_params_left_to_compute = np.array_split(params_to_compute, n_chunks)
+
         #
         # from Utilities.general_utilities import put_objects_list_to_ray
         # chunks_ids_of_params_left_to_compute = put_objects_list_to_ray(chunks_of_params_left_to_compute)
@@ -1066,6 +1067,7 @@ class mini_genie_trader:
             start_time = perf_counter()
             CHECKTEMPS(TEMP_DICT)
             #
+
             long_entries, long_exits, short_entries, short_exits, \
             strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params_record)
             #
@@ -1113,6 +1115,7 @@ class mini_genie_trader:
            4.  Save Results to file
         """
         logger.info("Simulating in Plaid Plus Mode")
+
         # exit()
 
         def _analyze_n_save(portfolio, params_rec, highest_profit_cash_, highest_profit_perc_, best_parameters_,

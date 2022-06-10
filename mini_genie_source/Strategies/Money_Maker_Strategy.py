@@ -26,8 +26,8 @@ def cache_func(open, low, high, close,
                # breakeven_2_trigger_points, breakeven_2_distance_points,
                # take_profit_bool,
                take_profit_points,
-               # stoploss_bool,
-               stoploss_points):
+               # stop_loss_bool,
+               stop_loss_points):
     cache = {
         # Data
         'Open': {},
@@ -87,8 +87,8 @@ def cache_func(open, low, high, close,
     atr_windows = set(atr_windows)
     #
     for PEAK_and_ATR_timeframe in PEAK_and_ATR_timeframes:
+        gc.collect()
         for atr_window in atr_windows:
-            gc.collect()
             cache['ATR'][f'{PEAK_and_ATR_timeframe}_{atr_window}'] = vbt.indicators.ATR.run(
                 cache['High'][PEAK_and_ATR_timeframe],
                 cache['Low'][PEAK_and_ATR_timeframe],
@@ -104,15 +104,15 @@ def cache_func(open, low, high, close,
     ema_windows = set(ema_1_windows + ema_2_windows)
     #
     for EMAs_timeframe in EMAs_timeframes:
+        gc.collect()
         for ema_window in ema_windows:
-            gc.collect()
             cache['EMA'][f'{EMAs_timeframe}_{ema_window}'] = vbt.MA.run(cache['Close'][EMAs_timeframe],
                                                                         window=ema_window,
                                                                         ewm=True).ma
 
     return cache
 
-from logger_tt import logger
+
 def apply_function(open_data, low_data, high_data, close_data,
                    PEAK_and_ATR_timeframe, atr_window, data_lookback_window,
                    EMAs_timeframe, ema_1_window, ema_2_window,
@@ -124,8 +124,8 @@ def apply_function(open_data, low_data, high_data, close_data,
                    # breakeven_2_trigger_points, breakeven_2_distance_points,
                    # take_profit_bool,
                    take_profit_points,
-                   # stoploss_bool,
-                   stoploss_points,
+                   # stop_loss_bool,
+                   stop_loss_points,
                    cache
                    ):
     """Function for Indicators"""
@@ -188,7 +188,6 @@ def apply_function(open_data, low_data, high_data, close_data,
     PEAK_and_ATR_timeframe_to_1min_Resampler = cache['Resamplers'][PEAK_and_ATR_timeframe]
     EMAs_timeframe_to_1min_Resampler = cache['Resamplers'][EMAs_timeframe]
 
-
     # Resample indicators to 1m
     atr_indicator = atr_indicator.vbt.resample_closing(
         PEAK_and_ATR_timeframe_to_1min_Resampler) if PEAK_and_ATR_timeframe_to_1min_Resampler else atr_indicator
@@ -209,25 +208,21 @@ def apply_function(open_data, low_data, high_data, close_data,
     long_entry_condition_1 = BARSINCE_genie(PeakLow).lt(BARSINCE_genie(PeakHigh))
     # EMA 1 crosses above EMA 2 "crossover(ema_EmaTF(13) , ema_EmaTF(50) )"
     long_entry_condition_2 = ema_1_indicator.vbt.crossed_above(ema_2_indicator)
-    # Close price is above PeakLow
-    long_entry_condition_2_b = close_data.to_numpy() > PeakLow
 
     '''Short Entries Conditions'''
     # Bars since last PeakLow are greater than Bars PeakHigh "barssince(PeakLow) > barssince(PeakHigh)"
     short_entry_condition_1 = BARSINCE_genie(PeakLow).gt(BARSINCE_genie(PeakHigh))
     # EMA 1 crosses below EMA 2 "crossunder(ema_EmaTF(13) , ema_EmaTF(50) )"
     short_entry_condition_2 = ema_1_indicator.vbt.crossed_below(ema_2_indicator)
-    # Close price is below PeakHigh
-    short_entry_condition_2_b = close_data.to_numpy() < PeakHigh
 
     '''Type C Conditions'''
     # Progressive long entry condition not being used right now "crossover(ema_EmaTF(34) , ema_EmaTF(50) )"
     # long_entry_condition_3 = ema_3_indicator.vbt.crossed_above(ema_2_indicator)
-    long_entry_condition_3 = pd.DataFrame().reindex_like(long_entry_condition_1).fillna(False)
+    # long_entry_condition_3 = pd.DataFrame().reindex_like(long_entry_condition_1).fillna(False)
     # long_entry_condition_3 = long_entry_condition_2
     # Progressive short entry condition not being used right now "crossover(ema_EmaTF(34) , ema_EmaTF(50) )"
     # short_entry_condition_3 = ema_3_indicator.vbt.crossed_below(ema_2_indicator)
-    short_entry_condition_3 = pd.DataFrame().reindex_like(short_entry_condition_1).fillna(False)
+    # short_entry_condition_3 = pd.DataFrame().reindex_like(short_entry_condition_1).fillna(False)
     # short_entry_condition_3 = short_entry_condition_2
 
     '''Fill Rest of Parameters for Sim'''
@@ -237,10 +232,10 @@ def apply_function(open_data, low_data, high_data, close_data,
 
     # progressive_bool = empty_df_like.fillna(progressive_bool)
 
-    # stoploss_bool = empty_df_like.fillna(True) if breakeven_1_trigger_bool or breakeven_2_trigger_bool \
-    #     else empty_df_like.fillna(stoploss_bool)
+    # stop_loss_bool = empty_df_like.fillna(True) if breakeven_1_trigger_bool or breakeven_2_trigger_bool \
+    #     else empty_df_like.fillna(stop_loss_bool)
 
-    stoploss_points = empty_df_like.fillna(stoploss_points)
+    stop_loss_points = empty_df_like.fillna(stop_loss_points)
 
     # breakeven_1_trigger_bool = empty_df_like.fillna(breakeven_1_trigger_bool)
     # breakeven_1_trigger_points = empty_df_like.fillna(breakeven_1_trigger_points)
@@ -275,7 +270,7 @@ def apply_function(open_data, low_data, high_data, close_data,
            long_entry_condition_1, long_entry_condition_2, long_entry_condition_2_b, \
            short_entry_condition_1, short_entry_condition_2, short_entry_condition_2_b, \
            take_profit_points, \
-           stoploss_points
+           stop_loss_points
 
 
 def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray_sim_n_cpus):
@@ -303,8 +298,8 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
     # take_profit_bool = np.array(data_and_parameter_dictionary["take_profit_bool"])
     take_profit_points = np.array(parameter_data["take_profit_points"])
     #
-    # stoploss_bool = np.array(data_and_parameter_dictionary["stoploss_bool"])
-    stoploss_points = np.array(parameter_data["stoploss_points"])
+    # stop_loss_bool = np.array(data_and_parameter_dictionary["stop_loss_bool"])
+    stop_loss_points = np.array(parameter_data["stop_loss_points"])
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     #
     '''Compile Structure and Run Master Indicator'''
@@ -322,8 +317,8 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
                      # 'breakeven_2_trigger_points', 'breakeven_2_distance_points',
                      # 'take_profit_bool',
                      'take_profit_points',
-                     # 'stoploss_bool',
-                     'stoploss_points'
+                     # 'stop_loss_bool',
+                     'stop_loss_points'
                      ],
         output_names=[
             'long_entries', 'long_exits', 'short_entries', 'short_exits',
@@ -340,8 +335,8 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
             # 'breakeven_2_trigger_points', 'breakeven_2_distance_points',
             # 'take_profit_bool',
             'take_profit_points',
-            # 'stoploss_bool',
-            'stoploss_points'
+            # 'stop_loss_bool',
+            'stop_loss_points'
         ]
     ).with_apply_func(
         apply_func=apply_function,
@@ -381,8 +376,8 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         # take_profit_bool=True,
         take_profit_points=300,
         # #
-        # stoploss_bool=True,
-        stoploss_points=-600,
+        # stop_loss_bool=True,
+        stop_loss_points=-600,
     ).run(
         open_data, low_data, high_data, close_data,
         #
@@ -408,8 +403,8 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         # # take_profit_bool=True,
         # take_profit_points=300,
         # # #
-        # # stoploss_bool=True,
-        # stoploss_points=-600,
+        # # stop_loss_bool=True,
+        # stop_loss_points=-600,
         # #
         # # ##############################################
         # # ####################################
@@ -434,8 +429,8 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         # # take_profit_bool=True,
         # take_profit_points=680,
         # # #
-        # # stoploss_bool=True,
-        # stoploss_points=-380,
+        # # stop_loss_bool=True,
+        # stop_loss_points=-380,
         # #
         # # ##############################################
         # # ####################################
@@ -460,8 +455,8 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         # # take_profit_bool=True,
         # take_profit_points=580,
         # # #
-        # # stoploss_bool=True,
-        # stoploss_points=-380,
+        # # stop_loss_bool=True,
+        # stop_loss_points=-380,
         # #
         # # ##############################################
         # ##############################################
@@ -486,8 +481,8 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         # take_profit_bool=take_profit_bool,
         take_profit_points=take_profit_points,
         # #
-        # stoploss_bool=stoploss_bool,
-        stoploss_points=stoploss_points,
+        # stop_loss_bool=stop_loss_bool,
+        stop_loss_points=stop_loss_points,
         # ##############################################
     )
 
@@ -512,9 +507,9 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         take_profit_points=Master_Indicator.take_profit_points,
         take_profit_point_parameters=take_profit_points,
         #
-        stoploss_bool=True,  # Master_Indicator.stoploss_bool,
-        stoploss_points=Master_Indicator.stoploss_points,
-        stoploss_points_parameters=stoploss_points,
+        stop_loss_bool=True,  # Master_Indicator.stop_loss_bool,
+        stop_loss_points=Master_Indicator.stop_loss_points,
+        stop_loss_points_parameters=stop_loss_points,
     )
 
     # strategy_specific_kwargs = dict()

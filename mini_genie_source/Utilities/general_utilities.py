@@ -144,10 +144,14 @@ def create_dir(directories):
             logger.info(f'Found {directories}')
 
 
-
-
-
 def clean_params_record(a):
     indexes_to_keep = np.where(a["trial_id"] != 0)  #
     indexes_to_keep = list(np.insert(indexes_to_keep, 0, 0))  #
     return np.take(a, indexes_to_keep)
+
+
+def indexes_where_eq_1d(array, value):
+    if not type(array).__module__ == np.__name__:
+        array = np.array(array)
+    #
+    return np.where(array == value)[0]

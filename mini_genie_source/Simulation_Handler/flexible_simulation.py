@@ -45,8 +45,8 @@ chunked = dict(
             flex_array_gl_slicer,  # tick_size
             flex_array_gl_slicer,  # take_profit_bool
             flex_array_gl_slicer,  # take_profit_points
-            flex_array_gl_slicer,  # stoploss_bool
-            flex_array_gl_slicer,  # stoploss_points
+            flex_array_gl_slicer,  # stop_loss_bool
+            flex_array_gl_slicer,  # stop_loss_points
             flex_array_gl_slicer,  # type_percent
             flex_array_gl_slicer,  # breakeven_1_trigger_bool
             flex_array_gl_slicer,  # breakeven_1_trigger_points
@@ -88,8 +88,8 @@ open_order_tracker_dtype = np.dtype([
     ('short_take_profit_price', 'f8'),
 
     # Used to keep track of position where the stop-loss condition would hit for a give position direction
-    ('long_stoploss_price', 'f8'),
-    ('short_stoploss_price', 'f8'),
+    ('long_stop_loss_price', 'f8'),
+    ('short_stop_loss_price', 'f8'),
 
     # Used to keep track of position where the break even condition 1 would hit for a give position direction and
     # thus changing the stop-loss price
@@ -138,7 +138,7 @@ def pre_sim_func_nb(c):
         open_order_tracker['long_open_order_price'][i] = np.nan
         open_order_tracker['long_open_order_size'][i] = np.nan
         open_order_tracker['long_take_profit_price'][i] = np.nan
-        open_order_tracker['long_stoploss_price'][i] = np.nan
+        open_order_tracker['long_stop_loss_price'][i] = np.nan
         open_order_tracker['long_break_even_trigger_1_price'][i] = np.nan
         open_order_tracker['long_break_even_trigger_2_price'][i] = np.nan
 
@@ -146,7 +146,7 @@ def pre_sim_func_nb(c):
         open_order_tracker['short_open_order_price'][i] = np.nan
         open_order_tracker['short_open_order_size'][i] = np.nan
         open_order_tracker['short_take_profit_price'][i] = np.nan
-        open_order_tracker['short_stoploss_price'][i] = np.nan
+        open_order_tracker['short_stop_loss_price'][i] = np.nan
         open_order_tracker['short_break_even_trigger_1_price'][i] = np.nan
         open_order_tracker['short_break_even_trigger_2_price'][i] = np.nan
         # Since entry_and_exit_police has same shape as c.target_shape it requires another iteration
@@ -201,7 +201,7 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
     long_open_order_price = open_order_tracker['long_open_order_price'][c.from_col]
     long_open_order_size = open_order_tracker['long_open_order_size'][c.from_col]
     long_take_profit_price = open_order_tracker['long_take_profit_price'][c.from_col]
-    long_stoploss_price = open_order_tracker['long_stoploss_price'][c.from_col]
+    long_stop_loss_price = open_order_tracker['long_stop_loss_price'][c.from_col]
     long_break_even_trigger_1_price = open_order_tracker['long_break_even_trigger_1_price'][c.from_col]
     long_break_even_trigger_2_price = open_order_tracker['long_break_even_trigger_2_price'][c.from_col]
 
@@ -212,7 +212,7 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
     short_open_order_price = open_order_tracker['short_open_order_price'][c.from_col]
     short_open_order_size = open_order_tracker['short_open_order_size'][c.from_col]
     short_take_profit_price = open_order_tracker['short_take_profit_price'][c.from_col]
-    short_stoploss_price = open_order_tracker['short_stoploss_price'][c.from_col]
+    short_stop_loss_price = open_order_tracker['short_stop_loss_price'][c.from_col]
     short_break_even_trigger_1_price = open_order_tracker['short_break_even_trigger_1_price'][c.from_col]
     short_break_even_trigger_2_price = open_order_tracker['short_break_even_trigger_2_price'][c.from_col]
 
@@ -228,24 +228,24 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
 
     '''Check If Break Even Condition has Triggered (if so, adjust stop loss)'''
     if high_price_now >= long_break_even_trigger_1_price and not np.isnan(long_open_order_size):
-        # long_break_even_trigger_1_price and a long position is opened then redefine stoploss
-        long_stoploss_price = open_order_tracker['long_stoploss_price'][c.from_col] = long_open_order_price * (
+        # long_break_even_trigger_1_price and a long position is opened then redefine stop_loss
+        long_stop_loss_price = open_order_tracker['long_stop_loss_price'][c.from_col] = long_open_order_price * (
                 1 + break_even_dist_1_now) if type_percent \
             else long_open_order_price + (break_even_dist_1_now * tick_size_now)
     if high_price_now >= long_break_even_trigger_2_price and not np.isnan(long_open_order_size):
-        # long_break_even_trigger_2_price and a long position is opened then redefine stoploss
-        long_stoploss_price = open_order_tracker['long_stoploss_price'][c.from_col] = long_open_order_price * (
+        # long_break_even_trigger_2_price and a long position is opened then redefine stop_loss
+        long_stop_loss_price = open_order_tracker['long_stop_loss_price'][c.from_col] = long_open_order_price * (
                 1 + break_even_dist_2_now) if type_percent \
             else long_open_order_price + (break_even_dist_2_now * tick_size_now)
 
     if low_price_now <= short_break_even_trigger_1_price and not np.isnan(short_open_order_size):
-        # short_break_even_trigger_1_price and a short position is opened then redefine stoploss
-        short_stoploss_price = open_order_tracker['short_stoploss_price'][c.from_col] = short_open_order_price * (
+        # short_break_even_trigger_1_price and a short position is opened then redefine stop_loss
+        short_stop_loss_price = open_order_tracker['short_stop_loss_price'][c.from_col] = short_open_order_price * (
                 1 - break_even_dist_2_now) if type_percent \
             else short_open_order_price - (break_even_dist_1_now * tick_size_now)
     if low_price_now <= short_break_even_trigger_2_price and not np.isnan(short_open_order_size):
-        # short_break_even_trigger_2_price and a short position is opened then redefine stoploss
-        short_stoploss_price = open_order_tracker['short_stoploss_price'][c.from_col] = short_open_order_price * (
+        # short_break_even_trigger_2_price and a short position is opened then redefine stop_loss
+        short_stop_loss_price = open_order_tracker['short_stop_loss_price'][c.from_col] = short_open_order_price * (
                 1 - break_even_dist_2_now) if type_percent \
             else short_open_order_price - (break_even_dist_2_now * tick_size_now)
 
@@ -261,19 +261,19 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
         short_entries_now = True
         short_exits_now = False
 
-    # print("Outside", low_price_now, high_price_now, close_price_now, long_stoploss_price, long_take_profit_price)
+    # print("Outside", low_price_now, high_price_now, close_price_now, long_stop_loss_price, long_take_profit_price)
     '''Determine whether any type B exit conditions have been met'''
     # if exit trigger and nothing preventing it and there is a position opened in the other direction then prevent
     # entry and force exit in other direction, change entry now to false and exit now to true
-    if (high_price_now >= long_take_profit_price or low_price_now <= long_stoploss_price) \
+    if (high_price_now >= long_take_profit_price or low_price_now <= long_stop_loss_price) \
             and not entry_and_exit_police['long_prevent_exit'][c.i][c.from_col]:
         long_entries_now = False
         long_exits_now = True
         entry_and_exit_police['long_prevent_entry'][c.i][c.from_col] = True
         entry_and_exit_police['long_force_exit'][c.i][c.from_col] = True
-        # print("Long", low_price_now, high_price_now, close_price_now, long_stoploss_price, long_take_profit_price)
+        # print("Long", low_price_now, high_price_now, close_price_now, long_stop_loss_price, long_take_profit_price)
 
-    if (low_price_now <= short_take_profit_price or high_price_now >= short_stoploss_price) \
+    if (low_price_now <= short_take_profit_price or high_price_now >= short_stop_loss_price) \
             and not entry_and_exit_police['short_prevent_exit'][c.i][c.from_col]:
         short_entries_now = False
         short_exits_now = True
@@ -439,15 +439,15 @@ def post_order_func_nb(c, open_order_tracker, entry_and_exit_police,
                        breakeven_1_trigger_bool, breakeven_1_trigger_points,
                        breakeven_2_trigger_bool, breakeven_2_trigger_points,
                        take_profit_bool, take_profit_points,
-                       stoploss_bool, stoploss_points):
+                       stop_loss_bool, stop_loss_points):
     """Post Order Function"""
 
     '''User Settings'''
     tick_size_now = nb.flex_select_auto_nb(tick_size, c.i, c.from_col)
     take_profit_bool_now = nb.flex_select_auto_nb(take_profit_bool, c.i, c.from_col)
     take_profit_trigger_now = nb.flex_select_auto_nb(take_profit_points, c.i, c.from_col)
-    stoploss_bool_now = nb.flex_select_auto_nb(stoploss_bool, c.i, c.from_col)
-    stoploss_trigger_now = nb.flex_select_auto_nb(stoploss_points, c.i, c.from_col)
+    stop_loss_bool_now = nb.flex_select_auto_nb(stop_loss_bool, c.i, c.from_col)
+    stop_loss_trigger_now = nb.flex_select_auto_nb(stop_loss_points, c.i, c.from_col)
     breakeven_1_trigger_bool_now = nb.flex_select_auto_nb(breakeven_1_trigger_bool, c.i, c.from_col)
     break_even_trigger_1_now = nb.flex_select_auto_nb(breakeven_1_trigger_points, c.i, c.from_col)
     breakeven_2_trigger_bool_now = nb.flex_select_auto_nb(breakeven_2_trigger_bool, c.i, c.from_col)
@@ -474,10 +474,10 @@ def post_order_func_nb(c, open_order_tracker, entry_and_exit_police,
                     else (take_profit_trigger_now * tick_size_now) + long_open_order_price
 
             # Set stop loss condition as a percentage of order price or set amount
-            if stoploss_bool_now:
-                open_order_tracker['long_stoploss_price'][c.from_col] = (1 + (
-                    stoploss_trigger_now)) * long_open_order_price if typepercent \
-                    else (stoploss_trigger_now * tick_size_now) + long_open_order_price
+            if stop_loss_bool_now:
+                open_order_tracker['long_stop_loss_price'][c.from_col] = (1 + (
+                    stop_loss_trigger_now)) * long_open_order_price if typepercent \
+                    else (stop_loss_trigger_now * tick_size_now) + long_open_order_price
 
             # Set break even point 1 condition as a percentage of order price or set amount
             if breakeven_1_trigger_bool_now:
@@ -492,11 +492,11 @@ def post_order_func_nb(c, open_order_tracker, entry_and_exit_police,
                     else (break_even_trigger_2_now * tick_size_now) + long_open_order_price
 
         elif direction_now == 0 and np.isnan(long_open_order_size) and c.order_result.side == OrderSide.Sell:
-            # Remove open_oder_price and open_order_direction as well as take_profit, stoploss, break even conditions
+            # Remove open_oder_price and open_order_direction as well as take_profit, stop_loss, break even conditions
             open_order_tracker['long_open_order_price'][c.from_col] = \
                 open_order_tracker['long_open_order_size'][c.from_col] = \
                 open_order_tracker['long_take_profit_price'][c.from_col] = \
-                open_order_tracker['long_stoploss_price'][c.from_col] = \
+                open_order_tracker['long_stop_loss_price'][c.from_col] = \
                 open_order_tracker['long_break_even_trigger_1_price'][c.from_col] = \
                 open_order_tracker['long_break_even_trigger_2_price'][c.from_col] = np.nan
 
@@ -513,10 +513,10 @@ def post_order_func_nb(c, open_order_tracker, entry_and_exit_police,
                     else -(take_profit_trigger_now * tick_size_now) + open_order_price
 
             # Set stop loss condition as a percentage of order price or set amount
-            if stoploss_bool_now:
-                open_order_tracker['short_stoploss_price'][c.from_col] = (1 - (
-                    stoploss_trigger_now)) * open_order_price if typepercent \
-                    else -(stoploss_trigger_now * tick_size_now) + open_order_price
+            if stop_loss_bool_now:
+                open_order_tracker['short_stop_loss_price'][c.from_col] = (1 - (
+                    stop_loss_trigger_now)) * open_order_price if typepercent \
+                    else -(stop_loss_trigger_now * tick_size_now) + open_order_price
 
             # Set break even point 1 condition as a percentage of order price or set amount
             if breakeven_1_trigger_bool_now:
@@ -532,11 +532,11 @@ def post_order_func_nb(c, open_order_tracker, entry_and_exit_police,
 
         elif direction_now == 1 and np.isnan(short_open_order_size) and c.order_result.side == OrderSide.Buy:
             '''Position Exited'''
-            # Remove open_oder_price and open_order_direction as well as take_profit, stoploss, break even conditions
+            # Remove open_oder_price and open_order_direction as well as take_profit, stop_loss, break even conditions
             open_order_tracker['short_open_order_price'][c.from_col] = \
                 open_order_tracker['short_open_order_size'][c.from_col] = \
                 open_order_tracker['short_take_profit_price'][c.from_col] = \
-                open_order_tracker['short_stoploss_price'][c.from_col] = \
+                open_order_tracker['short_stop_loss_price'][c.from_col] = \
                 open_order_tracker['short_break_even_trigger_1_price'][c.from_col] = \
                 open_order_tracker['short_break_even_trigger_2_price'][c.from_col] = np.nan
 
@@ -580,7 +580,7 @@ def Flexible_Simulation_Backtest(runtime_settings, open_data, low_data, high_dat
                          vbt.Rep('breakeven_2_trigger_points'),
 
                          vbt.Rep('take_profit_bool'), vbt.Rep('take_profit_points'),
-                         vbt.Rep('stoploss_bool'), vbt.Rep('stoploss_points'),),
+                         vbt.Rep('stop_loss_bool'), vbt.Rep('stop_loss_points'),),
         broadcast_named_args=dict(  # broadcast against each other
             #
             long_entries=long_entries,
@@ -615,8 +615,8 @@ def Flexible_Simulation_Backtest(runtime_settings, open_data, low_data, high_dat
             take_profit_bool=strategy_specific_kwargs['take_profit_bool'],
             take_profit_points=strategy_specific_kwargs['take_profit_points'],
             #
-            stoploss_bool=strategy_specific_kwargs['stoploss_bool'],
-            stoploss_points=-abs(strategy_specific_kwargs['stoploss_points']),
+            stop_loss_bool=strategy_specific_kwargs['stop_loss_bool'],
+            stop_loss_points=-abs(strategy_specific_kwargs['stop_loss_points']),
 
         ),
         flexible=True,
@@ -639,8 +639,8 @@ def Flexible_Simulation_Backtest(runtime_settings, open_data, low_data, high_dat
     number_of_assets = len(close_data.keys())
     extra_info = np.empty(number_of_parameter_comb, dtype=extra_info_dtype)
     extra_info['risk_reward_ratio'] = np.divide(strategy_specific_kwargs['take_profit_point_parameters'],
-                                                abs(strategy_specific_kwargs['stoploss_points_parameters'])) if \
-        strategy_specific_kwargs['take_profit_bool'] and strategy_specific_kwargs['stoploss_bool'] else np.zeros(
+                                                abs(strategy_specific_kwargs['stop_loss_points_parameters'])) if \
+        strategy_specific_kwargs['take_profit_bool'] and strategy_specific_kwargs['stop_loss_bool'] else np.zeros(
         shape=np.array(strategy_specific_kwargs['take_profit_point_parameters']).shape)
     extra_info['init_cash_div_order_size'] = [np.divide(
         np.multiply(runtime_settings['Portfolio_Settings']['init_cash'], number_of_assets),
@@ -648,11 +648,11 @@ def Flexible_Simulation_Backtest(runtime_settings, open_data, low_data, high_dat
     # """'''''''''''''''''''''''''''''''''''''''''''''''''''''''''"""
     # extra_info = np.empty(number_of_parameter_comb * number_of_assets, dtype=extra_info_dtype)
     # take_profit_point_parameters = [680, 480]
-    # stoploss_points_parameters = [-380, -280]
+    # stop_loss_points_parameters = [-380, -280]
     # from genie_trader.utility_modules.Utils import slow_add_flatten_lists, append_flatten_lists
     #
     # extra_info['risk_reward_ratio'] = append_flatten_lists([np.divide(take_profit_point_parameters,
-    #                                                                   stoploss_points_parameters)] * number_of_assets)
+    #                                                                   stop_loss_points_parameters)] * number_of_assets)
     # extra_info['init_cash_div_order_size'] = append_flatten_lists(
     #     [[np.divide(runtime_settings['Portfolio_Settings']['init_cash'],
     #                 runtime_settings['Portfolio_Settings'][
@@ -727,8 +727,8 @@ def Flexible_Simulation_Optimization(runtime_settings,
     #     # 'b': [False, False, False, True, False, False, False, True]
     # })
     # #
-    # strategy_specific_kwargs['stoploss_bool'] = True
-    # strategy_specific_kwargs['stoploss_points'] = pd.DataFrame({
+    # strategy_specific_kwargs['stop_loss_bool'] = True
+    # strategy_specific_kwargs['stop_loss_points'] = pd.DataFrame({
     #     #       0     1      2      3      4      5      6      7
     #     'a': [-1, -1, -1, -1, -1, -1, -1, -1],
     #     # 'b': [False, False, False, True, False, False, False, True]
@@ -764,7 +764,7 @@ def Flexible_Simulation_Optimization(runtime_settings,
                          vbt.Rep('breakeven_2_trigger_points'),
 
                          vbt.Rep('take_profit_bool'), vbt.Rep('take_profit_points'),
-                         vbt.Rep('stoploss_bool'), vbt.Rep('stoploss_points'),),
+                         vbt.Rep('stop_loss_bool'), vbt.Rep('stop_loss_points'),),
         broadcast_named_args=dict(  # broadcast against each other
             long_entries=long_entries,
             long_exits=long_exits,
@@ -798,8 +798,8 @@ def Flexible_Simulation_Optimization(runtime_settings,
             take_profit_bool=strategy_specific_kwargs["take_profit_bool"],
             take_profit_points=strategy_specific_kwargs["take_profit_points"],
             #
-            stoploss_bool=strategy_specific_kwargs["stoploss_bool"],
-            stoploss_points=-abs(strategy_specific_kwargs["stoploss_points"]),
+            stop_loss_bool=strategy_specific_kwargs["stop_loss_bool"],
+            stop_loss_points=-abs(strategy_specific_kwargs["stop_loss_points"]),
 
         ),
         flexible=True,
@@ -823,8 +823,8 @@ def Flexible_Simulation_Optimization(runtime_settings,
     extra_info = np.empty(number_of_parameter_comb, dtype=extra_info_dtype)
 
     extra_info["risk_reward_ratio"] = np.divide(strategy_specific_kwargs["take_profit_point_parameters"],
-                                                abs(strategy_specific_kwargs["stoploss_points_parameters"])) if \
-        strategy_specific_kwargs["take_profit_bool"] and strategy_specific_kwargs["stoploss_bool"] else np.zeros(
+                                                abs(strategy_specific_kwargs["stop_loss_points_parameters"])) if \
+        strategy_specific_kwargs["take_profit_bool"] and strategy_specific_kwargs["stop_loss_bool"] else np.zeros(
         shape=np.array(strategy_specific_kwargs["take_profit_point_parameters"]).shape)
     extra_info["init_cash_div_order_size"] = [np.divide(
         np.multiply(runtime_settings["Portfolio_Settings.init_cash"], number_of_assets),

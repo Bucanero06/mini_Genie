@@ -144,7 +144,7 @@ Run_Time_Settings = dict(
         init_cash=1_000_000,
         size_type='cash',  # 'shares',  # cash or shares
         size=25_000,  # cash, else set size type to shares for share amount
-        type_percent=False,  # if true then take_profit and stoploss are given in percentages, else cash amount
+        type_percent=False,  # if true then take_profit and stop_loss are given in percentages, else cash amount
 
     ),
     Strategy_Settings=dict(
@@ -161,10 +161,10 @@ Run_Time_Settings = dict(
             ema_2_windows=dict(type='window', lower_bound=20, upper_bound=60, min_step=1),
             #
             # take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=1000, min_step=1),
-            # stoploss_points=dict(type='stop_loss', lower_bound=1, upper_bound=1000, min_step=1),
+            # stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=1000, min_step=1),
             #
             take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=1000, min_step=1),
-            stoploss_points=dict(type='stop_loss', lower_bound=1, upper_bound=1000, min_step=1),
+            stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=1000, min_step=1),
 
         ),
         # strategy_user_picked_params
@@ -190,7 +190,7 @@ Run_Time_Settings = dict(
                 ema_2_windows=dict(type='window', values=[28]),
                 #
                 take_profit_points=dict(type='take_profit', values=[909]),
-                stoploss_points=dict(type='stop_loss', values=[556]),
+                stop_loss_points=dict(type='stop_loss', values=[556]),
             )
         ),
     ),
