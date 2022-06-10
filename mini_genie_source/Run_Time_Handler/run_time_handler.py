@@ -51,8 +51,11 @@ class run_time_handler:
         self.parser = parser
         self.parser.set_defaults(func=run_function)
         self.args = self.parser.parse_args()
-        self.run_time_module_path, self.run_time_dictionary_name = self.args.run_time_dictionary_path.rsplit('.',
-                                                                                                             1) if self.args.run_time_dictionary_path else False
+
+        logger.info(self.args.run_time_dictionary_path)
+
+        if self.args.run_time_dictionary_path:
+            self.run_time_module_path, self.run_time_dictionary_name = self.args.run_time_dictionary_path.rsplit('.', 1)
         #
         if self.args.create_example_file:
             self.create_example()
