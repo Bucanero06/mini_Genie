@@ -42,7 +42,7 @@ class run_time_handler:
                             dest="run_time_dictionary_path", action='store',
                             # default=False
                             # default='debugging_config.py.Run_Time_Settings'
-                            default='rlgl_debug.py.Run_Time_Settings'
+                            # default='rlgl_debug.py.Run_Time_Settings'
                             )
         parser.add_argument("--example",
                             help="Creates example Run-Time-Parameters (a.k.a settings) file in current directory",
