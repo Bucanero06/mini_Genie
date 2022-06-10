@@ -40,7 +40,7 @@ class run_time_handler:
         parser.add_argument("-c",
                             help="Point to Run-Time-Parameters (a.k.a settings) dictionary path",
                             dest="run_time_dictionary_path", action='store',
-                            # default=False
+                            default=False
                             # default='debugging_config.py.Run_Time_Settings'
                             # default='rlgl_debug.py.Run_Time_Settings'
                             )
