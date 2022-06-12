@@ -186,6 +186,7 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
     fees_now = nb.flex_select_auto_nb(fees, c.i, c.from_col, c.flex_2d)
     slippage_now = nb.flex_select_auto_nb(slippage, c.i, c.from_col, c.flex_2d)
     tick_size_now = nb.flex_select_auto_nb(tick_size, c.i, c.from_col, c.flex_2d)
+
     #
     # allow multiple trades in the same direction to aggregate, otherwise only the first counts
     allow_multiple_trade_from_entries_now = nb.flex_select_auto_nb(allow_multiple_trade_from_entries, c.i, c.from_col,
@@ -444,6 +445,7 @@ def post_order_func_nb(c, open_order_tracker, entry_and_exit_police,
 
     '''User Settings'''
     tick_size_now = nb.flex_select_auto_nb(tick_size, c.i, c.from_col)
+
     take_profit_bool_now = nb.flex_select_auto_nb(take_profit_bool, c.i, c.from_col)
     take_profit_trigger_now = nb.flex_select_auto_nb(take_profit_points, c.i, c.from_col)
     stop_loss_bool_now = nb.flex_select_auto_nb(stop_loss_bool, c.i, c.from_col)
@@ -541,199 +543,10 @@ def post_order_func_nb(c, open_order_tracker, entry_and_exit_police,
                 open_order_tracker['short_break_even_trigger_2_price'][c.from_col] = np.nan
 
 
-def Flexible_Simulation_Backtest(runtime_settings, open_data, low_data, high_data, close_data, parameter_data):
-    '''What do I do'''
-    '''Prepare entries and exits'''
-    logger.info('Preparing entries and exits')
-    Start_Timer = perf_counter()
-    long_entries, long_exits, short_entries, short_exits, strategy_specific_kwargs = \
-        runtime_settings["Strategy_Settings"]["Strategy_Name"](open_data, low_data, high_data, close_data,
-                                                               parameter_data)
-    logger.info(f'Time to Prepare Entries and Exits Signals {perf_counter() - Start_Timer}')
-
-    '''Run Simulation'''
-    Start_Timer = perf_counter()
-    pf = vbt.Portfolio.from_order_func(
-        close_data,
-        flex_order_func_nb,
-        vbt.Rep('long_entries'), vbt.Rep('long_exits'), vbt.Rep('short_entries'), vbt.Rep('short_exits'),
-        vbt.Rep('order_size'),
-        vbt.Rep('size_type'), vbt.Rep('fees'), vbt.Rep('slippage'), vbt.Rep('tick_size'), vbt.Rep('type_percent'),
-        vbt.Rep('breakeven_1_distance_points'),
-        vbt.Rep('breakeven_2_distance_points'),
-        #
-        vbt.Rep('long_progressive_condition'), vbt.Rep('short_progressive_condition'),
-        #
-        vbt.Rep('progressive_bool'),
-        vbt.Rep('allow_multiple_trade_from_entries'),
-        vbt.Rep('exit_on_opposite_direction_entry'),
-        high=high_data,
-        low=low_data,
-        pre_sim_func_nb=pre_sim_func_nb,
-        post_order_func_nb=post_order_func_nb,
-        post_order_args=(vbt.Rep('tick_size'),
-                         vbt.Rep('type_percent'),
-                         vbt.Rep('breakeven_1_trigger_bool'),
-                         vbt.Rep('breakeven_1_trigger_points'),
-
-                         vbt.Rep('breakeven_2_trigger_bool'),
-                         vbt.Rep('breakeven_2_trigger_points'),
-
-                         vbt.Rep('take_profit_bool'), vbt.Rep('take_profit_points'),
-                         vbt.Rep('stop_loss_bool'), vbt.Rep('stop_loss_points'),),
-        broadcast_named_args=dict(  # broadcast against each other
-            #
-            long_entries=long_entries,
-            long_exits=long_exits,
-            short_entries=short_entries,
-            short_exits=short_exits,
-
-            order_size=runtime_settings["Portfolio_Settings"]['size'],
-            size_type=1 if runtime_settings["Portfolio_Settings"]['size_type'] == 'cash' else 0,
-            fees=runtime_settings["Portfolio_Settings"]['trading_fees'],
-            slippage=runtime_settings["Portfolio_Settings"]['slippage'],
-            tick_size=runtime_settings["Data_Settings"]['tick_size'],
-            type_percent=runtime_settings["Portfolio_Settings"]['type_percent'],
-
-            # strategy Specific Kwargs
-            long_progressive_condition=strategy_specific_kwargs['long_progressive_condition'],
-            short_progressive_condition=strategy_specific_kwargs['short_progressive_condition'],
-            #
-            progressive_bool=strategy_specific_kwargs['progressive_bool'],
-            allow_multiple_trade_from_entries=strategy_specific_kwargs['allow_multiple_trade_from_entries'],
-            exit_on_opposite_direction_entry=strategy_specific_kwargs['exit_on_opposite_direction_entry'],
-
-            #
-            breakeven_1_trigger_bool=strategy_specific_kwargs['breakeven_1_trigger_bool'],
-            breakeven_1_trigger_points=strategy_specific_kwargs['breakeven_1_trigger_points'],
-            breakeven_1_distance_points=strategy_specific_kwargs['breakeven_1_distance_points'],
-            #
-            breakeven_2_trigger_bool=strategy_specific_kwargs['breakeven_2_trigger_bool'],
-            breakeven_2_trigger_points=strategy_specific_kwargs['breakeven_2_trigger_points'],
-            breakeven_2_distance_points=strategy_specific_kwargs['breakeven_2_distance_points'],
-            #
-            take_profit_bool=strategy_specific_kwargs['take_profit_bool'],
-            take_profit_points=strategy_specific_kwargs['take_profit_points'],
-            #
-            stop_loss_bool=strategy_specific_kwargs['stop_loss_bool'],
-            stop_loss_points=-abs(strategy_specific_kwargs['stop_loss_points']),
-
-        ),
-        flexible=True,
-        max_orders=close_data.shape[0] * 2,  # do not change
-        freq=runtime_settings["Data_Settings"]['timeframe'],
-        init_cash=runtime_settings["Portfolio_Settings"]['init_cash'],
-        # cash_sharing=runtime_settings["Portfolio_Settings"]['cash_sharing'],
-        # group_by=runtime_settings["Portfolio_Settings"]['group_by'],
-        chunked=chunked,
-    )
-    logger.info(f'Time to Run Portfolio Simulation {perf_counter() - Start_Timer}')
-
-    extra_info_dtype = np.dtype([
-        ('risk_reward_ratio', 'f8'),  # metric for loss function
-        ('init_cash_div_order_size', 'f8'),  # needed to compute risk adjusted returns
-        ('risk_adjusted_return', 'f8'),  # metric for loss function
-    ])
-
-    number_of_parameter_comb = parameter_data.shape[0]
-    number_of_assets = len(close_data.keys())
-    extra_info = np.empty(number_of_parameter_comb, dtype=extra_info_dtype)
-    extra_info['risk_reward_ratio'] = np.divide(strategy_specific_kwargs['take_profit_point_parameters'],
-                                                abs(strategy_specific_kwargs['stop_loss_points_parameters'])) if \
-        strategy_specific_kwargs['take_profit_bool'] and strategy_specific_kwargs['stop_loss_bool'] else np.zeros(
-        shape=np.array(strategy_specific_kwargs['take_profit_point_parameters']).shape)
-    extra_info['init_cash_div_order_size'] = [np.divide(
-        np.multiply(runtime_settings['Portfolio_Settings']['init_cash'], number_of_assets),
-        runtime_settings['Portfolio_Settings']['size'])] * number_of_parameter_comb
-    # """'''''''''''''''''''''''''''''''''''''''''''''''''''''''''"""
-    # extra_info = np.empty(number_of_parameter_comb * number_of_assets, dtype=extra_info_dtype)
-    # take_profit_point_parameters = [680, 480]
-    # stop_loss_points_parameters = [-380, -280]
-    # from genie_trader.utility_modules.Utils import slow_add_flatten_lists, append_flatten_lists
-    #
-    # extra_info['risk_reward_ratio'] = append_flatten_lists([np.divide(take_profit_point_parameters,
-    #                                                                   stop_loss_points_parameters)] * number_of_assets)
-    # extra_info['init_cash_div_order_size'] = append_flatten_lists(
-    #     [[np.divide(runtime_settings['Portfolio_Settings']['init_cash'],
-    #                 runtime_settings['Portfolio_Settings'][
-    #                     'size'])] * number_of_parameter_comb] * number_of_assets)
-    # for i in extra_info:
-    #     print(
-    #         f"{i}\n"
-    #     )
-    # # exit()
-    # """'''''''''''''''''''''''''''''''''''''''''''''''''''''''''"""
-    # """'''''''''''''''''''''''''''''''''''''''''''''''''''''''''"""
-    #
-    # portfolio_combined = pf.stats(agg_func=None).replace(
-    #     [np.inf, -np.inf], np.nan, inplace=False)
-    # print(f'\n{portfolio_combined = }')  # For Debugging    # For Debugging    # For Debugging
-    #
-    portfolio_grouped = pf.stats(agg_func=None, group_by=runtime_settings["Portfolio_Settings"][
-        'group_by']).replace(
-        [np.inf, -np.inf], np.nan, inplace=False)
-    print(f'\n{portfolio_grouped = }')  # For Debugging    # For Debugging    # For Debugging
-    #
-    # """'''''''''''''''''''''''''''''''''''''''''''''''''''''''''"""
-    return pf, extra_info
-
-
 def Flexible_Simulation_Optimization(runtime_settings,
                                      open_data, low_data, high_data, close_data,
                                      long_entries, long_exits, short_entries, short_exits,
                                      strategy_specific_kwargs, number_of_parameter_comb):
-    # close_data = pd.DataFrame({
-    #     #     0  1  2  3  4  5  6  7
-    #     'a': [1, 2, 3, 4, 3, 4, 5, 1],
-    #     # 'b': [10, 11, 15, 12, 10, 5, 9, 9]
-    # })
-    # low_data = pd.DataFrame({
-    #     #     0  1  2  3  4  5  6  7
-    #     'a': [i - 1 for i in close_data['a'].to_numpy()],
-    #     # 'b': [10, 11, 15, 12, 10, 5, 9, 9]
-    # })
-    # high_data = pd.DataFrame({
-    #     #     0  1  2  3  4  5  6  7
-    #     'a': [i + 1 for i in close_data['a'].to_numpy()],
-    #     # 'b': [10, 11, 15, 12, 10, 5, 9, 9]
-    # })
-    #
-    # long_entries = pd.DataFrame({
-    #     #       0     1      2      3      4      5      6      7
-    #     'a': [True, False, False, False, True, False, False, False],
-    #     # 'b': [True, False, False, False, True, False, False, False]
-    # })
-    # long_exits = pd.DataFrame({
-    #     #       0     1      2      3      4      5      6      7
-    #     'a': [False, False, False, True, False, False, True, False],
-    #     # 'b': [False, False, False, True, False, False, False, True]
-    # })
-    # #
-    # short_entries = pd.DataFrame({
-    #     #       0     1      2      3      4      5      6      7
-    #     'a': [False, False, True, False, False, False, False, False],
-    #     # 'b': [True, False, False, False, True, False, False, False]
-    # })
-    # short_exits = pd.DataFrame({
-    #     #       0     1      2      3      4      5      6      7
-    #     'a': [False, False, False, False, False, True, False, False],
-    #     # 'b': [False, False, False, True, False, False, False, True]
-    # })
-    #
-    # strategy_specific_kwargs['take_profit_bool'] = True
-    # strategy_specific_kwargs['take_profit_points'] = pd.DataFrame({
-    #     #       0     1      2      3      4      5      6      7
-    #     'a': [1, 1, 1, 1, 1, 1, 1, 1],
-    #     # 'b': [False, False, False, True, False, False, False, True]
-    # })
-    # #
-    # strategy_specific_kwargs['stop_loss_bool'] = True
-    # strategy_specific_kwargs['stop_loss_points'] = pd.DataFrame({
-    #     #       0     1      2      3      4      5      6      7
-    #     'a': [-1, -1, -1, -1, -1, -1, -1, -1],
-    #     # 'b': [False, False, False, True, False, False, False, True]
-    # })
-
     """What do I do"""
     '''Run Simulation'''
     Start_Timer = perf_counter()
@@ -775,7 +588,7 @@ def Flexible_Simulation_Optimization(runtime_settings,
             size_type=1 if runtime_settings["Portfolio_Settings.size_type"] == 'cash' else 0,
             fees=runtime_settings["Portfolio_Settings.trading_fees"],
             slippage=runtime_settings["Portfolio_Settings.slippage"],
-            tick_size=runtime_settings["Data_Settings.tick_size"],
+            tick_size=runtime_settings["Data_Settings.tick_size"] * number_of_parameter_comb,
             type_percent=runtime_settings["Portfolio_Settings.type_percent"],
 
             # strategy Specific Kwargs

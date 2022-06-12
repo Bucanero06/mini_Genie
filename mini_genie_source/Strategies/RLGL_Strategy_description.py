@@ -140,9 +140,9 @@ T2_ema_timeframe     =     '4H'
 
     3. if( EnableBreakEven == true )			         #As the trade moves into profit, we move the original Stop Loss from -500 points to +200, then +300 points.
          if( 'Trade Points' > BreakEvenTrigger1 )
-            'Trade StopLoss' = BreakEvenDis1 # only move stoploss
+            'Trade StopLoss' = BreakEvenDis1 # only move stop_loss
          if( 'Trade Points' > BreakEvenTrigger2 )
-            'Trade StopLoss' = BreakEvenDis2 # only move stoploss
+            'Trade StopLoss' = BreakEvenDis2 # only move stop_loss
     4. if( EnableTrailing and EnableTrailing2 )		#Requires price data at point resolution, so ignore for now
            if( 'Trade Points' > BreakEvenDis2 )
                'Trail the StopLoss by TrailingStopDis'

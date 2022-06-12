@@ -7,13 +7,15 @@ Run_Time_Settings = dict(
         load_CSV_from_pickle=True,  # momentary
         data_files_dir='Datas',  # momentary
         data_files_names=[
-            # 'AUDUSD',  # momentary
-            # 'EURUSD',  # momentary
-            # 'GBPUSD',  # momentary
-            # 'NZDUSD',  # momentary
-            # 'USDCAD',  # momentary
-            # 'USDCHF',  # momentary
+            'AUDUSD',  # momentary
+            'EURUSD',  # momentary
+            'GBPUSD',  # momentary
+            'NZDUSD',  # momentary
+            'USDCAD',  # momentary
+            'USDCHF',  # momentary
             "DAX",  # momentary
+            "XAUUSD",  # momentary
+            "OILUSD",  # momentary
 
         ],  # momentary
 
@@ -22,16 +24,18 @@ Run_Time_Settings = dict(
         ffill=False,
         fill_dates=False,
         saved_data_file='SymbolData',
-        tick_size=0.01
+        # tick_size=0.01
+        tick_size=[0.00001, 0.00001, 0.00001, 0.00001, 0.00001, 0.00001,
+                   0.01, 0.01, 0.01]
         # tick_size=0.00001
     ),
 
     Simulation_Settings=dict(
-        study_name='rlgl_debugging',
+        study_name='rlgl_debug',
         optimization_period=dict(
-            start_date=datetime.datetime(month=9, day=1, year=2021),
-            # end_date=datetime.datetime(month=3, day=16, year=2022)
-            end_date=datetime.datetime(month=10, day=1, year=2021)
+            start_date=datetime.datetime(month=2, day=1, year=2022),
+            end_date=datetime.datetime(month=6, day=3, year=2022)
+            # end_date=datetime.datetime(month=10, day=1, year=2021)
         ),
         #
         timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # todo: logic missing,not used/needed
@@ -50,7 +54,7 @@ Run_Time_Settings = dict(
         # reset_withouts_those_with_negative_profits=False,  # todo: section of code missing
         # reset_withouts_any_ran_ones=False,  # todo: section of code missing
         #
-        batch_size=100,
+        batch_size=1000,
         save_every_nth_chunk=1,
         Initial_Search_Space=dict(
             # _extensions available -> csv and gzip
@@ -130,22 +134,22 @@ Run_Time_Settings = dict(
         # The order of parameter key_names should be honored across all files
         parameter_windows=dict(
             rsi_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']),
-            rsi_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
+            rsi_windows=dict(type='window', lower_bound=2, upper_bound=100, min_step=1),
             #
-            sma_on_rsi_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
-            sma_on_rsi_2_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
-            sma_on_rsi_3_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
+            sma_on_rsi_1_windows=dict(type='window', lower_bound=2, upper_bound=63, min_step=1),
+            sma_on_rsi_2_windows=dict(type='window', lower_bound=5, upper_bound=70, min_step=1),
+            sma_on_rsi_3_windows=dict(type='window', lower_bound=15, upper_bound=80, min_step=1),
             #
-            T1_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']),
-            T1_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
-            T1_ema_2_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
+            T1_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
+            T1_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=63, min_step=1),
+            T1_ema_2_windows=dict(type='window', lower_bound=15, upper_bound=80, min_step=1),
             #
             # T2_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']),
             # T2_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
             # T2_ema_2_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
             #
-            take_profit_points=dict(type='take_profit', lower_bound=2, upper_bound=1000, min_step=1),
-            stop_loss_points=dict(type='stop_loss', lower_bound=2, upper_bound=1000, min_step=1),
+            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=100000, min_step=1000),
+            stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=100000, min_step=1000),
         ),
         # strategy_user_picked_params
         strategy_user_picked_params=dict(
@@ -156,28 +160,28 @@ Run_Time_Settings = dict(
             #
             # Can Read Parameters from file instead if the path to it is provided
             # read_user_defined_param_file='backtest_result.csv',
-            read_user_defined_param_file='backtest_parameters.csv',  # todo: logic missing
+            read_user_defined_param_file=None,  # todo: logic missing
             #
             # Can use  -->  values = np.arrange(start,stop,step) or np.linespace(start,stop,#)
             # The order of parameter key_names should be honored across all files
             parameter_windows=dict(
-                rsi_timeframes=dict(type='timeframe', values=['5 min']),
-                rsi_windows=dict(type='window', values=[5]),
+                rsi_timeframes=dict(type='timeframe', values=['15 min', '15 min']),
+                rsi_windows=dict(type='window', values=[41, 30]),
                 #
-                sma_on_rsi_1_windows=dict(type='window', values=[5]),
-                sma_on_rsi_2_windows=dict(type='window', values=[5]),
-                sma_on_rsi_3_windows=dict(type='window', values=[5]),
+                sma_on_rsi_1_windows=dict(type='window', values=[32, 43]),
+                sma_on_rsi_2_windows=dict(type='window', values=[26, 26]),
+                sma_on_rsi_3_windows=dict(type='window', values=[15, 15]),
                 #
-                T1_ema_timeframes=dict(type='timeframe', values=['5 min']),
-                T1_ema_1_windows=dict(type='window', values=[5]),
-                T1_ema_2_windows=dict(type='window', values=[5]),
+                T1_ema_timeframes=dict(type='timeframe', values=['1 min', "5 min"]),
+                T1_ema_1_windows=dict(type='window', values=[2, 3]),
+                T1_ema_2_windows=dict(type='window', values=[15, 20]),
                 #
                 # T2_ema_timeframes=dict(type='timeframe', values=['5 min']),
                 # T2_ema_1_windows=dict(type='window', values=[5]),
                 # T2_ema_2_windows=dict(type='window', values=[5]),
                 #
-                take_profit_points=dict(type='take_profit', values=[909]),
-                stop_loss_points=dict(type='stop_loss', values=[556]),
+                take_profit_points=dict(type='take_profit', values=[86, 200]),
+                stop_loss_points=dict(type='stop_loss', values=[-43, 200]),
             )
         ),
     ),

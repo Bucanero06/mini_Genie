@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-from os import path
 
 from logger_tt import logger
 
@@ -40,9 +39,10 @@ class run_time_handler:
         parser.add_argument("-c",
                             help="Point to Run-Time-Parameters (a.k.a settings) dictionary path",
                             dest="run_time_dictionary_path", action='store',
-                            default=False
+                            # default=False
                             # default='debugging_config.py.Run_Time_Settings'
-                            # default='rlgl_debug.py.Run_Time_Settings'
+                            default='rlgl_config.py.Run_Time_Settings'
+                            # default='rlgl_debug_config.py.Run_Time_Settings'
                             )
         parser.add_argument("--example",
                             help="Creates example Run-Time-Parameters (a.k.a settings) file in current directory",
@@ -61,7 +61,7 @@ class run_time_handler:
             self.create_example()
             exit()
         #
-        elif self.args.run_time_dictionary_path and path.exists(self.run_time_module_path):
+        elif self.args.run_time_dictionary_path:
             # Check that a command has been passed
             if not any([vars(self.args)[i] for i in vars(self.args) if i not in ['func', 'run_time_dictionary_path']]):
                 logger.warning("No action requested, exiting ...")
@@ -119,11 +119,6 @@ class run_time_handler:
         run_time_settings = self.load_module_from_path(self.run_time_module_path,
                                                        object_name=self.run_time_dictionary_name)
         #
-        backtest_sim_path = run_time_settings["Portfolio_Settings"]["Simulator"]["backtesting"]
-        backtest_sim_module_path_module_path, backtest_sim_dictionary_name = backtest_sim_path.rsplit('.', 1)
-        backtest_sim = self.load_module_from_path(backtest_sim_module_path_module_path,
-                                                  object_name=backtest_sim_dictionary_name)
-        #
         optimization_sim_path = run_time_settings["Portfolio_Settings"]["Simulator"]["optimization"]
         optimization_sim_module_path, optimization_sim_dictionary_name = optimization_sim_path.rsplit('.', 1)
         optimization_sim = self.load_module_from_path(optimization_sim_module_path,
@@ -135,7 +130,6 @@ class run_time_handler:
                                                   object_name=strategy_sim_dictionary_name)
         #
         run_time_settings["Strategy_Settings"]["Strategy"] = strategy_sim
-        run_time_settings["Portfolio_Settings"]["Simulator"]["backtesting"] = backtest_sim
         run_time_settings["Portfolio_Settings"]["Simulator"]["optimization"] = optimization_sim
         #
         self.run_time_settings = run_time_settings

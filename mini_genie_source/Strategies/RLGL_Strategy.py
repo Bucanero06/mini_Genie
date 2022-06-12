@@ -209,9 +209,6 @@ def apply_function(open_data, low_data, high_data, close_data,
 
     gc.collect()
     return long_entries, long_exits, short_entries, short_exits, \
-           rsi_indicator, \
-           sma_on_rsi_1_indicator, sma_on_rsi_2_indicator, sma_on_rsi_3_indicator, \
-           T1_ema_1_indicator, T1_ema_2_indicator, \
            take_profit_points, stop_loss_points
 
     # T2_ema_1_indicator, T2_ema_2_indicator, \
@@ -253,10 +250,6 @@ def RLGL_Strategy(open_data, low_data, high_data, close_data, parameter_data, ra
                      'take_profit_points', 'stop_loss_points'],
         #
         output_names=['long_entries', 'long_exits', 'short_entries', 'short_exits',
-                      'rsi_indicator',
-                      'sma_on_rsi_1_indicator', 'sma_on_rsi_2_indicator', 'sma_on_rsi_3_indicator',
-                      'T1_ema_1_indicator', 'T1_ema_2_indicator',
-                      # 'T2_ema_1_indicator', 'T2_ema_2_indicator',
                       'take_profit_points', 'stop_loss_points']
     ).with_apply_func(
         apply_func=apply_function,
@@ -268,6 +261,8 @@ def RLGL_Strategy(open_data, low_data, high_data, close_data, parameter_data, ra
             init_kwargs={
                 'address': 'auto',
                 'num_cpus': ray_sim_n_cpus,
+                # 'memory': 100 * 10 ** 9,
+                # 'object_store_memory': 100 * 10 ** 9,
             },
             show_progress=True
         ),

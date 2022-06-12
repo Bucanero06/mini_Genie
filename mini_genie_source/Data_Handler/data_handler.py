@@ -64,7 +64,8 @@ class Data_Handler:
         #
 
         load_from_pickle = self.genie_object.runtime_settings['Data_Settings.load_CSV_from_pickle']
-        continuing_study = self.genie_object.runtime_settings["Simulation_Settings.Continue"]
+        continuing_study = self.genie_object.continuing
+
 
         if load_from_pickle and continuing_study:
             logger.warning("Loading data from pickle not reading from CSV")

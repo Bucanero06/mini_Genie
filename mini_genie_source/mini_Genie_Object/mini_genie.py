@@ -2,6 +2,7 @@
 import os.path
 import sys
 import warnings
+from os import path, remove
 from time import perf_counter
 
 import numpy as np
@@ -97,7 +98,9 @@ class mini_genie_trader:
         # Initial Actions
         #
         # Init Ray
-        ray.init(num_cpus=self.runtime_settings["RAY_SETTINGS.ray_init_num_cpus"])
+        ray.init(num_cpus=self.runtime_settings["RAY_SETTINGS.ray_init_num_cpus"],
+                 # object_store_memory=67 * 10 ** 9
+                 )
         # ray.init()
         #
         # Prepare directories and save file paths
@@ -106,6 +109,14 @@ class mini_genie_trader:
         if self.continuing and not self.user_pick:
             # Load precomputed params, values, and stats if continuing study
             self._load_initial_params_n_precomputed_metrics()
+
+        #   path_of_initial_params_record = self.path_of_initial_params_record
+        #         path_of_initial_metrics_record = self.path_of_initial_metrics_record
+        if not self.continuing:
+            if path.exists(self.path_of_initial_params_record):
+                remove(self.path_of_initial_params_record)
+            if path.exists(self.path_of_initial_metrics_record):
+                remove(self.path_of_initial_metrics_record)
 
     def _prepare_directory_paths_for_study(self):
         """
@@ -133,6 +144,10 @@ class mini_genie_trader:
         #
         user_defined_param_file = self.runtime_settings[
             "Strategy_Settings.strategy_user_picked_params.read_user_defined_param_file"]
+        #
+        from os import path
+        if not path.exists(study_dir_path):
+            self.continuing = False
         #
         create_dir(studies_directory)
         create_dir(study_dir_path)
@@ -563,6 +578,8 @@ class mini_genie_trader:
                 )
 
             self.parameter_data_dtype = np.dtype(parameters_record_dtype)
+
+            logger.info(self.parameters_lengths_dict)
             self.parameters_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
                                               dtype=self.parameter_data_dtype)
             #
@@ -699,7 +716,7 @@ class mini_genie_trader:
         #
         n_ratios = sorted(self.tp_sl_selection_space["n_ratios"])
         gamma_ratios = self.tp_sl_selection_space["gamma_ratios"]
-        tick_size = self.runtime_settings["Data_Settings.tick_size"]
+        tick_size = max(self.runtime_settings["Data_Settings.tick_size"])
         #
         tp_upper_bound, tp_lower_bound, tp_min_step = self.parameter_windows[self.tp_keyname[0]]["upper_bound"], \
                                                       self.parameter_windows[self.tp_keyname[0]]["lower_bound"], \
@@ -907,35 +924,39 @@ class mini_genie_trader:
         logger.info(f'Running on {len(self.asset_names)} asset{s}')
 
     @staticmethod
-    def _save_record_to_file(record, path_to_file, extension=None):
+    def _save_record_to_file(record, path_to_file, extension=None, write_mode='w'):
         if not extension:
             extension = os.path.splitext(path_to_file)[-1]
         import pandas as pd
         df = pd.DataFrame(record).set_index('trial_id')
-        df.to_csv(path_to_file) if extension == '.csv' else df.to_pickle(path_to_file)
+        if path.exists(path_to_file) and write_mode == 'a':
+            df.to_csv(path_to_file, mode=write_mode, header=False)
+        else:
+            df.to_csv(path_to_file) if extension == '.csv' else df.to_pickle(path_to_file)
         #
 
-    def _save_computed_params_metrics(self):
+    def _save_computed_params_metrics(self, new_indexes=None):
         """Add to previously created file (or new if it does not exist), in a memory conscious way, the trial number,
         parameter combination, and combination stats"""
 
         from Utilities.general_utilities import rm_field_from_record
         #
-        #  my_data.astype(','.join(['f4']*n))
-        # filled_metrics = delete_non_filled_elements(self.metrics_record)
-        filled_metrics = self.metrics_record[self.metrics_record["asset"] != '']
-        #
-        # filled_params = np.take(ray.get(self.parameters_record), filled_metrics["trial_id"])
-        filled_params = np.take(self.parameters_record, filled_metrics["trial_id"])
+        if new_indexes is None:
+            metrics_elements_to_save = self.metrics_record[self.metrics_record["asset"] != '']
+            logger.info(f'Trials completed: {len(metrics_elements_to_save)}')
+            #
+        else:
+            metrics_elements_to_save = np.take(self.metrics_record, new_indexes)
+            #
+        filled_params = np.take(self.parameters_record, metrics_elements_to_save["trial_id"])
         filled_params = rm_field_from_record(filled_params, 'trial_id')
         #
-        logger.info(f'Trials completed: {len(filled_metrics)}')
         #
         import numpy.lib.recfunctions as rfn
-        merged_array = rfn.merge_arrays([filled_params, filled_metrics], flatten=True, usemask=False)
+        merged_array = rfn.merge_arrays([filled_params, metrics_elements_to_save], flatten=True, usemask=False)
         #
         file_path = self.path_of_initial_metrics_record if not self.user_pick else self.file_name_of_backtest_results
-        self._save_record_to_file(merged_array, file_path)
+        self._save_record_to_file(merged_array, file_path, write_mode='a')
 
     def simulate(self):
         """
@@ -981,6 +1002,7 @@ class mini_genie_trader:
             # portfolio.replace(pd.NaT, pd.Timedelta(seconds=0), inplace=True)
             #
             # Fill metric record with new metric values
+            new_indexes = []
             for _index, param_record in enumerate(params_rec):
                 trial_id = param_record["trial_id"]
                 param_record = rm_field_from_record(param_record, 'trial_id')
@@ -989,8 +1011,10 @@ class mini_genie_trader:
                     param_tuple_ = tuple(param_record)
                     param_tuple_ = param_tuple_ + (asset,)
                     metrics_np = tuple(portfolio[:].loc[tuple(param_tuple_)])
-                    self.metrics_record[trial_id + (self.parameters_record_length * ass_index)] = (trial_id,
-                                                                                                   asset) + metrics_np
+                    # todo: Keep record of indexes just added and append those to file ...
+                    new_index = trial_id + (self.parameters_record_length * ass_index)
+                    new_indexes.append(new_index)
+                    self.metrics_record[new_index] = (trial_id, asset) + metrics_np
             logger.info(f'Time to Analyze Metrics {perf_counter() - tell_metrics_start_timer}')
             #
             # Concat and save the parameter and metric records to file every Nth epoch
@@ -998,7 +1022,7 @@ class mini_genie_trader:
                 if epoch_n_ % save_every_nth_chunk == 0:
                     logger.info(f"Saving epoch {epoch_n_}")
                     save_start_timer = perf_counter()
-                    self._save_computed_params_metrics()
+                    self._save_computed_params_metrics(new_indexes)
                     #
                     logger.info(f'Time to Save Records {perf_counter() - save_start_timer} during epoch {epoch_n_}')
             #
@@ -1150,6 +1174,7 @@ class mini_genie_trader:
             # portfolio.replace(pd.NaT, pd.Timedelta(seconds=0), inplace=True)
             #
             # Fill metric record with new metric values
+            new_indexes = []
             for _index, param_record in enumerate(params_rec):
                 trial_id = param_record["trial_id"]
                 param_record = rm_field_from_record(param_record, 'trial_id')
@@ -1158,8 +1183,10 @@ class mini_genie_trader:
                     param_tuple_ = tuple(param_record)
                     param_tuple_ = param_tuple_ + (asset,)
                     metrics_np = tuple(portfolio[:].loc[tuple(param_tuple_)])
-                    self.metrics_record[trial_id + (self.parameters_record_length * ass_index)] = (trial_id,
-                                                                                                   asset) + metrics_np
+                    # todo: Keep record of indexes just added and append those to file ...
+                    new_index = trial_id + (self.parameters_record_length * ass_index)
+                    new_indexes.append(new_index)
+                    self.metrics_record[new_index] = (trial_id, asset) + metrics_np
             logger.info(f'Time to Analyze Metrics {perf_counter() - tell_metrics_start_timer}')
             #
             # Concat and save the parameter and metric records to file every Nth epoch
@@ -1167,7 +1194,7 @@ class mini_genie_trader:
                 if epoch_n_ % save_every_nth_chunk == 0:
                     logger.info(f"Saving epoch {epoch_n_}")
                     save_start_timer = perf_counter()
-                    self._save_computed_params_metrics()
+                    self._save_computed_params_metrics(new_indexes)
                     #
                     logger.info(f'Time to Save Records {perf_counter() - save_start_timer} during epoch {epoch_n_}')
             #
