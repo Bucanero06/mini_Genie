@@ -32,7 +32,7 @@ Run_Time_Settings = dict(
     ),
 
     Simulation_Settings=dict(
-        study_name='rlgl_XAUUSD',
+        study_name='rlgl_example',
         optimization_period=dict(
             start_date=datetime.datetime(month=2, day=1, year=2022),
             end_date=datetime.datetime(month=6, day=3, year=2022)

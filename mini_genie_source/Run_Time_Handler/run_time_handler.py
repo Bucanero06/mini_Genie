@@ -34,7 +34,9 @@ class run_time_handler:
                                    dest="genie_pick",
                                    action='store_true', default=False)
         general_group.add_argument("-up", help="Simulate using solely the user picked space", dest="user_pick",
-                                   action='store_true', default=False)
+                                   action='store_true',
+                                   default=False)
+        # default=True)
         general_group.add_argument("-tsv",
                                    help="Convert csv to tsv previously computed metric files. File will vary based on "
                                         "whether user or genie pick option was used.",
@@ -43,6 +45,7 @@ class run_time_handler:
                                    help="Point to Run-Time-Parameters (a.k.a settings) dictionary path",
                                    dest="run_time_dictionary_path", action='store',
                                    default=False
+                                   # default="rlgl_debug_config.py.debug_settings"
                                    )
         general_group.add_argument("--example",
                                    help="Creates example Run-Time-Parameters (a.k.a settings) file in current "
@@ -81,6 +84,8 @@ class run_time_handler:
         else:
             logger.warning(
                 "Please pass an existing genie configuration file using -c or create one with defaults using --example")
+            parser.print_help()
+
             exit()
         #
 
@@ -92,22 +97,26 @@ class run_time_handler:
 
     @staticmethod
     def load_module_from_path(filename, object_name=None):
-        # import importlib.util
-        # import sys
-        # #
-        # logger.info(f"Loading Run_Time_Settings from file {filename}")
-        # module_name = path.basename(filename)
-        # #
-        # spec = importlib.util.spec_from_file_location(module_name, filename)
-        # foo = importlib.util.module_from_spec(spec)
-        # sys.modules[module_name] = foo
-        # spec.loader.exec_module(foo)
-        from importlib import import_module
 
         module_path = filename.rsplit('.', 1)[0]
         module = module_path.replace("/", ".")
 
-        mod = import_module(module)
+        # from importlib import import_module
+        # mod = import_module(module)
+
+        ###
+        import importlib.util
+        import sys
+        from os import path
+        #
+        logger.info(f"Loading Run_Time_Settings from file {filename}")
+        module_name = path.basename(module_path)
+        #
+        spec = importlib.util.spec_from_file_location(module_name, filename)
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = mod
+        spec.loader.exec_module(mod)
+        ###
 
         if object_name is not None:
             met = getattr(mod, object_name)

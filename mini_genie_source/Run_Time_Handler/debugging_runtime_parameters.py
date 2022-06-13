@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import datetime
 
-from Simulation_Handler.flexible_simulation import Flexible_Simulation_Optimization, Flexible_Simulation_Backtest
 from Strategies.Money_Maker_Strategy import MMT_Strategy
 
 Run_Time_Settings = dict(
@@ -126,7 +125,6 @@ Run_Time_Settings = dict(
     Portfolio_Settings=dict(
         # Simulation Settings
         Simulator=dict(
-            backtesting=Flexible_Simulation_Backtest,
             optimization=Flexible_Simulation_Optimization,
         ),
         #
