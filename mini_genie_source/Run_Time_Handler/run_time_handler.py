@@ -27,32 +27,40 @@ class run_time_handler:
 
         #
         parser = argparse.ArgumentParser(description="Help for mini-Genie Trader")
+        general_group = parser.add_argument_group(description="Basic Usage")
+        expand_study_group = parser.add_argument_group(description="Expand Study Usage")
         #
-        parser.add_argument("-gp", help="Simulate using genie picked space based on user settings", dest="genie_pick",
-                            action='store_true', default=True)
-        parser.add_argument("-up", help="Simulate using solely the user picked space", dest="user_pick",
-                            action='store_true', default=False)
-        parser.add_argument("-tsv",
-                            help="Convert csv to tsv previously computed metric files. File will vary based on "
-                                 "whether user or genie pick option was used.",
-                            dest="metrics_to_tsv", action='store_true', default=False)
-        parser.add_argument("-c",
-                            help="Point to Run-Time-Parameters (a.k.a settings) dictionary path",
-                            dest="run_time_dictionary_path", action='store',
-                            # default=False
-                            # default='debugging_config.py.Run_Time_Settings'
-                            default='rlgl_config.py.Run_Time_Settings'
-                            # default='rlgl_debug_config.py.Run_Time_Settings'
-                            )
-        parser.add_argument("--example",
-                            help="Creates example Run-Time-Parameters (a.k.a settings) file in current directory",
-                            dest="create_example_file", action='store_true', default=False)
+        general_group.add_argument("-gp", help="Simulate using genie picked space based on user settings",
+                                   dest="genie_pick",
+                                   action='store_true', default=False)
+        general_group.add_argument("-up", help="Simulate using solely the user picked space", dest="user_pick",
+                                   action='store_true', default=False)
+        general_group.add_argument("-tsv",
+                                   help="Convert csv to tsv previously computed metric files. File will vary based on "
+                                        "whether user or genie pick option was used.",
+                                   dest="metrics_to_tsv", action='store_true', default=False)
+        general_group.add_argument("-c",
+                                   help="Point to Run-Time-Parameters (a.k.a settings) dictionary path",
+                                   dest="run_time_dictionary_path", action='store',
+                                   default=False
+                                   )
+        general_group.add_argument("--example",
+                                   help="Creates example Run-Time-Parameters (a.k.a settings) file in current "
+                                        "directory",
+                                   dest="create_example_file", action='store_true', default=False)
+        #
+        expand_study_group.add_argument("--expand_study_params",
+                                        help="Provide path to parameter's file you want to add to current study "
+                                             "(repeated params will be ignored) *not-available",
+                                        dest="expand_study_params_path", action='store_true', default=False)
+        expand_study_group.add_argument("--expand_study_metrics",
+                                        help="Provide path to metrics' file you want to add to current study "
+                                             "(repeated params will be ignored) *not-available",
+                                        dest="expand_study_metrics_path", action='store_true', default=False)
 
         self.parser = parser
         self.parser.set_defaults(func=run_function)
         self.args = self.parser.parse_args()
-
-        logger.info(self.args.run_time_dictionary_path)
 
         if self.args.run_time_dictionary_path:
             self.run_time_module_path, self.run_time_dictionary_name = self.args.run_time_dictionary_path.rsplit('.', 1)
