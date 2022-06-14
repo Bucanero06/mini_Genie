@@ -32,7 +32,7 @@ class run_time_handler:
         #
         general_group.add_argument("-gp", help="Simulate using genie picked space based on user settings",
                                    dest="genie_pick",
-                                   action='store_true', default=False)
+                                   action='store_true', default=True)
         general_group.add_argument("-up", help="Simulate using solely the user picked space", dest="user_pick",
                                    action='store_true',
                                    default=False)
@@ -44,8 +44,9 @@ class run_time_handler:
         general_group.add_argument("-c",
                                    help="Point to Run-Time-Parameters (a.k.a settings) dictionary path",
                                    dest="run_time_dictionary_path", action='store',
-                                   default=False
-                                   # default="rlgl_debug_config.py.debug_settings"
+                                   # default=False
+                                   # default="rlgl_GOLD_66M_config.py.Run_Time_Settings"
+                                   default="rlgl_ETHUSD_66M_config.py.Run_Time_Settings"
                                    )
         general_group.add_argument("--example",
                                    help="Creates example Run-Time-Parameters (a.k.a settings) file in current "
@@ -101,21 +102,21 @@ class run_time_handler:
         module_path = filename.rsplit('.', 1)[0]
         module = module_path.replace("/", ".")
 
-        # from importlib import import_module
-        # mod = import_module(module)
+        from importlib import import_module
+        mod = import_module(module)
 
         ###
-        import importlib.util
-        import sys
-        from os import path
-        #
-        logger.info(f"Loading Run_Time_Settings from file {filename}")
-        module_name = path.basename(module_path)
-        #
-        spec = importlib.util.spec_from_file_location(module_name, filename)
-        mod = importlib.util.module_from_spec(spec)
-        sys.modules[module_name] = mod
-        spec.loader.exec_module(mod)
+        # import importlib.util
+        # import sys
+        # from os import path
+        # #
+        # logger.info(f"Loading Run_Time_Settings from file {filename}")
+        # module_name = path.basename(module_path)
+        # #
+        # spec = importlib.util.spec_from_file_location(module_name, filename)
+        # mod = importlib.util.module_from_spec(spec)
+        # sys.modules[module_name] = mod
+        # spec.loader.exec_module(mod)
         ###
 
         if object_name is not None:
