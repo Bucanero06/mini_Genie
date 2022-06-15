@@ -3,6 +3,17 @@ import argparse
 
 from logger_tt import logger
 
+GP_DEFAULT = True
+UP_DEFAULT = False
+TSV_DEFAULT = False
+#
+# CONFIG_FILE_DEFAULT = "rlgl_GOLD_66M_config.py.Run_Time_Settings"
+
+
+# CONFIG_FILE_DEFAULT = "rlgl_ETHUSD_66M_config.py.Run_Time_Settings"
+CONFIG_FILE_DEFAULT = "rlgl_GBPUSD_66M_config.py.Run_Time_Settings"
+# CONFIG_FILE_DEFAULT = "rlgl_debug_config.py.debug_settings"
+
 
 class run_time_handler:
     """
@@ -32,21 +43,19 @@ class run_time_handler:
         #
         general_group.add_argument("-gp", help="Simulate using genie picked space based on user settings",
                                    dest="genie_pick",
-                                   action='store_true', default=True)
+                                   action='store_true', default=GP_DEFAULT)
         general_group.add_argument("-up", help="Simulate using solely the user picked space", dest="user_pick",
                                    action='store_true',
-                                   default=False)
+                                   default=UP_DEFAULT)
         # default=True)
         general_group.add_argument("-tsv",
                                    help="Convert csv to tsv previously computed metric files. File will vary based on "
                                         "whether user or genie pick option was used.",
-                                   dest="metrics_to_tsv", action='store_true', default=False)
+                                   dest="metrics_to_tsv", action='store_true', default=TSV_DEFAULT)
         general_group.add_argument("-c",
                                    help="Point to Run-Time-Parameters (a.k.a settings) dictionary path",
                                    dest="run_time_dictionary_path", action='store',
-                                   # default=False
-                                   # default="rlgl_GOLD_66M_config.py.Run_Time_Settings"
-                                   default="rlgl_ETHUSD_66M_config.py.Run_Time_Settings"
+                                   default=CONFIG_FILE_DEFAULT
                                    )
         general_group.add_argument("--example",
                                    help="Creates example Run-Time-Parameters (a.k.a settings) file in current "

@@ -11,8 +11,6 @@ import ray
 import vectorbtpro as vbt
 from logger_tt import logger
 
-from Equipment_Handler.equipment_handler import CHECKTEMPS
-from Run_Time_Handler.equipment_settings import TEMP_DICT
 from Utilities.general_utilities import rm_field_from_record
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -716,8 +714,7 @@ class mini_genie_trader:
         #
         n_ratios = sorted(self.tp_sl_selection_space["n_ratios"])
         gamma_ratios = self.tp_sl_selection_space["gamma_ratios"]
-        tick_sizes = self.runtime_settings["Data_Settings.tick_size"]
-        tick_size = max(tick_sizes) if not isinstance(tick_sizes, float or int) else tick_sizes
+        tick_size = max(self.runtime_settings["Data_Settings.tick_size"])
         #
         tp_upper_bound, tp_lower_bound, tp_min_step = self.parameter_windows[self.tp_keyname[0]]["upper_bound"], \
                                                       self.parameter_windows[self.tp_keyname[0]]["lower_bound"], \
@@ -996,7 +993,6 @@ class mini_genie_trader:
             #
             logger.info(f'  -> highest_profit_cash this epoch {highest_cash_profit_this_epoch}')
             logger.info(f'  -> best_param this epoch {best_parameters_this_epoch}')
-
             #
             # clean up porfolio
             portfolio.fillna(0.0)
@@ -1004,6 +1000,10 @@ class mini_genie_trader:
             #
             # Fill metric record with new metric values
             new_indexes = []
+            # logger.info(f'before {portfolio.index = }')
+
+            portfolio = portfolio.sort_index()
+            # logger.info(f'after {portfolio.index = }')
             for _index, param_record in enumerate(params_rec):
                 trial_id = param_record["trial_id"]
                 param_record = rm_field_from_record(param_record, 'trial_id')
@@ -1011,7 +1011,36 @@ class mini_genie_trader:
                 for ass_index, asset in enumerate(self.asset_names):
                     param_tuple_ = tuple(param_record)
                     param_tuple_ = param_tuple_ + (asset,)
-                    metrics_np = tuple(portfolio[:].loc[tuple(param_tuple_)])
+
+                    metrics_np = portfolio.loc[:].loc[tuple(param_tuple_)]
+                    logger.info(f'before np {metrics_np = }')
+
+                    metrics_np = metrics_np.to_numpy()
+                    logger.info(f'after np {metrics_np = }')
+
+                    # logger.info(f'before {metrics_np = }')
+                    # logger.info(f'before {len(metrics_np) = }')
+
+                    metrics_np = tuple(metrics_np)
+                    # logger.info(f'after {metrics_np = }\n')
+                    # logger.info(f'after {len(metrics_np) = }')
+
+                    # metrics_np = portfolio.loc[:]
+                    # logger.info(f'{metrics_np}')
+                    # logger.info(f'{type(metrics_np)}')
+                    # metrics_np = metrics_np.loc[pd.IndexSlice[tuple(param_tuple_)]]
+                    # logger.info(f'{metrics_np}')
+                    # logger.info(f'{type(metrics_np)}')
+                    # metrics_np = metrics_np.to_numpy()
+                    # logger.info(f'{metrics_np}')
+                    # logger.info(f'{type(metrics_np)}')
+                    # # metrics_np = metrics_np[0]
+                    # # logger.info(f'{metrics_np}')
+                    # # logger.info(f'{type(metrics_np)}')
+                    # metrics_np = tuple(metrics_np)
+                    # logger.info(f'{metrics_np}')
+                    # logger.info(f'{type(metrics_np)}')
+
                     # todo: Keep record of indexes just added and append those to file ...
                     new_index = trial_id + (self.parameters_record_length * ass_index)
                     new_indexes.append(new_index)
@@ -1030,7 +1059,6 @@ class mini_genie_trader:
             return highest_profit_cash_, highest_profit_perc_, best_parameters_
 
         batch_size = self.batch_size
-        # self.parameters_record_length = len(ray.get(self.parameters_record))
         self.parameters_record_length = len(self.parameters_record)
         #
         from Simulation_Handler.simulation_handler import Simulation_Handler
@@ -1082,30 +1110,46 @@ class mini_genie_trader:
         #
         # from Utilities.general_utilities import put_objects_list_to_ray
         # chunks_ids_of_params_left_to_compute = put_objects_list_to_ray(chunks_of_params_left_to_compute)
-        from Analysis_Handler.analysis_handler import compute_stats_remote
+
         # for epoch_n, epoch_params_record_id in enumerate(chunks_of_params_left_to_compute):
         for epoch_n, epoch_params_record in enumerate(chunks_of_params_left_to_compute):
-            if epoch_n == stop_after_n_epoch:
-                break
-            #
-            start_time = perf_counter()
-            CHECKTEMPS(TEMP_DICT)
-            #
-
-            long_entries, long_exits, short_entries, short_exits, \
-            strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params_record)
-            #
-            pf, extra_sim_info = simulation_handler.simulate_events(long_entries, long_exits,
-                                                                    short_entries, short_exits,
-                                                                    strategy_specific_kwargs)
+            # if epoch_n == stop_after_n_epoch:
+            #     break
+            # #
+            # start_time = perf_counter()
+            # # CHECKTEMPS(TEMP_DICT)
+            # #
+            # long_entries, long_exits, short_entries, short_exits, \
+            # strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params_record)
+            # #
+            # pf, extra_sim_info = simulation_handler.simulate_events(long_entries, long_exits,
+            #                                                         short_entries, short_exits,
+            #                                                         strategy_specific_kwargs)
 
             '''Reconstruct Metrics from Order Records and Save'''
+            pf = vbt.Portfolio.load(
+                f'{self.portfolio_dir_path}/{self.runtime_settings["Portfolio_Settings.saved_pf_optimization"]}')  # fixme left here
+
+            # """Chunked-Method"""
+            # portfolio_stats = compute_stats(
+            #     Portfolio=pf, metrics_key_names=self.metrics_key_names,
+            #     ray_init_cpu_count=self.runtime_settings["RAY_SETTINGS.ray_init_num_cpus"])
+
+            #
+            # '''Unchunked Method'''
+            # compute_stats_timer = perf_counter()
+            # portfolio_stats = pf.stats(metrics=[vbtmetricsdictionary[string] for string in self.metrics_key_names],
+            #                            agg_func=None).replace(
+            #     [np.inf, -np.inf], np.nan, inplace=False)
+
+            '''Original Method'''
             logger.info('Reconstructing Portfolio Stats')
             compute_stats_timer = perf_counter()
             func_calls = []
             # split_metric_names = np.array_split(self.metrics_key_names, len(self.metrics_key_names) / 2)
             split_metric_names = np.array_split(self.metrics_key_names, len(self.metrics_key_names) / 3)
             pf_id = ray.put(pf)
+            from Analysis_Handler.analysis_handler import compute_stats_remote
             for metric_chunk in split_metric_names:
                 func_calls.append(compute_stats_remote.remote(pf_id, metric_chunk))
             #
@@ -1115,6 +1159,7 @@ class mini_genie_trader:
             # Join all Metrics
             portfolio_stats = compute_stats_results[0].join(compute_stats_results[1:])
             logger.info(f'Time to Reconstruct Metrics {perf_counter() - compute_stats_timer}')
+
             #
             highest_profit_cash, highest_profit_perc, best_parameters = _analyze_n_save(portfolio_stats,
                                                                                         epoch_params_record,
@@ -1123,12 +1168,16 @@ class mini_genie_trader:
                                                                                         best_parameters,
                                                                                         initial_cash_total, epoch_n,
                                                                                         save_every_nth_chunk=save_every_nth_chunk)
-
+            exit()
             logger.info(f'Epoch {epoch_n} took {perf_counter() - start_time} seconds')
             logger.info(f'\n\n')
         #
         # Do a final save !
         self._save_computed_params_metrics()
+
+    def _simulate_in_plaid_plus_mode(self):
+        logger.info("inside _simulate_in_plaid_plus_mode")
+        exit()
 
     def prepare_backtest(self):
         """Simulate parameters passed by user; either explicitly or produced from settings"""

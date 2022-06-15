@@ -1,5 +1,4 @@
 #!/usr/bin/env python3.9
-import gc
 from time import perf_counter
 
 import numpy as np
@@ -58,16 +57,9 @@ def compute_stats(Portfolio, metrics_key_names, groupby=None, ray_init_cpu_count
 
 
 @ray.remote
-def compute_stats_remote(Portfolio, only_these_stats, groupby=None):
-    gc.collect()
-    only_these_stats = [vbtmetricsdictionary[string] for string in only_these_stats]
-    if groupby is None:
-        portfolio_combined = Portfolio.stats(metrics=only_these_stats, agg_func=None).replace(
-            [np.inf, -np.inf], np.nan, inplace=False)
-    else:
-        portfolio_combined = Portfolio.stats(metrics=only_these_stats, agg_func=None, group_by=groupby).replace(
-            [np.inf, -np.inf], np.nan, inplace=False)
-    gc.collect()
+def compute_stats_remote(Portfolio, metric_names):
+    metric_names = [vbtmetricsdictionary[string] for string in metric_names]
+    portfolio_combined = Portfolio.stats(metrics=metric_names, agg_func=None).replace([np.inf, -np.inf], np.nan, inplace=False)
     return portfolio_combined
 
 
