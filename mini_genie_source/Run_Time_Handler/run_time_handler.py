@@ -6,13 +6,14 @@ from logger_tt import logger
 GP_DEFAULT = True
 UP_DEFAULT = False
 TSV_DEFAULT = False
+EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings.py"
+#
+# CONFIG_FILE_DEFAULT = "rlgl_debug_config.py.debug_settings"
 #
 # CONFIG_FILE_DEFAULT = "rlgl_GOLD_66M_config.py.Run_Time_Settings"
-
-
 # CONFIG_FILE_DEFAULT = "rlgl_ETHUSD_66M_config.py.Run_Time_Settings"
-CONFIG_FILE_DEFAULT = "rlgl_GBPUSD_66M_config.py.Run_Time_Settings"
-# CONFIG_FILE_DEFAULT = "rlgl_debug_config.py.debug_settings"
+# CONFIG_FILE_DEFAULT = "rlgl_GBPUSD_66M_config.py.Run_Time_Settings"
+CONFIG_FILE_DEFAULT = "rlgl_EURUSD_66M_config.py.Run_Time_Settings"
 
 
 class run_time_handler:
@@ -102,8 +103,7 @@ class run_time_handler:
     def create_example(self):
         logger.info("Creating example_genie_settings.py")
         import shutil
-        shutil.copy2("mini_genie_source/Run_Time_Handler/example_genie_settings.py",
-                     "example_genie_settings.py")
+        shutil.copy2(EXAMPLE_CONFIG_PATH, "example_genie_settings.py")
 
     @staticmethod
     def load_module_from_path(filename, object_name=None):

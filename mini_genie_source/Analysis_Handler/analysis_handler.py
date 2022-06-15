@@ -28,7 +28,7 @@ from Run_Time_Handler.vbtmetricsdictionary import vbtmetricsdictionary
     engine='ray',
     init_kwargs={
         'address': 'auto',
-        'num_cpus': 28,
+        # 'num_cpus': 28,
         # 'memory': 100 * 10 ** 9,
         # 'object_store_memory': 100 * 10 ** 9,
     },

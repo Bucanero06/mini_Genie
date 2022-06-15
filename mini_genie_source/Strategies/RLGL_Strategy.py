@@ -207,7 +207,7 @@ def apply_function(open_data, low_data, high_data, close_data,
     short_exits = long_exits
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-    gc.collect()
+
     return long_entries, long_exits, short_entries, short_exits, \
            take_profit_points, stop_loss_points
 

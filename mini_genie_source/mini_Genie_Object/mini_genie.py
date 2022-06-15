@@ -32,7 +32,8 @@ class mini_genie_trader:
         ...
     """
 
-    def __init__(self, runtime_kwargs, user_pick):
+    def __init__(self, runtime_kwargs, args):
+
         """Constructor for mini_genie_trader"""
 
         self.parameters_record_length = None
@@ -47,7 +48,8 @@ class mini_genie_trader:
         #
         self.batch_size = self.runtime_settings["Simulation_Settings.batch_size"]
         #
-        self.user_pick = user_pick
+        self.user_pick = args.user_pick
+        self.config_file_path = args.run_time_dictionary_path.rsplit('.', 1)[0]
         #
         self.parameter_windows = self.runtime_settings["Strategy_Settings.parameter_windows"]._values
         #
@@ -98,25 +100,27 @@ class mini_genie_trader:
         # Initial Actions
         #
         # Init Ray
-        ray.init(num_cpus=self.runtime_settings["RAY_SETTINGS.ray_init_num_cpus"],
-                 # object_store_memory=67 * 10 ** 9
-                 )
-        # ray.init()
+        self.ray_init = ray.init(num_cpus=self.runtime_settings["RAY_SETTINGS.ray_init_num_cpus"],
+                                 # object_store_memory=67 * 10 ** 9
+                                 )
         #
         # Prepare directories and save file paths
         self._prepare_directory_paths_for_study()
         #
-        if self.continuing and not self.user_pick:
-            # Load precomputed params, values, and stats if continuing study
-            self._load_initial_params_n_precomputed_metrics()
-
-        #   path_of_initial_params_record = self.path_of_initial_params_record
-        #         path_of_initial_metrics_record = self.path_of_initial_metrics_record
         if not self.continuing:
             if path.exists(self.path_of_initial_params_record):
                 remove(self.path_of_initial_params_record)
             if path.exists(self.path_of_initial_metrics_record):
                 remove(self.path_of_initial_metrics_record)
+            if path.exists(self.path_of_saved_study_config_file):
+                remove(self.path_of_saved_study_config_file)
+            #
+            import shutil
+            shutil.copy2(self.config_file_path, self.path_of_saved_study_config_file)
+        #
+        elif not self.user_pick:
+            # Load precomputed params, values, and stats if continuing study
+            self._load_initial_params_n_precomputed_metrics()
 
     def _prepare_directory_paths_for_study(self):
         """
@@ -166,6 +170,8 @@ class mini_genie_trader:
         self.path_of_initial_metrics_record = f'{self.study_dir_path}/{file_name_of_initial_metrics_record}'
         self.file_name_of_backtest_results = f'{self.study_dir_path}/{file_name_of_backtest_results}'
         self.user_defined_param_file = f'{self.study_dir_path}/{user_defined_param_file}'
+        self.path_of_saved_study_config_file = f'{self.study_dir_path}/{self.config_file_path}'
+
         #
         # pathlib.Path('my_file.txt').suffix
         self.compression_of_initial_params_record = os.path.splitext(file_name_of_initial_params_record)[-1]
@@ -572,14 +578,13 @@ class mini_genie_trader:
                 logger.warning(
                     f'I know max_initial_combinations was set to '
                     f'{self.runtime_settings["Simulation_Settings.Initial_Search_Space.max_initial_combinations"]} '
-                    f'but, I needed at least {self.parameters_lengths_dict["n_initial_combinations"]} initial combinations'
-                    f'{continuing_text}'
+                    f'but, I needed at least {self.parameters_lengths_dict["n_initial_combinations"]} '
+                    f'initial combinations{continuing_text}'
                     f"\N{smiling face with smiling eyes}"
                 )
 
             self.parameter_data_dtype = np.dtype(parameters_record_dtype)
 
-            logger.info(self.parameters_lengths_dict)
             self.parameters_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
                                               dtype=self.parameter_data_dtype)
             #
@@ -640,6 +645,7 @@ class mini_genie_trader:
 
         from Utilities.general_utilities import delete_non_filled_elements
         self.parameters_record = delete_non_filled_elements(self.parameters_record)
+        #
 
     def _compute_bar_atr(self):
         """
@@ -877,7 +883,8 @@ class mini_genie_trader:
                 tp_sl_record, skipped_indexes = self._compute_tp_n_sl_from_tp_sl_0
                 #
                 assert number_of_suggestions == len(tp_sl_record) + len(skipped_indexes)
-                params["tp_sl"] = [(tp, sl) for tp, sl in zip(tp_sl_record["take_profit"], tp_sl_record["stop_loss"])]
+                params["tp_sl"] = list(
+                    set([(tp, sl) for tp, sl in zip(tp_sl_record["take_profit"], tp_sl_record["stop_loss"])]))
             #
             else:
                 '''This means that we can run all the tp_sl combinations, doubtful we will hit this but here
@@ -913,10 +920,15 @@ class mini_genie_trader:
             self._compute_params_product_n_fill_record(params)
             self._save_record_to_file(self.parameters_record, self.path_of_initial_params_record,
                                       self.compression_of_initial_params_record)
+            #
+            # Clean up parameters_lengths_dict before saving
+            del self.parameters_lengths_dict[f'{self.tp_keyname[0]}_length']
+            del self.parameters_lengths_dict[f'{self.sl_keyname[0]}_length']
+            #
+            self.parameters_lengths_dict[f'tp_sl_length'] = len(params["tp_sl"])
             from Utilities.general_utilities import write_dictionary_to_file
             write_dictionary_to_file(f'{self.misc_dir_path}/_parameters_lengths_dict', self.parameters_lengths_dict)
             #
-        # self.parameters_record = ray.put(self.parameters_record)  # to conserve memory, simulate_suggested relies on ray
         #
         logger.info(f'Total # of Combinations: {self.parameters_lengths_dict["n_total_combinations"]} per asset\n'
                     f'  * given current definitions for parameter space')

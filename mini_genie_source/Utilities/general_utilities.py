@@ -86,7 +86,7 @@ class NpEncoder(json.JSONEncoder):
 
 def write_dictionary_to_file(output_file_name, dictionary):
     with open(output_file_name, 'w') as json_file:
-        json.dump(dictionary, json_file, cls=NpEncoder)
+        json.dump(dictionary, json_file, cls=NpEncoder, indent=4)
 
 
 def load_dict_from_file(input_file_name):

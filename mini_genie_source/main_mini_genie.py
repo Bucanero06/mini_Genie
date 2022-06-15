@@ -11,7 +11,7 @@ def call_genie(run_time_settings, arg_parser_values):
     The genie object works as an operator, can act on itself through its methods, can be acted upon by other 
         operators, and must always return the latest state of genie_operator.
      '''
-    genie_object = mini_genie_trader(runtime_kwargs=run_time_settings, user_pick=arg_parser_values.user_pick)
+    genie_object = mini_genie_trader(runtime_kwargs=run_time_settings, args=arg_parser_values)
 
     if arg_parser_values.metrics_to_tsv:
         genie_object.metric_csv_file_to_tsv()
