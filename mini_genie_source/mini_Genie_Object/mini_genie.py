@@ -117,6 +117,7 @@ class mini_genie_trader:
             #
             import shutil
             shutil.copy2(self.config_file_path, self.path_of_saved_study_config_file)
+            self.number_of_parameters_ran = 0
         #
         elif not self.user_pick:
             # Load precomputed params, values, and stats if continuing study
@@ -220,6 +221,9 @@ class mini_genie_trader:
                     metrics_df = pd.read_csv(path_of_initial_metrics_record)
                 else:
                     metrics_df = pd.read_pickle(path_of_initial_metrics_record)
+                #
+                # Determine number of parameter combinations ran
+                self.number_of_parameters_ran = int(len(metrics_df) / len(self.asset_names))
                 #
                 # Initiate_metrics_record
                 logger.info(f'Initiating metrics record  ...')
@@ -1002,11 +1006,11 @@ class mini_genie_trader:
                 best_parameters_ = best_parameters_this_epoch
             #
             logger.info(
-                f'Highest Profit so far: {highest_profit_cash_}   \N{money-mouth face}\N{money bag}: '
-                f'{highest_profit_perc_} of a ${initial_cash_total_} account')
+                f'Highest Profit so far: {highest_profit_cash_:,}   \N{money-mouth face}\N{money bag}: '
+                f'{highest_profit_perc_} of a ${initial_cash_total_:,} account')
             logger.info(f'Best Param so far: {best_parameters_}  \N{money with wings}')
             #
-            logger.info(f'  -> highest_profit_cash this epoch {highest_cash_profit_this_epoch}')
+            logger.info(f'  -> highest_profit_cash this epoch {highest_cash_profit_this_epoch:,}')
             logger.info(f'  -> best_param this epoch {best_parameters_this_epoch}')
 
             #
@@ -1090,7 +1094,6 @@ class mini_genie_trader:
         n_chunks = int(np.floor(len(params_to_compute) / batch_size)) if batch_size < len(params_to_compute) else 1
         # Split arrays into n_chunks
         chunks_of_params_left_to_compute = np.array_split(params_to_compute, n_chunks)
-
         #
         # from Utilities.general_utilities import put_objects_list_to_ray
         # chunks_ids_of_params_left_to_compute = put_objects_list_to_ray(chunks_of_params_left_to_compute)
@@ -1135,7 +1138,10 @@ class mini_genie_trader:
                                                                                         best_parameters,
                                                                                         initial_cash_total, epoch_n,
                                                                                         save_every_nth_chunk=save_every_nth_chunk)
-
+            #
+            self.number_of_parameters_ran = self.number_of_parameters_ran + len(epoch_params_record)
+            logger.info(f'Number of parameter combinations ran: {self.number_of_parameters_ran:,}')
+            #
             logger.info(f'Epoch {epoch_n} took {perf_counter() - start_time} seconds')
             logger.info(f'\n\n')
         #

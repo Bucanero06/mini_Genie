@@ -3,17 +3,21 @@ import argparse
 
 from logger_tt import logger
 
-GP_DEFAULT = True
+GP_DEFAULT = False
 UP_DEFAULT = False
 TSV_DEFAULT = False
+CONFIG_FILE_DEFAULT = False
 EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings.py"
 #
+
 # CONFIG_FILE_DEFAULT = "rlgl_debug_config.py.debug_settings"
-#
 # CONFIG_FILE_DEFAULT = "rlgl_GOLD_66M_config.py.Run_Time_Settings"
+# CONFIG_FILE_DEFAULT = "rlgl_OIL_66M_config.py.Run_Time_Settings"
+
+
 # CONFIG_FILE_DEFAULT = "rlgl_ETHUSD_66M_config.py.Run_Time_Settings"
 # CONFIG_FILE_DEFAULT = "rlgl_GBPUSD_66M_config.py.Run_Time_Settings"
-CONFIG_FILE_DEFAULT = "rlgl_EURUSD_66M_config.py.Run_Time_Settings"
+# CONFIG_FILE_DEFAULT = "rlgl_EURUSD_66M_config.py.Run_Time_Settings"
 
 
 class run_time_handler:
@@ -139,9 +143,6 @@ class run_time_handler:
         Adds self.run_time_settings
         @return self.run_time_settings (to be used if needed)
         """
-
-        # run_time_settings = foo.Run_Time_Settings
-        # run_time_settings = self.load_module_from_path(self.args.run_time_dictionary_path).Run_Time_Settings
 
         run_time_settings = self.load_module_from_path(self.run_time_module_path,
                                                        object_name=self.run_time_dictionary_name)
