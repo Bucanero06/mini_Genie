@@ -8,7 +8,7 @@ TEMP_DICT = dict(
     # array_memory_0100_temperature=np.array([]),
 
     cpu_temp_name='k10temp',
-    cpu_critical=70,  # 80
+    cpu_critical=80,  # 80
     # array_cpu_1_temperature=np.array([]),
     # array_cpu_2_temperature=np.array([]),
 

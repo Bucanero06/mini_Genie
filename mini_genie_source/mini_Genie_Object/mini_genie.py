@@ -11,6 +11,7 @@ import ray
 import vectorbtpro as vbt
 from logger_tt import logger
 
+from Analysis_Handler.analysis_handler import compute_stats_remote
 from Equipment_Handler.equipment_handler import CHECKTEMPS
 from Run_Time_Handler.equipment_settings import TEMP_DICT
 from Utilities.general_utilities import rm_field_from_record
@@ -107,6 +108,7 @@ class mini_genie_trader:
         # Prepare directories and save file paths
         self._prepare_directory_paths_for_study()
         #
+        self.number_of_parameters_ran = 0
         if not self.continuing:
             if path.exists(self.path_of_initial_params_record):
                 remove(self.path_of_initial_params_record)
@@ -117,7 +119,6 @@ class mini_genie_trader:
             #
             import shutil
             shutil.copy2(self.config_file_path, self.path_of_saved_study_config_file)
-            self.number_of_parameters_ran = 0
         #
         elif not self.user_pick:
             # Load precomputed params, values, and stats if continuing study
@@ -205,6 +206,12 @@ class mini_genie_trader:
             # Initiate_params_record
             logger.info(f'Initiating parameters record  ...')
             initial_params_size = len(parameter_df)
+
+            # fixme read from mist dict instead
+            # max_initial_combinations = self.runtime_settings[
+            #     "Simulation_Settings.Initial_Search_Space.max_initial_combinations"]
+            # assert max_initial_combinations >= initial_params_size
+            #
             self._initiate_parameters_records(add_ids=True, initial_params_size=initial_params_size)
             #
             # Fill values
@@ -984,11 +991,8 @@ class mini_genie_trader:
            4.  Save Results to file
         """
 
-        if self.speed_mode == 'plaid_plus':
-            self._simulate_in_plaid_plus_mode()
-            return
 
-        def _analyze_n_save(portfolio, params_rec, highest_profit_cash_, highest_profit_perc_, best_parameters_,
+        def _analyze_n_save(portfolio_metrics, params_rec, highest_profit_cash_, highest_profit_perc_, best_parameters_,
                             initial_cash_total_, epoch_n_, save_every_nth_chunk=None):
             '''Reconstruct Metrics from Order Records and Save'''
             tell_metrics_start_timer = perf_counter()
@@ -996,9 +1000,9 @@ class mini_genie_trader:
             # params_rec = ray.get(params_rec_id)
             #
             # Used for Printing
-            highest_profit_this_epoch = portfolio['Total Return [%]'].max()
+            highest_profit_this_epoch = portfolio_metrics['Total Return [%]'].max()
             highest_cash_profit_this_epoch = highest_profit_this_epoch * initial_cash_total_ / 100
-            best_parameters_this_epoch = portfolio['Total Return [%]'].idxmax()
+            best_parameters_this_epoch = portfolio_metrics['Total Return [%]'].idxmax()
             #
             if highest_cash_profit_this_epoch > highest_profit_cash_:
                 highest_profit_cash_ = highest_cash_profit_this_epoch
@@ -1012,10 +1016,12 @@ class mini_genie_trader:
             #
             logger.info(f'  -> highest_profit_cash this epoch {highest_cash_profit_this_epoch:,}')
             logger.info(f'  -> best_param this epoch {best_parameters_this_epoch}')
-
             #
             # clean up porfolio
-            portfolio.fillna(0.0)
+            portfolio_metrics.fillna(0.0)
+            for name, values in portfolio_metrics.items():
+                portfolio_metrics[name] = portfolio_metrics[name].astype(float).fillna(0.0)
+
             # portfolio.replace(pd.NaT, pd.Timedelta(seconds=0), inplace=True)
             #
             # Fill metric record with new metric values
@@ -1027,11 +1033,19 @@ class mini_genie_trader:
                 for ass_index, asset in enumerate(self.asset_names):
                     param_tuple_ = tuple(param_record)
                     param_tuple_ = param_tuple_ + (asset,)
-                    metrics_np = tuple(portfolio[:].loc[tuple(param_tuple_)])
+                    metrics_np = tuple(portfolio_metrics[:].loc[tuple(param_tuple_)])
                     # todo: Keep record of indexes just added and append those to file ...
                     new_index = trial_id + (self.parameters_record_length * ass_index)
                     new_indexes.append(new_index)
-                    self.metrics_record[new_index] = (trial_id, asset) + metrics_np
+                    # for i in metrics_np:
+                    #     logger.info(f'{i} {metrics_np[i]} {type(i)}')
+                    metrics_input = (trial_id, asset) + metrics_np
+                    # logger.info(f'{metrics_input}')
+                    self.metrics_record[new_index] = metrics_input
+
+            # return highest_profit_cash_, highest_profit_perc_, best_parameters_
+            # exit()
+            # exit()
             logger.info(f'Time to Analyze Metrics {perf_counter() - tell_metrics_start_timer}')
             #
             # Concat and save the parameter and metric records to file every Nth epoch
@@ -1097,7 +1111,6 @@ class mini_genie_trader:
         #
         # from Utilities.general_utilities import put_objects_list_to_ray
         # chunks_ids_of_params_left_to_compute = put_objects_list_to_ray(chunks_of_params_left_to_compute)
-        from Analysis_Handler.analysis_handler import compute_stats_remote
         # for epoch_n, epoch_params_record_id in enumerate(chunks_of_params_left_to_compute):
         for epoch_n, epoch_params_record in enumerate(chunks_of_params_left_to_compute):
             if epoch_n == stop_after_n_epoch:
@@ -1106,14 +1119,15 @@ class mini_genie_trader:
             start_time = perf_counter()
             CHECKTEMPS(TEMP_DICT)
             #
-
             long_entries, long_exits, short_entries, short_exits, \
             strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params_record)
             #
             pf, extra_sim_info = simulation_handler.simulate_events(long_entries, long_exits,
                                                                     short_entries, short_exits,
                                                                     strategy_specific_kwargs)
-
+            #
+            # pf = vbt.Portfolio.load(
+            #     f'{self.portfolio_dir_path}/{self.runtime_settings["Portfolio_Settings.saved_pf_optimization"]}')
             '''Reconstruct Metrics from Order Records and Save'''
             logger.info('Reconstructing Portfolio Stats')
             compute_stats_timer = perf_counter()
@@ -1129,6 +1143,10 @@ class mini_genie_trader:
             #
             # Join all Metrics
             portfolio_stats = compute_stats_results[0].join(compute_stats_results[1:])
+            ...
+            #
+            # portfolio_stats = compute_stats(pf, self.metrics_key_names)
+            #
             logger.info(f'Time to Reconstruct Metrics {perf_counter() - compute_stats_timer}')
             #
             highest_profit_cash, highest_profit_perc, best_parameters = _analyze_n_save(portfolio_stats,

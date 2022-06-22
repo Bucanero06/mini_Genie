@@ -1,13 +1,10 @@
-import gc
-from time import perf_counter
-
 import pandas as pd
 import vectorbtpro as vbt
-from logger_tt import logger
 
 from Utilities.bars_utilities import BARSINCE_genie
 
-def cache_func(open_data, low_data, high_data, close_data,
+
+def cache_func(close_data,
                rsi_timeframes, rsi_windows,
                sma_on_rsi_1_windows, sma_on_rsi_2_windows, sma_on_rsi_3_windows,
                T1_ema_timeframes, T1_ema_1_windows, T1_ema_2_windows,
@@ -16,116 +13,67 @@ def cache_func(open_data, low_data, high_data, close_data,
                take_profit_points, stop_loss_points
                ):
     #
-    cache = {
+    cached_data = {
         # Data
-        'Open': {},
-        'Low': {},
-        'High': {},
         'Close': {},
-        # Indicators
-        'RSI': {},
-        'SMA': {},
-        'EMA': {},
-        # Resampler
         'Resamplers': {},
-        # empty_df_like
         'Empty_df_like': pd.DataFrame().reindex_like(close_data),
     }
-    #
+    # if type(rsi_timeframes) == type(T1_ema_timeframes) == list:
     '''Pre-Resample Data'''
-    # Create a set of all timeframes to resample data to and sets of windows
     timeframes_set = tuple(set(tuple(rsi_timeframes) + tuple(T1_ema_timeframes)))  # + tuple(T2_ema_timeframes)))
+
     for timeframe in timeframes_set:
-        # LOW
-        cache['Low'][timeframe] = low_data.vbt.resample_apply(timeframe,
-                                                              vbt.nb.min_reduce_nb).dropna() if timeframe != '1 min' else low_data
-        # HIGH
-        cache['High'][timeframe] = high_data.vbt.resample_apply(timeframe,
-                                                                vbt.nb.max_reduce_nb).dropna() if timeframe != '1 min' else high_data
         # CLOSE
-        cache['Close'][timeframe] = close_data.vbt.resample_apply(timeframe,
-                                                                  vbt.nb.last_reduce_nb).dropna() if timeframe != '1 min' else close_data
+        cached_data['Close'][timeframe] = close_data.vbt.resample_apply(timeframe,
+                                                                        vbt.nb.last_reduce_nb).dropna() if timeframe != '1 min' else close_data
 
         '''Pre-Prepare Resampler'''
-        cache['Resamplers'][timeframe] = vbt.Resampler(
-            cache['Close'][timeframe].index,
+        cached_data['Resamplers'][timeframe] = vbt.Resampler(
+            cached_data['Close'][timeframe].index,
             close_data.index,
             source_freq=timeframe,
             target_freq="1m") if timeframe != '1 min' else None
-    #
-    '''Pre-Compute Indicators'''
-    for _rsi_timeframe, _rsi_window, _sma_window_1, _sma_window_2, _sma_window_3 in zip(rsi_timeframes, rsi_windows,
-                                                                                        sma_on_rsi_1_windows,
-                                                                                        sma_on_rsi_2_windows,
-                                                                                        sma_on_rsi_3_windows):
-        #
-        if f'{_rsi_timeframe}_{_rsi_window}' not in cache["RSI"]:
-            cache['RSI'][f'{_rsi_timeframe}_{_rsi_window}'] = vbt.RSI.run(cache['Close'][_rsi_timeframe],
-                                                                          window=_rsi_window,
-                                                                          ewm=False).rsi
-            #
-        if f'{_rsi_timeframe}_{_rsi_window}_{_sma_window_1}' not in cache["SMA"]:
-            cache["SMA"][f'{_rsi_timeframe}_{_rsi_window}_{_sma_window_1}'] = vbt.MA.run(
-                cache['RSI'][f'{_rsi_timeframe}_{_rsi_window}'], window=_sma_window_1, ewm=False).ma
-            #
-        if f'{_rsi_timeframe}_{_rsi_window}_{_sma_window_2}' not in cache["SMA"]:
-            cache["SMA"][f'{_rsi_timeframe}_{_rsi_window}_{_sma_window_2}'] = vbt.MA.run(
-                cache['RSI'][f'{_rsi_timeframe}_{_rsi_window}'], window=_sma_window_2, ewm=False).ma
-            #
-        if f'{_rsi_timeframe}_{_rsi_window}_{_sma_window_3}' not in cache["SMA"]:
-            cache["SMA"][f'{_rsi_timeframe}_{_rsi_window}_{_sma_window_3}'] = vbt.MA.run(
-                cache['RSI'][f'{_rsi_timeframe}_{_rsi_window}'], window=_sma_window_3, ewm=False).ma
-    #
-    '''Create a set of rsi_windows and compute indicator for all timeframes and windows'''
-    for _ema_timeframe, _ema_window_1, _ema_window_2 in zip(T1_ema_timeframes, T1_ema_1_windows, T1_ema_2_windows):
-        if f'{_ema_timeframe}_{_ema_window_1}' not in cache["EMA"]:
-            cache['EMA'][f'{_ema_timeframe}_{_ema_window_1}'] = vbt.MA.run(close_data, window=_ema_window_1,
-                                                                           ewm=True).ma
-        #
-        if f'{_ema_timeframe}_{_ema_window_2}' not in cache["EMA"]:
-            cache['EMA'][f'{_ema_timeframe}_{_ema_window_2}'] = vbt.MA.run(close_data, window=_ema_window_2,
-                                                                           ewm=True).ma
-    #
-    gc.collect()
-    return cache
+
+    return cached_data
 
 
-def apply_function(open_data, low_data, high_data, close_data,
+def apply_function(close_data,
                    rsi_timeframe, rsi_window,
                    sma_on_rsi_1_window, sma_on_rsi_2_window, sma_on_rsi_3_window,
                    T1_ema_timeframe, T1_ema_1_window, T1_ema_2_window,
                    # T2_ema_timeframe, T2_ema_1_window, T2_ema_2_window,
                    #
                    take_profit_points, stop_loss_points,
-                   cache):
-    """Function for Indicators"""
+                   cached_data):
+    """Function for RLGL Strategy/Indicators"""
 
     '''RSI and SMA Indicators'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    rsi_indicator = cache['RSI'][f'{rsi_timeframe}_{rsi_window}']
-    sma_on_rsi_1_indicator = cache['SMA'][f'{rsi_timeframe}_{rsi_window}_{sma_on_rsi_1_window}']
-    sma_on_rsi_2_indicator = cache['SMA'][f'{rsi_timeframe}_{rsi_window}_{sma_on_rsi_2_window}']
-    sma_on_rsi_3_indicator = cache['SMA'][f'{rsi_timeframe}_{rsi_window}_{sma_on_rsi_3_window}']
+    rsi_indicator = vbt.RSI.run(cached_data['Close'][rsi_timeframe], window=rsi_window, ewm=False).rsi
+    sma_on_rsi_1_indicator = vbt.MA.run(rsi_indicator, window=sma_on_rsi_1_window, ewm=False).ma
+    sma_on_rsi_2_indicator = vbt.MA.run(rsi_indicator, window=sma_on_rsi_2_window, ewm=False).ma
+    sma_on_rsi_3_indicator = vbt.MA.run(rsi_indicator, window=sma_on_rsi_3_window, ewm=False).ma
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
     '''Trend I EMA Indicators'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    T1_ema_1_indicator = cache['EMA'][f'{T1_ema_timeframe}_{T1_ema_1_window}']
-    T1_ema_2_indicator = cache['EMA'][f'{T1_ema_timeframe}_{T1_ema_2_window}']
+    T1_ema_1_indicator = vbt.MA.run(cached_data['Close'][T1_ema_timeframe], window=T1_ema_1_window, ewm=True).ma
+    T1_ema_2_indicator = vbt.MA.run(cached_data['Close'][T1_ema_timeframe], window=T1_ema_2_window, ewm=True).ma
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
     # '''Trend II EMA Indicators'''
     # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    # T2_ema_1_indicator = cache['EMA'][f'{T2_ema_timeframe}_{T2_ema_1_window}']
-    # T2_ema_2_indicator = cache['EMA'][f'{T2_ema_timeframe}_{T2_ema_2_window}']
+    # T2_ema_1_indicator = cached_indicator['EMA'][f'{T2_ema_timeframe}_{T2_ema_1_window}']
+    # T2_ema_2_indicator = cached_indicator['EMA'][f'{T2_ema_timeframe}_{T2_ema_2_window}']
     # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
     '''Resample Indicators Back To 1 minute'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    # Fetch the resamplers from cache for a given timeframe
-    rsi_timeframe_to_1min_Resampler = cache['Resamplers'][rsi_timeframe]
-    T1_ema_timeframe_to_1min_Resampler = cache['Resamplers'][T1_ema_timeframe]
-    # T2_ema_timeframe_to_1min_Resampler = cache['Resamplers'][T2_ema_timeframe]
+    # Fetch the resamplers from cached_data for a given timeframe
+    rsi_timeframe_to_1min_Resampler = cached_data['Resamplers'][rsi_timeframe]
+    T1_ema_timeframe_to_1min_Resampler = cached_data['Resamplers'][T1_ema_timeframe]
+    # T2_ema_timeframe_to_1min_Resampler = cached_data['Resamplers'][T2_ema_timeframe]
 
     # Resample indicators to 1m
     rsi_indicator = rsi_indicator.vbt.resample_closing(
@@ -186,7 +134,7 @@ def apply_function(open_data, low_data, high_data, close_data,
     '''Fill Rest of Parameters for Sim'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     # Used to fill signals and parameter dfs into the correct size (just a workaround for now, fast)
-    empty_df_like = cache['Empty_df_like']
+    empty_df_like = cached_data['Empty_df_like']
     #
     take_profit_points = empty_df_like.fillna(take_profit_points)
     stop_loss_points = empty_df_like.fillna(stop_loss_points)
@@ -206,7 +154,6 @@ def apply_function(open_data, low_data, high_data, close_data,
     ).vbt.signals.fshift()
     short_exits = long_exits
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
 
     return long_entries, long_exits, short_entries, short_exits, \
            take_profit_points, stop_loss_points
@@ -241,7 +188,7 @@ def RLGL_Strategy(open_data, low_data, high_data, close_data, parameter_data, ra
 
     '''Compile Structure and Run Master Indicator'''
     Master_Indicator = vbt.IF(
-        input_names=['open_data', 'low_data', 'high_data', 'close_data'],
+        input_names=['close_data'],
         #
         param_names=['rsi_timeframes', 'rsi_windows',
                      'sma_on_rsi_1_windows', 'sma_on_rsi_2_windows', 'sma_on_rsi_3_windows',
@@ -273,7 +220,7 @@ def RLGL_Strategy(open_data, low_data, high_data, close_data, parameter_data, ra
         # T2_ema_timeframes='4h', T2_ema_1_windows=13, T2_ema_2_windows=50,
         take_profit_points=300, stop_loss_points=-300
     ).run(
-        open_data, low_data, high_data, close_data,
+        close_data,
         rsi_timeframes=rsi_timeframes, rsi_windows=rsi_windows,
         #
         sma_on_rsi_1_windows=sma_on_rsi_1_windows,
@@ -318,4 +265,3 @@ def RLGL_Strategy(open_data, low_data, high_data, close_data, parameter_data, ra
     return Master_Indicator.long_entries, Master_Indicator.long_exits, \
            Master_Indicator.short_entries, Master_Indicator.short_exits, \
            strategy_specific_kwargs
-

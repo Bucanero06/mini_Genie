@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 import datetime
 
-debug_settings = dict(
+Run_Time_Settings = dict(
     # Data Settings
     Data_Settings=dict(
         load_CSV_from_pickle=True,  # momentary
         data_files_dir='Datas',  # momentary
         data_files_names=[
-            'AUDUSD',  # momentary
+            # 'AUDUSD',  # momentary
             # 'EURUSD',  # momentary
             # 'GBPUSD',  # momentary
             # 'NZDUSD',  # momentary
             # 'USDCAD',  # momentary
             # 'USDCHF',  # momentary
-            # "DAX",  # momentary
+            "DAX",  # momentary
             # "XAUUSD",  # momentary
             # "OILUSD",  # momentary
 
@@ -25,15 +25,15 @@ debug_settings = dict(
         fill_dates=False,
         saved_data_file='SymbolData',
         # tick_size=0.01
-        tick_size=[0.00001]
+        tick_size=[0.01]
         # tick_size=0.00001
     ),
 
     Simulation_Settings=dict(
-        study_name='rlgl_debug',
+        study_name='mmt_DAXUSD_66M',
         optimization_period=dict(
             start_date=datetime.datetime(month=2, day=1, year=2022),
-            end_date=datetime.datetime(month=3, day=1, year=2022)
+            end_date=datetime.datetime(month=6, day=3, year=2022)
             # end_date=datetime.datetime(month=10, day=1, year=2021)
         ),
         #
@@ -60,7 +60,7 @@ debug_settings = dict(
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            max_initial_combinations=1_000_000,
+            max_initial_combinations=66_000_000,
             stop_after_n_epoch=None,
             # force_to_finish=True,  # todo: logic missing
             #
@@ -129,28 +129,22 @@ debug_settings = dict(
 
     ),
     Strategy_Settings=dict(
-        Strategy="mini_genie_source/Strategies/RLGL_Strategy.py.RLGL_Strategy",
+        Strategy="mini_genie_source/Strategies/Money_Maker_Strategy.py.MMT_Strategy",
         # The order of parameter key_names should be honored across all files
         parameter_windows=dict(
-            rsi_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']),
-            rsi_windows=dict(type='window', lower_bound=2, upper_bound=100, min_step=1),
+            PEAK_and_ATR_timeframes=dict(type='timeframe',
+                                         values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
+
+            atr_windows=dict(type='window', lower_bound=1, upper_bound=10, min_step=1),
+            data_lookback_windows=dict(type='window', lower_bound=2, upper_bound=16, min_step=1),
+            EMAs_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
+            ema_1_windows=dict(type='window', lower_bound=5, upper_bound=45, min_step=1),
+            ema_2_windows=dict(type='window', lower_bound=20, upper_bound=60, min_step=1),
             #
-            sma_on_rsi_1_windows=dict(type='window', lower_bound=2, upper_bound=63, min_step=1),
-            sma_on_rsi_2_windows=dict(type='window', lower_bound=5, upper_bound=70, min_step=1),
-            sma_on_rsi_3_windows=dict(type='window', lower_bound=15, upper_bound=80, min_step=1),
-            #
-            T1_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
-            T1_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=63, min_step=1),
-            T1_ema_2_windows=dict(type='window', lower_bound=15, upper_bound=80, min_step=1),
-            #
-            # T2_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']),
-            # T2_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
-            # T2_ema_2_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
-            #
-            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=100000, min_step=1000),
-            stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=100000, min_step=1000),
+            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=10000, min_step=10),
+            stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=10000, min_step=10),
+
         ),
-        # strategy_user_picked_params
         strategy_user_picked_params=dict(
             output_file_name='backtest_result.csv',
             # if compute_product then will compute the product of all the parameter values passed,
@@ -159,28 +153,21 @@ debug_settings = dict(
             #
             # Can Read Parameters from file instead if the path to it is provided
             # read_user_defined_param_file='backtest_result.csv',
-            read_user_defined_param_file=None,  # todo: logic missing
+            read_user_defined_param_file=None,
             #
             # Can use  -->  values = np.arrange(start,stop,step) or np.linespace(start,stop,#)
             # The order of parameter key_names should be honored across all files
             parameter_windows=dict(
-                rsi_timeframes=dict(type='timeframe', values=['15 min', '15 min']),
-                rsi_windows=dict(type='window', values=[41, 30]),
+                PEAK_and_ATR_timeframes=dict(type='timeframe', values=['15 min']),
                 #
-                sma_on_rsi_1_windows=dict(type='window', values=[32, 43]),
-                sma_on_rsi_2_windows=dict(type='window', values=[26, 26]),
-                sma_on_rsi_3_windows=dict(type='window', values=[15, 15]),
+                atr_windows=dict(type='window', values=[5]),
+                data_lookback_windows=dict(type='window', values=[3]),
+                EMAs_timeframes=dict(type='timeframe', values=['1 min']),
+                ema_1_windows=dict(type='window', values=[5]),
+                ema_2_windows=dict(type='window', values=[81]),
                 #
-                T1_ema_timeframes=dict(type='timeframe', values=['1 min', "5 min"]),
-                T1_ema_1_windows=dict(type='window', values=[2, 3]),
-                T1_ema_2_windows=dict(type='window', values=[15, 20]),
-                #
-                # T2_ema_timeframes=dict(type='timeframe', values=['5 min']),
-                # T2_ema_1_windows=dict(type='window', values=[5]),
-                # T2_ema_2_windows=dict(type='window', values=[5]),
-                #
-                take_profit_points=dict(type='take_profit', values=[86, 200]),
-                stop_loss_points=dict(type='stop_loss', values=[-43, 200]),
+                take_profit_points=dict(type='take_profit', values=[7200]),
+                stop_loss_points=dict(type='stop_loss', values=[4700]),
             )
         ),
     ),

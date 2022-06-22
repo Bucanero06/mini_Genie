@@ -3,18 +3,23 @@ import argparse
 
 from logger_tt import logger
 
-GP_DEFAULT = False
+GP_DEFAULT = True
 UP_DEFAULT = False
 TSV_DEFAULT = False
 CONFIG_FILE_DEFAULT = False
 EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings.py"
+
 #
 
-# CONFIG_FILE_DEFAULT = "rlgl_debug_config.py.debug_settings"
+CONFIG_FILE_DEFAULT = "mmt_debug_config.py.debug_settings"
+# CONFIG_FILE_DEFAULT = "mmt_USA30_config.py.Run_Time_Settings"
+# CONFIG_FILE_DEFAULT = "mmt_DAXUSD_config.py.Run_Time_Settings"
+
+
 # CONFIG_FILE_DEFAULT = "rlgl_GOLD_66M_config.py.Run_Time_Settings"
+
+# CONFIG_FILE_DEFAULT = "rlgl_debug_config.py.debug_settings"
 # CONFIG_FILE_DEFAULT = "rlgl_OIL_66M_config.py.Run_Time_Settings"
-
-
 # CONFIG_FILE_DEFAULT = "rlgl_ETHUSD_66M_config.py.Run_Time_Settings"
 # CONFIG_FILE_DEFAULT = "rlgl_GBPUSD_66M_config.py.Run_Time_Settings"
 # CONFIG_FILE_DEFAULT = "rlgl_EURUSD_66M_config.py.Run_Time_Settings"

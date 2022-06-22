@@ -35,7 +35,7 @@ def cache_func(low, high, close,
     }
 
     # Create a set of all timeframes to resample data to
-    timeframes = set(PEAK_and_ATR_timeframes + EMAs_timeframes)
+    timeframes = tuple(set(tuple(PEAK_and_ATR_timeframes) + tuple(EMAs_timeframes)))
     #
     '''Pre-Resample Data'''
     #
@@ -57,35 +57,6 @@ def cache_func(low, high, close,
             source_freq=timeframe,
             target_freq="1m") if timeframe != '1 min' else None
 
-    '''Pre-Compute Indicators'''
-    # Create a set of PEAK_and_ATR_timeframes
-    PEAK_and_ATR_timeframes = set(PEAK_and_ATR_timeframes)
-    # Create a set of atr_windows
-    atr_windows = set(atr_windows)
-    #
-    for PEAK_and_ATR_timeframe in PEAK_and_ATR_timeframes:
-
-        for atr_window in atr_windows:
-            cache['ATR'][f'{PEAK_and_ATR_timeframe}_{atr_window}'] = vbt.indicators.ATR.run(
-                cache['High'][PEAK_and_ATR_timeframe],
-                cache['Low'][PEAK_and_ATR_timeframe],
-                cache['Close'][PEAK_and_ATR_timeframe],
-                window=atr_window,
-                ewm=False,
-                short_name='atr').atr
-
-    # Create a set of EMAs_timeframes
-    EMAs_timeframes = set(EMAs_timeframes)
-    # Create a set of ema_windows
-    ema_windows = set(ema_1_windows + ema_2_windows)
-    #
-    for EMAs_timeframe in EMAs_timeframes:
-
-        for ema_window in ema_windows:
-            cache['EMA'][f'{EMAs_timeframe}_{ema_window}'] = vbt.MA.run(cache['Close'][EMAs_timeframe],
-                                                                        window=ema_window,
-                                                                        ewm=True).ma
-    gc.collect()
     return cache
 
 
@@ -109,7 +80,13 @@ def apply_function(low_data, high_data, close_data,
     '''ATR Indicator'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     # Fetch pre-computed atr from cache. Uses PEAK_and_ATR_timeframe
-    atr_indicator = cache['ATR'][f'{PEAK_and_ATR_timeframe}_{atr_window}']
+    atr_indicator = vbt.indicators.ATR.run(
+        cache['High'][PEAK_and_ATR_timeframe],
+        cache['Low'][PEAK_and_ATR_timeframe],
+        cache['Close'][PEAK_and_ATR_timeframe],
+        window=atr_window,
+        ewm=False,
+        short_name='atr').atr
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
     '''PeakHigh and PeakLow'''
@@ -140,8 +117,8 @@ def apply_function(low_data, high_data, close_data,
     '''EMA Indicators'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     # Fetch pre-computed ema from cache. Uses EMAs_timeframe
-    ema_1_indicator = cache['EMA'][f'{EMAs_timeframe}_{ema_1_window}']
-    ema_2_indicator = cache['EMA'][f'{EMAs_timeframe}_{ema_2_window}']
+    ema_1_indicator = vbt.MA.run(cache['Close'][EMAs_timeframe], window=ema_1_window, ewm=True).ma
+    ema_2_indicator = vbt.MA.run(cache['Close'][EMAs_timeframe], window=ema_2_window, ewm=True).ma
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
     '''Resample Indicators Back To 1 minute'''
@@ -198,6 +175,7 @@ def apply_function(low_data, high_data, close_data,
     ).vbt.signals.fshift()
     short_exits = long_exits
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    gc.collect()
 
     return long_entries, long_exits, short_entries, short_exits, take_profit_points, stop_loss_points
 
