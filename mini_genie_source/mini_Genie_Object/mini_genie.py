@@ -14,7 +14,7 @@ from logger_tt import logger
 from Analysis_Handler.analysis_handler import compute_stats_remote
 from Equipment_Handler.equipment_handler import CHECKTEMPS
 from Run_Time_Handler.equipment_settings import TEMP_DICT
-from Utilities.general_utilities import rm_field_from_record
+from Utilities.general_utilities import rm_field_from_record, next_path
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -69,7 +69,7 @@ class mini_genie_trader:
         from datetime import datetime
         self.stop_sim_time = self.runtime_settings['Simulation_Settings.timer_limit'] + datetime.now()
         self.continuing = self.runtime_settings["Simulation_Settings.Continue"]
-        self.speed_mode = self.runtime_settings["Simulation_Settings.speed_mode"]
+        self.run_mode = self.runtime_settings["Simulation_Settings.run_mode"]
         #
         self.ACCEPTED_TIMEFRAMES = ['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']
         self.ACCEPTED_TF_TYPES = ['timeframe', 'tf']
@@ -106,21 +106,10 @@ class mini_genie_trader:
                                  )
         #
         # Prepare directories and save file paths
-        self._prepare_directory_paths_for_study()
+        self._prepare_directory_paths_for_study()  # If path to study directory does not exist, self.continuing = False
         #
         self.number_of_parameters_ran = 0
-        if not self.continuing:
-            if path.exists(self.path_of_initial_params_record):
-                remove(self.path_of_initial_params_record)
-            if path.exists(self.path_of_initial_metrics_record):
-                remove(self.path_of_initial_metrics_record)
-            if path.exists(self.path_of_saved_study_config_file):
-                remove(self.path_of_saved_study_config_file)
-            #
-            import shutil
-            shutil.copy2(self.config_file_path, self.path_of_saved_study_config_file)
-        #
-        elif not self.user_pick:
+        if not self.user_pick and self.continuing:
             # Load precomputed params, values, and stats if continuing study
             self._load_initial_params_n_precomputed_metrics()
 
@@ -178,6 +167,22 @@ class mini_genie_trader:
         # pathlib.Path('my_file.txt').suffix
         self.compression_of_initial_params_record = os.path.splitext(file_name_of_initial_params_record)[-1]
         self.compression_of_initial_metrics_record = os.path.splitext(file_name_of_initial_metrics_record)[-1]
+        #
+        _path = f'{self.portfolio_dir_path}/*'
+        if os.path.exists(_path) and not os.path.isfile(_path) and not os.listdir(_path):
+            remove(_path)
+        _path = f'{self.reports_dir_path}/*'
+        if os.path.exists(_path) and not os.path.isfile(_path) and not os.listdir(_path):
+            remove(_path)
+        if path.exists(self.path_of_initial_params_record):
+            remove(self.path_of_initial_params_record)
+        if path.exists(self.path_of_initial_metrics_record):
+            remove(self.path_of_initial_metrics_record)
+        if path.exists(self.path_of_saved_study_config_file):
+            remove(self.path_of_saved_study_config_file)
+        #
+        import shutil
+        shutil.copy2(self.config_file_path, self.path_of_saved_study_config_file)
         #
 
     #
@@ -982,6 +987,7 @@ class mini_genie_trader:
         file_path = self.path_of_initial_metrics_record if not self.user_pick else self.file_name_of_backtest_results
         self._save_record_to_file(merged_array, file_path, write_mode='a')
 
+    # Will be removed in a future update and replaced by simulate_with_post_processing
     def simulate(self):
         """
         In chunks/batches:
@@ -990,7 +996,6 @@ class mini_genie_trader:
            3.  Compute Metrics
            4.  Save Results to file
         """
-
 
         def _analyze_n_save(portfolio_metrics, params_rec, highest_profit_cash_, highest_profit_perc_, best_parameters_,
                             initial_cash_total_, epoch_n_, save_every_nth_chunk=None):
@@ -1034,18 +1039,11 @@ class mini_genie_trader:
                     param_tuple_ = tuple(param_record)
                     param_tuple_ = param_tuple_ + (asset,)
                     metrics_np = tuple(portfolio_metrics[:].loc[tuple(param_tuple_)])
-                    # todo: Keep record of indexes just added and append those to file ...
                     new_index = trial_id + (self.parameters_record_length * ass_index)
                     new_indexes.append(new_index)
-                    # for i in metrics_np:
-                    #     logger.info(f'{i} {metrics_np[i]} {type(i)}')
                     metrics_input = (trial_id, asset) + metrics_np
-                    # logger.info(f'{metrics_input}')
                     self.metrics_record[new_index] = metrics_input
 
-            # return highest_profit_cash_, highest_profit_perc_, best_parameters_
-            # exit()
-            # exit()
             logger.info(f'Time to Analyze Metrics {perf_counter() - tell_metrics_start_timer}')
             #
             # Concat and save the parameter and metric records to file every Nth epoch
@@ -1156,6 +1154,183 @@ class mini_genie_trader:
                                                                                         best_parameters,
                                                                                         initial_cash_total, epoch_n,
                                                                                         save_every_nth_chunk=save_every_nth_chunk)
+            #
+            self.number_of_parameters_ran = self.number_of_parameters_ran + len(epoch_params_record)
+            logger.info(f'Number of parameter combinations ran: {self.number_of_parameters_ran:,}')
+            #
+            logger.info(f'Epoch {epoch_n} took {perf_counter() - start_time} seconds')
+            logger.info(f'\n\n')
+        #
+        # Do a final save !
+        self._save_computed_params_metrics()
+
+    def simulate_with_post_processing(self):
+        """
+        In chunks/batches:
+           1.  Simulate N parameters' indicators
+           2.  Simulate N parameters' events
+           3.  Compute Metrics
+           4.  Save Results to file
+        """
+
+        def _analyze_n_save(portfolio_current, params_rec, highest_profit_cash_, highest_profit_perc_, best_parameters_,
+                            initial_cash_total_, epoch_n_, save_every_nth_chunk=None):
+            '''Reconstruct Metrics from Order Records and Save'''
+
+            logger.info('Reconstructing Portfolio Stats')
+            compute_stats_timer = perf_counter()
+            split_metric_names = np.array_split(self.metrics_key_names, len(self.metrics_key_names) / 3)
+            pf_id = ray.put(portfolio_current)
+            func_calls = [compute_stats_remote.remote(pf_id, metric_chunk) for metric_chunk in split_metric_names]
+            #
+            # Compute All metrics in Chunk, returns [*Dataframes]
+            compute_stats_results = ray.get(func_calls)
+            #
+            # Join all Metrics
+            portfolio_metrics = compute_stats_results[0].join(compute_stats_results[1:])
+            #
+            logger.info(f'Time to Reconstruct Metrics {perf_counter() - compute_stats_timer}')
+            #
+            tell_metrics_start_timer = perf_counter()
+            #
+            # Used for Printing
+            highest_profit_this_epoch = portfolio_metrics['Total Return [%]'].max()
+            highest_cash_profit_this_epoch = highest_profit_this_epoch * initial_cash_total_ / 100
+            best_parameters_this_epoch = portfolio_metrics['Total Return [%]'].idxmax()
+            #
+            if highest_cash_profit_this_epoch > highest_profit_cash_:
+                highest_profit_cash_ = highest_cash_profit_this_epoch
+                highest_profit_perc_ = highest_profit_this_epoch
+                best_parameters_ = best_parameters_this_epoch
+            #
+            logger.info(
+                f'Highest Profit so far: {highest_profit_cash_:,}   \N{money-mouth face}\N{money bag}: '
+                f'{highest_profit_perc_} of a ${initial_cash_total_:,} account')
+            logger.info(f'Best Param so far: {best_parameters_}  \N{money with wings}')
+            #
+            logger.info(f'  -> highest_profit_cash this epoch {highest_cash_profit_this_epoch:,}')
+            logger.info(f'  -> best_param this epoch {best_parameters_this_epoch}')
+            #
+            # clean up porfolio
+            portfolio_metrics.fillna(0.0)
+            for name, values in portfolio_metrics.items():
+                portfolio_metrics[name] = portfolio_metrics[name].astype(float).fillna(0.0)
+            #
+            # Fill metric record with new metric values
+            new_indexes = []
+            for _index, param_record in enumerate(params_rec):
+                trial_id = param_record["trial_id"]
+                param_record = rm_field_from_record(param_record, 'trial_id')
+                #
+                for ass_index, asset in enumerate(self.asset_names):
+                    param_tuple_ = tuple(param_record)
+                    param_tuple_ = param_tuple_ + (asset,)
+                    metrics_np = tuple(portfolio_metrics[:].loc[tuple(param_tuple_)])
+                    # todo: Keep record of indexes just added and append those to file ...
+                    new_index = trial_id + (self.parameters_record_length * ass_index)
+                    new_indexes.append(new_index)
+                    # for i in metrics_np:
+                    #     logger.info(f'{i} {metrics_np[i]} {type(i)}')
+                    metrics_input = (trial_id, asset) + metrics_np
+                    # logger.info(f'{metrics_input}')
+                    self.metrics_record[new_index] = metrics_input
+
+            logger.info(f'Time to Analyze Metrics {perf_counter() - tell_metrics_start_timer}')
+            #
+            # Save Portfolio after each epoch
+            logger.info(f"Saving Portfolio for Post-Processing {epoch_n_}")
+            save_start_timer = perf_counter()
+            file_path = next_path(f'{self.portfolio_dir_path}/pf_%s.pickle')
+            logger.info(f'{file_path = }')
+            portfolio_current.save(file_path)
+            logger.info(f'Time to Save Portfolio {perf_counter() - save_start_timer} during epoch {epoch_n_}')
+            #
+            # Save the parameter and metric records to file
+            logger.info(f"Saving epoch {epoch_n_}")
+            save_start_timer = perf_counter()
+            self._save_computed_params_metrics(new_indexes)
+            #
+            logger.info(f'Time to Save Records {perf_counter() - save_start_timer} during epoch {epoch_n_}')
+            #
+            return highest_profit_cash_, highest_profit_perc_, best_parameters_
+
+        batch_size = self.batch_size
+        # self.parameters_record_length = len(ray.get(self.parameters_record))
+        self.parameters_record_length = len(self.parameters_record)
+        #
+        from Simulation_Handler.simulation_handler import Simulation_Handler
+        # from Analysis_Handler.analysis_handler import Analysis_Handler`
+        simulation_handler = Simulation_Handler(self)
+        # analysis_handler = Analysis_Handler(self)
+        #
+        # simulation_handler_id, analysis_handler_id = put_objects_list_to_ray([simulation_handler, analysis_handler])
+        # simulation_handler_id, analysis_handler_id = simulation_handler, analysis_handler
+        #
+        highest_profit_cash = -sys.maxsize
+        highest_profit_perc = -sys.maxsize
+        best_parameters = None
+        #
+        initial_cash_total = self.runtime_settings["Portfolio_Settings.init_cash"]
+        stop_after_n_epoch = self.runtime_settings["Simulation_Settings.Initial_Search_Space.stop_after_n_epoch"]
+        save_every_nth_chunk = self.runtime_settings["Simulation_Settings.save_every_nth_chunk"]
+        #
+        # If metrics record empty then initiate
+        if not any(self.metrics_record):
+            self._initiate_metric_records(add_ids=True, params_size=self.parameters_record_length * len(
+                self.asset_names))  # we need n_assets as many metric elements as there are trial.params
+        else:
+            highest_profit_perc = np.max(self.metrics_record["Total Return [%]"])
+            #
+            highest_profit_cash = highest_profit_perc * initial_cash_total / 100
+            # self.parameters_record[]
+
+        if not self.user_pick:
+            # Get an array of indexes remaining to compute
+            from Utilities.general_utilities import fetch_non_filled_elements_indexes
+            # Since metric_record is n_assets times bigger than parameters_record,and because metrics record just
+            #   repeats every 1/n_assets of the array we only need the first portion it
+            trials_ids_not_computed = fetch_non_filled_elements_indexes(
+                self.metrics_record[:self.parameters_record_length])
+
+            # Take elements from parameter record that match with trials_ids_not_computed
+            # params_to_compute = np.take(ray.get(self.parameters_record), trials_ids_not_computed)
+            params_to_compute = np.take(self.parameters_record, trials_ids_not_computed)
+        else:
+            params_to_compute = self.parameters_record
+        #
+
+        # Get max n_chunks given max batch_size
+        n_chunks = int(np.floor(len(params_to_compute) / batch_size)) if batch_size < len(params_to_compute) else 1
+        # Split arrays into n_chunks
+        chunks_of_params_left_to_compute = np.array_split(params_to_compute, n_chunks)
+        #
+        # from Utilities.general_utilities import put_objects_list_to_ray
+        # chunks_ids_of_params_left_to_compute = put_objects_list_to_ray(chunks_of_params_left_to_compute)
+        # for epoch_n, epoch_params_record_id in enumerate(chunks_of_params_left_to_compute):
+        for epoch_n, epoch_params_record in enumerate(chunks_of_params_left_to_compute):
+            if epoch_n == stop_after_n_epoch:
+                break
+            #
+            start_time = perf_counter()
+            CHECKTEMPS(TEMP_DICT)
+            #
+            long_entries, long_exits, short_entries, short_exits, \
+            strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params_record)
+            #
+            pf, extra_sim_info = simulation_handler.simulate_events(long_entries, long_exits,
+                                                                    short_entries, short_exits,
+                                                                    strategy_specific_kwargs)
+            #
+            '''Reconstruct Metrics from Order Records and Save'''
+            #
+            highest_profit_cash, highest_profit_perc, best_parameters = _analyze_n_save(
+                pf,
+                epoch_params_record,
+                highest_profit_cash,
+                highest_profit_perc,
+                best_parameters,
+                initial_cash_total, epoch_n,
+                save_every_nth_chunk=save_every_nth_chunk)
             #
             self.number_of_parameters_ran = self.number_of_parameters_ran + len(epoch_params_record)
             logger.info(f'Number of parameter combinations ran: {self.number_of_parameters_ran:,}')

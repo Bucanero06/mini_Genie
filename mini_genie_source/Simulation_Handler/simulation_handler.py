@@ -117,9 +117,9 @@ class Simulation_Handler:
             batch_size_
         )
 
-        '''Save Portfolio after each epoch'''  # (3)_n-1
-        pf.save(
-            f'{self.genie_object.portfolio_dir_path}/{self.genie_object.runtime_settings["Portfolio_Settings.saved_pf_optimization"]}')
+        # '''Save Portfolio after each epoch'''  # (3)_n-1
+        # pf.save(
+        #     f'{self.genie_object.portfolio_dir_path}/{self.genie_object.runtime_settings["Portfolio_Settings.saved_pf_optimization"]}')
 
         gc.collect()
         return pf, extra_sim_info

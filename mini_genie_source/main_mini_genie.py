@@ -11,6 +11,7 @@ def call_genie(run_time_settings, arg_parser_values):
     The genie object works as an operator, can act on itself through its methods, can be acted upon by other 
         operators, and must always return the latest state of genie_operator.
      '''
+
     genie_object = mini_genie_trader(runtime_kwargs=run_time_settings, args=arg_parser_values)
 
     if arg_parser_values.metrics_to_tsv:
@@ -50,17 +51,32 @@ def call_genie(run_time_settings, arg_parser_values):
         #   Fills:           genie_object._initiate_parameters_records
         genie_object.suggest_parameters()
 
-        # In chunks/batches:
-        #    1.  Simulate N parameters' indicators
-        #    2.  Simulate N parameters' events
-        #    3.  Compute Metrics
-        #    4.  Save Results to file
-        genie_object.simulate()
+        if run_time_settings["Simulation_Settings"]["run_mode"] == "ludicrous":
+            # In chunks/batches:
+            #    1.  Simulate N parameters' indicators
+            #    2.  Simulate N parameters' events
+            #    3.  Compute Metrics
+            #    4.  Save Results to file
+
+            genie_object.simulate()
+        elif run_time_settings["Simulation_Settings"]["run_mode"] == "plaid_plus":
+            #
+            genie_object.simulate_with_post_processing()
+
+        else:
+            logger.error("Given run_mode is not known, please refer to documentation for accepted inputs")
     #
     elif arg_parser_values.user_pick:
         genie_object.prepare_backtest()
         #
         genie_object.simulate()
+    #
+    if arg_parser_values.post_analysis and genie_object.continuing:
+        from Utilities.general_utilities import Execute
+        # self.args.post_analysis_path
+        from os.path import abspath
+        study_dir_abs_path = abspath(genie_object.study_dir_path)
+        Execute(f'python {arg_parser_values.post_analysis_path} -s {study_dir_abs_path} ')
     #
     logger.info('All Done')
 

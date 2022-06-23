@@ -64,7 +64,7 @@ class mini_genie_trader:
         from datetime import datetime
         self.stop_sim_time = self.runtime_settings['Simulation_Settings.timer_limit'] + datetime.now()
         self.continuing = self.runtime_settings["Simulation_Settings.Continue"]
-        self.speed_mode = self.runtime_settings["Simulation_Settings.speed_mode"]
+        self.run_mode = self.runtime_settings["Simulation_Settings.run_mode"]
         #
         self.ACCEPTED_TIMEFRAMES = ['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']
         self.ACCEPTED_TF_TYPES = ['timeframe', 'tf']
@@ -965,7 +965,7 @@ class mini_genie_trader:
            4.  Save Results to file
         """
 
-        if self.speed_mode == 'plaid_plus':
+        if self.run_mode == 'plaid_plus':
             self._simulate_in_plaid_plus_mode()
             return
 

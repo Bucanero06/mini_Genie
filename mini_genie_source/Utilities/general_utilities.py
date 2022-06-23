@@ -155,3 +155,43 @@ def indexes_where_eq_1d(array, value):
         array = np.array(array)
     #
     return np.where(array == value)[0]
+
+
+def next_path(path_pattern):
+    import os
+
+    """
+    Finds the next free path in an sequentially named list of files
+
+    e.g. path_pattern = 'file-%s.txt':
+
+    file-1.txt
+    file-2.txt
+    file-3.txt
+
+    Runs in log(n) time where n is the number of existing files in sequence
+    """
+    i = 1
+
+    # First do an exponential search
+    while os.path.exists(path_pattern % i):
+        i = i * 2
+
+    # Result lies somewhere in the interval (i/2..i]
+    # We call this interval (a..b] and narrow it down until a + 1 = b
+    a, b = (i // 2, i)
+    while a + 1 < b:
+        c = (a + b) // 2  # interval midpoint
+        a, b = (c, b) if os.path.exists(path_pattern % c) else (a, c)
+
+    return path_pattern % b
+
+
+def Execute(command):
+    from subprocess import Popen, PIPE, CalledProcessError
+    # >Executes to command line
+    with Popen(command, stdout=PIPE, bufsize=1, universal_newlines=True, shell=True) as p:
+        for line in p.stdout:
+            print(line, end='')  # process line here
+    if p.returncode != 0:
+        raise CalledProcessError(p.returncode, p.args)

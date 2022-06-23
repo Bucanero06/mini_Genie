@@ -3,8 +3,9 @@ import argparse
 
 from logger_tt import logger
 
-GP_DEFAULT = True
+GP_DEFAULT = False
 UP_DEFAULT = False
+POST_ANALYSIS_DEFAULT = True
 TSV_DEFAULT = False
 CONFIG_FILE_DEFAULT = False
 EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings.py"
@@ -12,6 +13,8 @@ EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings
 #
 
 CONFIG_FILE_DEFAULT = "mmt_debug_config.py.debug_settings"
+
+
 # CONFIG_FILE_DEFAULT = "mmt_USA30_config.py.Run_Time_Settings"
 # CONFIG_FILE_DEFAULT = "mmt_DAXUSD_config.py.Run_Time_Settings"
 
@@ -57,6 +60,9 @@ class run_time_handler:
         general_group.add_argument("-up", help="Simulate using solely the user picked space", dest="user_pick",
                                    action='store_true',
                                    default=UP_DEFAULT)
+        general_group.add_argument("-pa", help="Calls Genie's post analysis module", dest="post_analysis",
+                                   action='store_true',
+                                   default=POST_ANALYSIS_DEFAULT)
         # default=True)
         general_group.add_argument("-tsv",
                                    help="Convert csv to tsv previously computed metric files. File will vary based on "
@@ -84,15 +90,13 @@ class run_time_handler:
         self.parser = parser
         self.parser.set_defaults(func=run_function)
         self.args = self.parser.parse_args()
-
-        if self.args.run_time_dictionary_path:
-            self.run_time_module_path, self.run_time_dictionary_name = self.args.run_time_dictionary_path.rsplit('.', 1)
         #
         if self.args.create_example_file:
             self.create_example()
             exit()
         #
         elif self.args.run_time_dictionary_path:
+            self.run_time_module_path, self.run_time_dictionary_name = self.args.run_time_dictionary_path.rsplit('.', 1)
             # Check that a command has been passed
             if not any([vars(self.args)[i] for i in vars(self.args) if i not in ['func', 'run_time_dictionary_path']]):
                 logger.warning("No action requested, exiting ...")
@@ -107,6 +111,11 @@ class run_time_handler:
             parser.print_help()
 
             exit()
+        #
+        if self.args.post_analysis:
+            # fetch paths to add-ons for Genie
+            from genie_add_ons_paths import genie_add_ons_paths
+            self.args.post_analysis_path = genie_add_ons_paths["post_analysis_main"]
         #
 
     def create_example(self):
