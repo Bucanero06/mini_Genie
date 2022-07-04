@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import datetime
 
-debug_settings = dict(
+Run_Time_Settings = dict(
     # Data Settings
     Data_Settings=dict(
         load_CSV_from_pickle=True,  # momentary
@@ -31,7 +31,7 @@ debug_settings = dict(
     ),
 
     Simulation_Settings=dict(
-        study_name='mmt_debug',
+        study_name='mmt_USA30_update_66M',
         optimization_period=dict(
             start_date=datetime.datetime(month=2, day=1, year=2022),
             end_date=datetime.datetime(month=6, day=3, year=2022)
@@ -42,14 +42,14 @@ debug_settings = dict(
         Continue=True,
         run_mode="plaid_plus",  # todo: ["ludicrous","plaid_plus"]
         #
-        batch_size=100,
+        batch_size=5000,
         save_every_nth_chunk=1,
         Initial_Search_Space=dict(
             # _extensions available -> csv and gzip
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            max_initial_combinations=33_000_000,
+            max_initial_combinations=66_000_000,
             stop_after_n_epoch=None,
             # force_to_finish=True,  # todo: logic missing
             #
@@ -61,8 +61,10 @@ debug_settings = dict(
                     bar_atr_periods=[14],  # todo multiple inputs
                     bar_atr_multiplier=[3],  # todo multiple inputs
                     #
-                    n_ratios=[0.2, 0.5, 1, 1.5, 2],
-                    gamma_ratios=[0.5, 1, 1.5, 2, 2.5, 3],
+                    # n_ratios=[0.2, 0.5, 1, 1.5, 2],
+                    # gamma_ratios=[0.5, 1, 1.5, 2, 2.5, 3],
+                    n_ratios=[0.5, 1, 1.5],  # Scaling factor for \bar{ATR}
+                    gamma_ratios=[0.5, 1, 1.5],  # Risk Reward Ratio
                     number_of_bar_trends=1,
                 ),
             ),
@@ -74,7 +76,7 @@ debug_settings = dict(
                 # 'Benchmark Return [%]',
                 # 'Max Gross Exposure [%]',
                 # 'Total Fees Paid',
-                'Max Drawdown [%]',
+                # 'Max Drawdown [%]',
                 'Expectancy',
                 'Total Trades',
                 # 'Win Rate [%]',
@@ -103,7 +105,7 @@ debug_settings = dict(
         #
         sim_timeframe='1m',
         JustLoadpf=False,
-        slippage=0,  # 0.0001,
+        slippage=200,  # 0.0001,
         trading_fees=0.00005,  # 0.00005 or 0.005%, $5 per $100_000
         cash_sharing=False,
         group_by=[],  # Leave blank
@@ -112,7 +114,7 @@ debug_settings = dict(
         # max_orders=-1,
         init_cash=1_000_000,
         size_type='cash',  # 'shares',  # cash or shares
-        size=25_000,  # cash, else set size type to shares for share amount
+        size=100_000,  # cash, else set size type to shares for share amount
         type_percent=False,  # if true then take_profit and stop_loss are given in percentages, else cash amount
 
     ),
@@ -129,8 +131,8 @@ debug_settings = dict(
             ema_1_windows=dict(type='window', lower_bound=5, upper_bound=45, min_step=1),
             ema_2_windows=dict(type='window', lower_bound=20, upper_bound=60, min_step=1),
             #
-            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=10000, min_step=10),
-            stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=10000, min_step=10),
+            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=100000, min_step=100),
+            stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=100000, min_step=100),
 
         ),
         strategy_user_picked_params=dict(

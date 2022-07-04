@@ -14,7 +14,7 @@ from logger_tt import logger
 from Analysis_Handler.analysis_handler import compute_stats_remote
 from Equipment_Handler.equipment_handler import CHECKTEMPS
 from Run_Time_Handler.equipment_settings import TEMP_DICT
-from Utilities.general_utilities import rm_field_from_record, next_path
+from Utilities.general_utilities import rm_field_from_record, next_path, create_dir
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -119,7 +119,6 @@ class mini_genie_trader:
             object:
 
         """
-        from Utilities.general_utilities import create_dir
 
         logger.debug('''Create Folders if needed''')
         studies_directory = 'Studies'
@@ -145,11 +144,19 @@ class mini_genie_trader:
             self.continuing = False
         #
         create_dir(studies_directory)
-        create_dir(study_dir_path)
-        create_dir(portfolio_dir_path)
-        create_dir(reports_dir_path)
         create_dir(data_dir_path)
-        create_dir(misc_dir_path)
+        #
+        dirs = [
+            study_dir_path,
+            portfolio_dir_path,
+            reports_dir_path,
+            misc_dir_path,
+        ]
+        create_dir(dirs, delete_content=~self.continuing)
+        # create_dir(study_dir_path)
+        # create_dir(portfolio_dir_path)
+        # create_dir(reports_dir_path)
+        # create_dir(misc_dir_path)
 
         self.study_dir_path = study_dir_path
         self.portfolio_dir_path = portfolio_dir_path
@@ -165,25 +172,20 @@ class mini_genie_trader:
 
         #
         # pathlib.Path('my_file.txt').suffix
-        self.compression_of_initial_params_record = os.path.splitext(file_name_of_initial_params_record)[-1]
-        self.compression_of_initial_metrics_record = os.path.splitext(file_name_of_initial_metrics_record)[-1]
+        self.compression_of_initial_params_record = file_name_of_initial_params_record.rsplit('.', 1)[-1]
+        self.compression_of_initial_params_record = file_name_of_initial_metrics_record.rsplit('.', 1)[-1]
         #
-        _path = f'{self.portfolio_dir_path}/*'
-        if os.path.exists(_path) and not os.path.isfile(_path) and not os.listdir(_path):
-            remove(_path)
-        _path = f'{self.reports_dir_path}/*'
-        if os.path.exists(_path) and not os.path.isfile(_path) and not os.listdir(_path):
-            remove(_path)
-        if path.exists(self.path_of_initial_params_record):
-            remove(self.path_of_initial_params_record)
-        if path.exists(self.path_of_initial_metrics_record):
-            remove(self.path_of_initial_metrics_record)
-        if path.exists(self.path_of_saved_study_config_file):
-            remove(self.path_of_saved_study_config_file)
-        #
-        import shutil
-        shutil.copy2(self.config_file_path, self.path_of_saved_study_config_file)
-        #
+        if not self.continuing:
+            if path.exists(self.path_of_initial_params_record):
+                remove(self.path_of_initial_params_record)
+            if path.exists(self.path_of_initial_metrics_record):
+                remove(self.path_of_initial_metrics_record)
+            if path.exists(self.path_of_saved_study_config_file):
+                remove(self.path_of_saved_study_config_file)
+            #
+            import shutil
+            shutil.copy2(self.config_file_path, self.path_of_saved_study_config_file)
+            #
 
     #
     def _load_initial_params_n_precomputed_metrics(self):
@@ -203,7 +205,7 @@ class mini_genie_trader:
         #
         if os.path.exists(path_of_initial_params_record):
             logger.info(f'Loading parameters from file {path_of_initial_params_record}  ...')
-            if self.compression_of_initial_params_record == '.csv':
+            if self.compression_of_initial_params_record == 'csv':
                 parameter_df = pd.read_csv(path_of_initial_params_record)
             else:
                 parameter_df = pd.read_pickle(path_of_initial_params_record)
@@ -229,10 +231,7 @@ class mini_genie_trader:
             if os.path.exists(path_of_initial_metrics_record):
                 logger.info(f'Loading metrics from file {path_of_initial_metrics_record}  ...')
                 # column_names = list(self.key_names) + self.runtime_settings['Simulation_Settings.Loss_Function.metrics']
-                if self.compression_of_initial_metrics_record == '.csv':
-                    metrics_df = pd.read_csv(path_of_initial_metrics_record)
-                else:
-                    metrics_df = pd.read_pickle(path_of_initial_metrics_record)
+                metrics_df = pd.read_csv(path_of_initial_metrics_record)
                 #
                 # Determine number of parameter combinations ran
                 self.number_of_parameters_ran = int(len(metrics_df) / len(self.asset_names))
@@ -284,7 +283,7 @@ class mini_genie_trader:
         if self.user_defined_param_file_bool:
             # load parameters (will only use parameter columns), create empty record with same length, fill with set of parameters
             parameter_df = pd.read_csv(self.user_defined_param_file) \
-                if os.path.splitext(self.user_defined_param_file)[-1] == '.csv' \
+                if self.user_defined_param_file.rsplit('.', 1)[-1] == 'csv' \
                 else pd.read_pickle(self.user_defined_param_file)  # fixme looks ugly
             #
             parameter_df = parameter_df[list(self.key_names)]
@@ -671,6 +670,8 @@ class mini_genie_trader:
         """
         from Simulation_Handler.compute_bar_atr import compute_bar_atr
         self.bar_atr = compute_bar_atr(self)
+        from pprint import pprint
+        pprint(self.bar_atr)
 
     @staticmethod
     def _fill_tp_sl_n_skip_out_of_bound_suggestions(tp_sl_record, tp_sl_0, n_ratios, gamma_ratios, tick_size,
@@ -955,13 +956,13 @@ class mini_genie_trader:
     @staticmethod
     def _save_record_to_file(record, path_to_file, extension=None, write_mode='w'):
         if not extension:
-            extension = os.path.splitext(path_to_file)[-1]
+            extension = path_to_file.rsplit('.', 1)[-1]
         import pandas as pd
         df = pd.DataFrame(record).set_index('trial_id')
         if path.exists(path_to_file) and write_mode == 'a':
             df.to_csv(path_to_file, mode=write_mode, header=False)
         else:
-            df.to_csv(path_to_file) if extension == '.csv' else df.to_pickle(path_to_file)
+            df.to_csv(path_to_file) if extension == 'csv' else df.to_pickle(path_to_file)
         #
 
     def _save_computed_params_metrics(self, new_indexes=None):
@@ -1130,7 +1131,6 @@ class mini_genie_trader:
             logger.info('Reconstructing Portfolio Stats')
             compute_stats_timer = perf_counter()
             func_calls = []
-            # split_metric_names = np.array_split(self.metrics_key_names, len(self.metrics_key_names) / 2)
             split_metric_names = np.array_split(self.metrics_key_names, len(self.metrics_key_names) / 3)
             pf_id = ray.put(pf)
             for metric_chunk in split_metric_names:
@@ -1138,9 +1138,10 @@ class mini_genie_trader:
             #
             # Compute All metrics in Chunk, returns [*Dataframes]
             compute_stats_results = ray.get(func_calls)
-            #
+
             # Join all Metrics
             portfolio_stats = compute_stats_results[0].join(compute_stats_results[1:])
+
             ...
             #
             # portfolio_stats = compute_stats(pf, self.metrics_key_names)
@@ -1188,7 +1189,7 @@ class mini_genie_trader:
             #
             # Join all Metrics
             portfolio_metrics = compute_stats_results[0].join(compute_stats_results[1:])
-            #
+
             logger.info(f'Time to Reconstruct Metrics {perf_counter() - compute_stats_timer}')
             #
             tell_metrics_start_timer = perf_counter()
@@ -1349,7 +1350,7 @@ class mini_genie_trader:
     def _metric_record_to_tsv(self):
         original_file_path = self.path_of_initial_metrics_record if not self.user_pick else self.file_name_of_backtest_results
         #
-        original_file_path_without_extension = os.path.splitext(original_file_path)[:-1]
+        original_file_path_without_extension = original_file_path.rsplit('.', 1)[:-1]
         df = pd.DataFrame(self.metrics_record).set_index('trial_id')
         df.to_csv(f'{original_file_path_without_extension}.tsv', delimiter='\t')
 
@@ -1357,14 +1358,11 @@ class mini_genie_trader:
         original_file_path = self.path_of_initial_metrics_record if not self.user_pick else self.file_name_of_backtest_results
         #
         if os.path.exists(original_file_path):
-            if self.compression_of_initial_metrics_record == '.csv':
-                metrics_df = pd.read_csv(original_file_path)
-            else:
-                metrics_df = pd.read_pickle(original_file_path)
+            metrics_df = pd.read_csv(original_file_path)
             #
             logger.info(f'Loaded metrics csv')
             #
-            original_file_path_without_extension = os.path.splitext(original_file_path)[0]
+            original_file_path_without_extension = original_file_path.rsplit('.', 1)[0]
             #
             metrics_df.set_index('trial_id', inplace=True)
             metrics_df.to_csv(f'{original_file_path_without_extension}.tsv', sep='\t')

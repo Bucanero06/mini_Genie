@@ -39,7 +39,7 @@ debug_settings = dict(
         #
         timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # todo: logic missing,not used/needed
         Continue=True,
-        speed_mode="eco_friendly",  # ["eco_friendly","ludicrous","plaid_plus"]
+        run_mode="eco_friendly",  # ["eco_friendly","ludicrous","plaid_plus"]
         #
         # # whenever continuing, load parameter combs, then delete all with no trade ones, shuffle,
         # # fill in values with trades, then start run with the ones that are missing
@@ -60,7 +60,7 @@ debug_settings = dict(
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            max_initial_combinations=1_000_000,
+            max_initial_combinations=33_000_000,
             stop_after_n_epoch=None,
             # force_to_finish=True,  # todo: logic missing
             #

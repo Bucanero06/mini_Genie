@@ -34,27 +34,15 @@ Run_Time_Settings = dict(
         study_name='mmt_USA30_66M',
         optimization_period=dict(
             start_date=datetime.datetime(month=2, day=1, year=2022),
-            end_date=datetime.datetime(month=6, day=17, year=2022)
+            end_date=datetime.datetime(month=6, day=3, year=2022)
             # end_date=datetime.datetime(month=10, day=1, year=2021)
         ),
         #
         timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # todo: logic missing,not used/needed
         Continue=True,
-        speed_mode="eco_friendly",  # ["eco_friendly","ludicrous","plaid_plus"]
+        run_mode="plaid_plus",  # todo: ["ludicrous","plaid_plus"]
         #
-        # # whenever continuing, load parameter combs, then delete all with no trade ones, shuffle,
-        # # fill in values with trades, then start   run with the ones that are missing
-        # soft_reset=False,  # todo: section of code missing
-        # # Same as soft reset, but saves ones with trades in a different file and computes the rest
-        # medium_reset=False,  # todo: section of code missing
-        # # Deletes files and starts again from scratch with settings
-        # hard_reset=False,  # todo: section of code missing
-        # #
-        # reset_withouts_those_with_no_trials=False,  # todo: section of code missing
-        # reset_withouts_those_with_negative_profits=False,  # todo: section of code missing
-        # reset_withouts_any_ran_ones=False,  # todo: section of code missing
-        #
-        batch_size=1000,
+        batch_size=5000,
         save_every_nth_chunk=1,
         Initial_Search_Space=dict(
             # _extensions available -> csv and gzip
@@ -83,20 +71,21 @@ Run_Time_Settings = dict(
         Loss_Function=dict(
             metrics=[
                 'Total Return [%]',
-                'Benchmark Return [%]',
-                'Max Gross Exposure [%]',
-                'Total Fees Paid',
-                'Max Drawdown [%]',
+                # 'Benchmark Return [%]',
+                # 'Max Gross Exposure [%]',
+                # 'Total Fees Paid',
+                # 'Max Drawdown [%]',
+                'Expectancy',
                 'Total Trades',
-                'Win Rate [%]',
-                'Best Trade [%]',
-                'Worst Trade [%]',
-                'Avg Winning Trade [%]',
-                'Avg Losing Trade [%]',
-                'Profit Factor',
-                'Sharpe Ratio',
-                'Omega Ratio',
-                'Sortino Ratio',
+                # 'Win Rate [%]',
+                # 'Best Trade [%]',
+                # 'Worst Trade [%]',
+                # 'Avg Winning Trade [%]',
+                # 'Avg Losing Trade [%]',
+                # 'Profit Factor',
+                # 'Sharpe Ratio',
+                # 'Omega Ratio',
+                # 'Sortino Ratio',
             ],
         ),
         #
@@ -114,8 +103,6 @@ Run_Time_Settings = dict(
         #
         sim_timeframe='1m',
         JustLoadpf=False,
-        saved_pf_backtest='My_pf_backtest',
-        saved_pf_optimization='My_pf_optimization',
         slippage=0,  # 0.0001,
         trading_fees=0.00005,  # 0.00005 or 0.005%, $5 per $100_000
         cash_sharing=False,
@@ -125,7 +112,7 @@ Run_Time_Settings = dict(
         # max_orders=-1,
         init_cash=1_000_000,
         size_type='cash',  # 'shares',  # cash or shares
-        size=25_000,  # cash, else set size type to shares for share amount
+        size=100_000,  # cash, else set size type to shares for share amount
         type_percent=False,  # if true then take_profit and stop_loss are given in percentages, else cash amount
 
     ),

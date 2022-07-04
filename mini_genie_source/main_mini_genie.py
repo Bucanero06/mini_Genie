@@ -71,7 +71,8 @@ def call_genie(run_time_settings, arg_parser_values):
         #
         genie_object.simulate()
     #
-    if arg_parser_values.post_analysis and genie_object.continuing:
+    from Utilities.general_utilities import is_empty_dir
+    if arg_parser_values.post_analysis and not is_empty_dir(genie_object.portfolio_dir_path):
         from Utilities.general_utilities import Execute
         # self.args.post_analysis_path
         from os.path import abspath
