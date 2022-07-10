@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from setuptools import setup, find_packages
 
 setup(
@@ -10,6 +11,4 @@ setup(
     author_email='Ruben@MoonShoot.codes',
     description='An efficient ab-initio method of simulating the financial markets on billions of parameter combinations'
 )
-from os import system
 
-system('pip3 install .')

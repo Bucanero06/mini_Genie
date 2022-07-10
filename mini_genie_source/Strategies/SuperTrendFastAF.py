@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import numpy as np
 from numba import njit
 import vectorbtpro as vbt
@@ -262,9 +263,9 @@ def SuperTrendFastAF(open_data, low_data, high_data, close_data, parameter_data)
         take_profit_points=0,
         take_profit_point_parameters=0,
         #
-        stoploss_bool=False,  # Master_Indicator.stoploss_bool,
-        stoploss_points=0,
-        stoploss_points_parameters=0,
+        stop_loss_bool=False,  # Master_Indicator.stop_loss_bool,
+        stop_loss_points=0,
+        stop_loss_points_parameters=0,
     )
     # print(long_entries.head())
 

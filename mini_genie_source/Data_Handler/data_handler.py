@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+import gc
 import warnings
 
 import pandas as pd
@@ -60,10 +62,15 @@ class Data_Handler:
         """
         logger.info(f'Fetching Data')
         #
-        if self.genie_object.runtime_settings['Data_Settings.load_CSV_from_pickle']:
+
+        load_from_pickle = self.genie_object.runtime_settings['Data_Settings.load_CSV_from_pickle']
+        continuing_study = self.genie_object.continuing
+
+
+        if load_from_pickle and continuing_study:
             logger.warning("Loading data from pickle not reading from CSV")
             symbols_data = vbt.Data.load(
-                f'{self.genie_object.data_dir_path}/{self.genie_object.runtime_settings["Data_Settings.saved_data_file"]}')
+                f'{self.genie_object.study_dir_path}/{self.genie_object.runtime_settings["Data_Settings.saved_data_file"]}')
 
         else:
             import multiprocessing as mp
@@ -106,7 +113,7 @@ class Data_Handler:
             Cut DF
         """
         df_index = df.index
-        mask = (df_index > start_date) & (df_index <= end_date)
+        mask = (df_index >= start_date) & (df_index <= end_date)
         return df.loc[mask]
 
     def break_up_olhc_data_from_symbols_data(self) -> object:
@@ -184,6 +191,14 @@ class Data_Handler:
                                                       self.genie_object.optimization_start_date - bar_atr_days,
                                                       self.genie_object.optimization_start_date - one_day)
 
+        logger.info(f'\\bar_ATR Warm-Up Data')
+        logger.info(
+            f'Optimization Data -> From: {bar_atr_close_data.index[0]} to {bar_atr_close_data.index[len(bar_atr_close_data) - 1]}')
+        #
+        logger.info(f'\n')
+        logger.info(
+            f'Optimization Data -> From: {optimization_close_data.index[0]} to {optimization_close_data.index[len(optimization_close_data) - 1]}')
+
         # # Set Optimization Data Attr's (ray.put)
         setattr(self.genie_object, "optimization_open_data", ray.put(optimization_open_data))
         setattr(self.genie_object, "optimization_low_data", ray.put(optimization_low_data))
@@ -196,17 +211,22 @@ class Data_Handler:
         setattr(self.genie_object, "bar_atr_high_data", ray.put(bar_atr_high_data))
         setattr(self.genie_object, "bar_atr_close_data", ray.put(bar_atr_close_data))
         #
-        # Set Optimization Data Attr's
-        # setattr(self.genie_object, "optimization_open_data", optimization_open_data)
-        # setattr(self.genie_object, "optimization_low_data", optimization_low_data)
-        # setattr(self.genie_object, "optimization_high_data", optimization_high_data)
-        # setattr(self.genie_object, "optimization_close_data", optimization_close_data)
-        # #
-        # # Set \bar{ATR} Data Attr's
-        # setattr(self.genie_object, "bar_atr_open_data", bar_atr_open_data)
-        # setattr(self.genie_object, "bar_atr_low_data", bar_atr_low_data)
-        # setattr(self.genie_object, "bar_atr_high_data", bar_atr_high_data)
-        # setattr(self.genie_object, "bar_atr_close_data", bar_atr_close_data)
+        gc.collect()
         return self
 
         ...
+
+    # def set_to_m_d_y_h_m_s(self,):
+    #     import pandas as pd
+    #     from datetime import datetime
+    #
+    #     custom_date_parser = lambda x: datetime.strptime(x, "%d.%m.%Y %H:%M:%S")
+    #     df = pd.read_csv('Datas/DAX.csv',
+    #                      parse_dates=['Datetime'],
+    #                      date_parser=custom_date_parser)
+    #
+    #     df["Datetime"] = pd.to_datetime(df["Datetime"]).dt.strftime("%m.%d.%Y %H:%M:%S")
+    #     df.set_index("Datetime", inplace=True)
+    #     df.to_csv('Datas/DAX.csv')
+    #     print(df)
+    #     exit()

@@ -1,4 +1,9 @@
+#!/usr/bin/env python3
 import json
+import os.path
+import sys
+from os import remove, listdir
+from os.path import exists, isfile
 
 import numpy as np
 import pandas as pd
@@ -85,7 +90,7 @@ class NpEncoder(json.JSONEncoder):
 
 def write_dictionary_to_file(output_file_name, dictionary):
     with open(output_file_name, 'w') as json_file:
-        json.dump(dictionary, json_file, cls=NpEncoder)
+        json.dump(dictionary, json_file, cls=NpEncoder, indent=4)
 
 
 def load_dict_from_file(input_file_name):
@@ -117,7 +122,11 @@ def shuffle_it(x, n_times=None):
         return x
 
 
-def create_dir(directories):
+def is_empty_dir(_path):
+    return exists(_path) and not isfile(_path) and not listdir(_path)
+
+
+def create_dir(directories, delete_content=False):
     """
 
     Args:
@@ -127,26 +136,99 @@ def create_dir(directories):
         object:
     """
     from os import path, mkdir
+    def _create_or_clean_dir(_directory, _delete):
+        if not path.exists(_directory):
+            logger.info(f'Creating directory {_directory}')
+            mkdir(_directory)
+        else:
+            logger.info(f'Found {_directory}')
+            if _delete:
+                for f in listdir(_directory):
+                    if os.path.isfile(f):
+                        _path_to_delete = path.join(_directory, f)
+                        logger.info(f"deleting {_path_to_delete}")
+                        remove(_path_to_delete)
 
     if not isinstance(directories, str):
-        for dir in directories:
-            if not path.exists(directories):
-                logger.info(f'Creating directory {dir}')
-                mkdir(directories)
-            else:
-                logger.info(f'Found {dir}')
+        logger.info(f'Accepting list of directories {directories}')
+        for directory in directories:
+            _create_or_clean_dir(directory, delete_content)
     else:
-        if not path.exists(directories):
-            logger.info(f'Creating directory {directories}')
-            mkdir(directories)
-        else:
-            logger.info(f'Found {directories}')
-
-
-
+        _create_or_clean_dir(directories, delete_content)
 
 
 def clean_params_record(a):
     indexes_to_keep = np.where(a["trial_id"] != 0)  #
     indexes_to_keep = list(np.insert(indexes_to_keep, 0, 0))  #
     return np.take(a, indexes_to_keep)
+
+
+def indexes_where_eq_1d(array, value):
+    if not type(array).__module__ == np.__name__:
+        array = np.array(array)
+    #
+    return np.where(array == value)[0]
+
+
+def next_path(path_pattern):
+    import os
+
+    """
+    Finds the next free path in an sequentially named list of files
+
+    e.g. path_pattern = 'file-%s.txt':
+
+    file-1.txt
+    file-2.txt
+    file-3.txt
+
+    Runs in log(n) time where n is the number of existing files in sequence
+    """
+    i = 1
+
+    # First do an exponential search
+    while os.path.exists(path_pattern % i):
+        i = i * 2
+
+    # Result lies somewhere in the interval (i/2..i]
+    # We call this interval (a..b] and narrow it down until a + 1 = b
+    a, b = (i // 2, i)
+    while a + 1 < b:
+        c = (a + b) // 2  # interval midpoint
+        a, b = (c, b) if os.path.exists(path_pattern % c) else (a, c)
+
+    return path_pattern % b
+
+
+def Execute(command):
+    from subprocess import Popen, PIPE, CalledProcessError
+    # >Executes to command line
+    with Popen(command, stdout=PIPE, bufsize=1, universal_newlines=True, shell=True) as p:
+        for line in p.stdout:
+            print(line, end='')  # process line here
+    if p.returncode != 0:
+        raise CalledProcessError(p.returncode, p.args)
+
+
+def Execute2(command, goodcall, badcall):
+    from subprocess import Popen, PIPE
+    # >Executes and allows variable prints
+    p = Popen(command, stdout=PIPE, shell=True)
+    p_status = p.wait()
+    if p_status > 0:
+        print("Errors found:: ", p_status)
+        print(str(badcall))
+        exit()
+    else:
+        print(str(goodcall))
+
+
+def ExecuteNoWrite(command):
+    from subprocess import Popen, PIPE
+
+    # >Executes to command line but does not print
+    p = Popen(command, stdout=PIPE, shell=True)
+    p_status = p.wait()
+    if p_status > 0:
+        print("Errors found:: ", p_status)
+        sys.exit()
