@@ -31,7 +31,7 @@ Run_Time_Settings = dict(
     ),
 
     Simulation_Settings=dict(
-        study_name='mmt_USA30_update_66M',
+        study_name='mmt_USA30_update_test_66M',
         optimization_period=dict(
             start_date=datetime.datetime(month=2, day=1, year=2022),
             end_date=datetime.datetime(month=6, day=3, year=2022)
@@ -58,7 +58,7 @@ Run_Time_Settings = dict(
                 windows='grid',  # todo: needs to add settings for how to reduce, these dont do anything
                 tp_sl=dict(
                     bar_atr_days=datetime.timedelta(days=120, hours=0, minutes=0, seconds=0),
-                    bar_atr_periods=[7],  # todo multiple inputs
+                    bar_atr_periods=[3],  # todo multiple inputs
                     bar_atr_multiplier=[3],  # todo multiple inputs
                     #
                     # n_ratios=[0.2, 0.5, 1, 1.5, 2],

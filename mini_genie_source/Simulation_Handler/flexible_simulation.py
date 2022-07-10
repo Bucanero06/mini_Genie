@@ -38,7 +38,7 @@ chunked = dict(
             flex_array_gl_slicer,  # long_progressive_condition
             flex_array_gl_slicer,  # short_progressive_condition
             flex_array_gl_slicer,  # progressive_bool
-            flex_array_gl_slicer,  # allow_multiple_trade_from_entries
+            flex_array_gl_slicer,  # max_number_of_trades_open
             flex_array_gl_slicer,  # exit_on_opposite_direction_entry
         ),
         post_order_args=vbt.ArgsTaker(
@@ -66,6 +66,7 @@ chunked = dict(
 open_order_tracker_dtype = np.dtype([
     # Value changed during sim funciton to track direction during post_sim_function in the current idx
     ('current_order_placed_direction', 'i'),
+    ('trades_open', 'i'),
 
     ('long_exit_price_now', 'f8'),
     ('short_exit_price_now', 'f8'),
@@ -131,6 +132,7 @@ def pre_sim_func_nb(c):
     # exact shape I could not use full to fill the arrays at once
     for i in range(c.target_shape[1]):
         open_order_tracker['current_order_placed_direction'][i] = -1
+        open_order_tracker['trades_open'][i] = 0
         open_order_tracker['long_exit_price_now'][i] = np.nan
         open_order_tracker['short_exit_price_now'][i] = np.nan
 
@@ -169,7 +171,7 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
                        slippage, tick_size, type_percent,
                        breakeven_1_distance_points, breakeven_2_distance_points,
                        long_progressive_condition, short_progressive_condition,
-                       progressive_bool, allow_multiple_trade_from_entries, exit_on_opposite_direction_entry):
+                       progressive_bool, max_number_of_trades_open, exit_on_opposite_direction_entry):
     """Flexible Sim Function"""
 
     '''Current Price'''
@@ -181,7 +183,6 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
     size_type_now = nb.flex_select_auto_nb(size_type, c.i, c.from_col, c.flex_2d)
     order_size_now = nb.flex_select_auto_nb(order_size, c.i, c.from_col, c.flex_2d)
     entry_size_now = round(order_size_now / close_price_now if size_type_now == 1 else order_size_now, 8)
-    # entry_size_now = order_size_now / close_price_now if size_type_now == 1 else order_size_now
     #
     fees_now = nb.flex_select_auto_nb(fees, c.i, c.from_col, c.flex_2d)
     slippage_now = nb.flex_select_auto_nb(slippage, c.i, c.from_col, c.flex_2d)
@@ -189,8 +190,10 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
 
     #
     # allow multiple trades in the same direction to aggregate, otherwise only the first counts
-    allow_multiple_trade_from_entries_now = nb.flex_select_auto_nb(allow_multiple_trade_from_entries, c.i, c.from_col,
-                                                                   c.flex_2d)
+    n_trades_open_now = open_order_tracker['trades_open'][c.from_col]
+    max_number_of_trades_open_now = nb.flex_select_auto_nb(max_number_of_trades_open, c.i, c.from_col,
+                                                           c.flex_2d)
+
     # Exit position if entry in the opposite the direction is true, else hedge
     exit_on_opposite_direction_entry_now = nb.flex_select_auto_nb(exit_on_opposite_direction_entry, c.i, c.from_col,
                                                                   c.flex_2d)
@@ -225,6 +228,10 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
     '''FOR NATE's STRATEGY'''
     long_progressive_condition_now = nb.flex_select_auto_nb(long_progressive_condition, c.i, c.from_col, c.flex_2d)
     short_progressive_condition_now = nb.flex_select_auto_nb(short_progressive_condition, c.i, c.from_col, c.flex_2d)
+
+    long_progressive_condition_now = long_progressive_condition_now if long_progressive_condition_now else long_entries_now
+    short_progressive_condition_now = short_progressive_condition_now if short_progressive_condition_now else short_entries_now
+
     progressive_bool_now = nb.flex_select_auto_nb(progressive_bool, c.i, c.from_col, c.flex_2d)
 
     '''Check If Break Even Condition has Triggered (if so, adjust stop loss)'''
@@ -299,8 +306,9 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
             entry_and_exit_police['long_prevent_entry'][c.i][c.from_col] = True
             entry_and_exit_police['long_force_exit'][c.i][c.from_col] = True
 
-    '''Prevent From Opening Multiple Trades if allow_multiple_trade_from_entries_now is False'''
-    if not allow_multiple_trade_from_entries_now:
+    '''Prevent From Opening Multiple Trades if progressive_bool_now is False'''
+    # if not allow_multiple_trade_from_entries_now:
+    if (not progressive_bool_now) or (n_trades_open_now >= max_number_of_trades_open_now):
         # entry now and there is already a position open in the same direction then set entry now to false and prevent
         # entry
         if long_entries_now and not np.isnan(open_order_tracker['long_open_order_size'][c.from_col]):
@@ -344,6 +352,8 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
                                                                      c.from_col] if not np.isnan(
             open_order_tracker['long_open_order_size'][c.from_col]) else entry_size_now
 
+        open_order_tracker['trades_open'][c.from_col] = open_order_tracker['trades_open'][c.from_col] + 1
+
         # Place Order
         return c.from_col, nb.order_nb(
             size=entry_size_now,
@@ -369,6 +379,7 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
 
         # Exiting long position thus set long_open_order_size to nan
         open_order_tracker['long_open_order_size'][c.from_col] = np.nan
+        open_order_tracker['trades_open'][c.from_col] = 0
 
         return c.from_col, nb.order_nb(
             size=-long_exit_size,
@@ -397,6 +408,8 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
                                                                       c.from_col] - entry_size_now if not np.isnan(
             open_order_tracker['short_open_order_size'][c.from_col]) else -entry_size_now
 
+        open_order_tracker['trades_open'][c.from_col] = open_order_tracker['trades_open'][c.from_col] + 1
+
         # Place Order
         return c.from_col, nb.order_nb(
             size=-entry_size_now,
@@ -422,6 +435,7 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
 
         # Exiting short position thus set short_open_order_size to nan
         open_order_tracker['short_open_order_size'][c.from_col] = np.nan
+        open_order_tracker['trades_open'][c.from_col] = 0
 
         return c.from_col, nb.order_nb(
             size=-short_exit_size,
@@ -562,7 +576,7 @@ def Flexible_Simulation_Optimization(runtime_settings,
         vbt.Rep('long_progressive_condition'), vbt.Rep('short_progressive_condition'),
         #
         vbt.Rep('progressive_bool'),
-        vbt.Rep('allow_multiple_trade_from_entries'),
+        vbt.Rep('max_number_of_trades_open'),
         vbt.Rep('exit_on_opposite_direction_entry'),
         high=high_data,
         low=low_data,
@@ -596,7 +610,7 @@ def Flexible_Simulation_Optimization(runtime_settings,
             short_progressive_condition=strategy_specific_kwargs['short_progressive_condition'],
             #
             progressive_bool=strategy_specific_kwargs['progressive_bool'],
-            allow_multiple_trade_from_entries=strategy_specific_kwargs['allow_multiple_trade_from_entries'],
+            max_number_of_trades_open=strategy_specific_kwargs['max_number_of_trades_open'],
             exit_on_opposite_direction_entry=strategy_specific_kwargs['exit_on_opposite_direction_entry'],
 
             #
@@ -625,23 +639,23 @@ def Flexible_Simulation_Optimization(runtime_settings,
     )
     logger.info(f'Time to Run Portfolio Simulation {perf_counter() - Start_Timer}')
 
-    extra_info_dtype = np.dtype([
-        ("risk_reward_ratio", 'f8'),  # metric for loss function
-        ("init_cash_div_order_size", 'f8'),  # needed to compute risk adjusted returns
-        ("risk_adjusted_return", 'f8'),  # metric for loss function
-    ])
-
-    '''Extra Information Needed For Loss Function'''
-    number_of_assets = len(close_data.keys())
-    extra_info = np.empty(number_of_parameter_comb, dtype=extra_info_dtype)
-
-    extra_info["risk_reward_ratio"] = np.divide(strategy_specific_kwargs["take_profit_point_parameters"],
-                                                abs(strategy_specific_kwargs["stop_loss_points_parameters"])) if \
-        strategy_specific_kwargs["take_profit_bool"] and strategy_specific_kwargs["stop_loss_bool"] else np.zeros(
-        shape=np.array(strategy_specific_kwargs["take_profit_point_parameters"]).shape)
-    extra_info["init_cash_div_order_size"] = [np.divide(
-        np.multiply(runtime_settings["Portfolio_Settings.init_cash"], number_of_assets),
-        runtime_settings["Portfolio_Settings.size"])] * number_of_parameter_comb
+    # extra_info_dtype = np.dtype([
+    #     ("risk_reward_ratio", 'f8'),  # metric for loss function
+    #     ("init_cash_div_order_size", 'f8'),  # needed to compute risk adjusted returns
+    #     ("risk_adjusted_return", 'f8'),  # metric for loss function
+    # ])
+    #
+    # '''Extra Information Needed For Loss Function'''
+    # number_of_assets = len(close_data.keys())
+    # extra_info = np.empty(number_of_parameter_comb, dtype=extra_info_dtype)
+    #
+    # extra_info["risk_reward_ratio"] = np.divide(strategy_specific_kwargs["take_profit_point_parameters"],
+    #                                             abs(strategy_specific_kwargs["stop_loss_points_parameters"])) if \
+    #     strategy_specific_kwargs["take_profit_bool"] and strategy_specific_kwargs["stop_loss_bool"] else np.zeros(
+    #     shape=np.array(strategy_specific_kwargs["take_profit_point_parameters"]).shape)
+    # extra_info["init_cash_div_order_size"] = [np.divide(
+    #     np.multiply(runtime_settings["Portfolio_Settings.init_cash"], number_of_assets),
+    #     runtime_settings["Portfolio_Settings.size"])] * number_of_parameter_comb
 
     # from genie_trader.data_n_analysis_modules.Analyze import Compute_Stats
     # Portfolio_Stats = Compute_Stats(pf)[
@@ -661,4 +675,4 @@ def Flexible_Simulation_Optimization(runtime_settings,
     #         pnl.append(value)
     # print(f'{pnl = }')
     # exit()
-    return pf, extra_info
+    return pf

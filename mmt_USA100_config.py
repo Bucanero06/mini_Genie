@@ -16,7 +16,7 @@ Run_Time_Settings = dict(
             # "DAX",  # momentary
             # "XAUUSD",  # momentary
             # "OILUSD",  # momentary
-            "USA30",  # momentary
+            "USA100",  # momentary
 
         ],  # momentary
 
@@ -31,10 +31,10 @@ Run_Time_Settings = dict(
     ),
 
     Simulation_Settings=dict(
-        study_name='mmt_USA30_update_66M',
+        study_name='mmt_USA100_66M',
         optimization_period=dict(
             start_date=datetime.datetime(month=2, day=1, year=2022),
-            end_date=datetime.datetime(month=6, day=3, year=2022)
+            end_date=datetime.datetime(month=7, day=5, year=2022)
             # end_date=datetime.datetime(month=10, day=1, year=2021)
         ),
         #
@@ -64,7 +64,7 @@ Run_Time_Settings = dict(
                     # n_ratios=[0.2, 0.5, 1, 1.5, 2],
                     # gamma_ratios=[0.5, 1, 1.5, 2, 2.5, 3],
                     n_ratios=[0.5, 1, 1.5],  # Scaling factor for \bar{ATR}
-                    gamma_ratios=[0.5, 1, 1.5],  # Risk Reward Ratio
+                    gamma_ratios=[1, 1.5],  # Risk Reward Ratio
                     number_of_bar_trends=1,
                 ),
             ),
@@ -105,7 +105,7 @@ Run_Time_Settings = dict(
         #
         sim_timeframe='1m',
         JustLoadpf=False,
-        slippage=200,  # 0.0001,
+        slippage=0,  # 0.0001,
         trading_fees=0.00005,  # 0.00005 or 0.005%, $5 per $100_000
         cash_sharing=False,
         group_by=[],  # Leave blank

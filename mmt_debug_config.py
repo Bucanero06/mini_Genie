@@ -42,14 +42,14 @@ debug_settings = dict(
         Continue=True,
         run_mode="plaid_plus",  # todo: ["ludicrous","plaid_plus"]
         #
-        batch_size=100,
+        batch_size=10,
         save_every_nth_chunk=1,
         Initial_Search_Space=dict(
             # _extensions available -> csv and gzip
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            max_initial_combinations=33_000_000,
+            max_initial_combinations=10_000_000,
             stop_after_n_epoch=None,
             # force_to_finish=True,  # todo: logic missing
             #

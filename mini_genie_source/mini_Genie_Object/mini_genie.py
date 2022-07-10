@@ -660,7 +660,11 @@ class mini_genie_trader:
 
         from Utilities.general_utilities import delete_non_filled_elements
         self.parameters_record = delete_non_filled_elements(self.parameters_record)
+
         #
+        #  fixme!!!   HOTFIX
+        self.parameters_record = self.parameters_record[
+            np.where(self.parameters_record["ema_1_windows"] <= self.parameters_record["ema_2_windows"])[0]]
 
     def _compute_bar_atr(self):
         """
@@ -1016,8 +1020,8 @@ class mini_genie_trader:
                 best_parameters_ = best_parameters_this_epoch
             #
             logger.info(
-                f'Highest Profit so far: {highest_profit_cash_:,}   \N{money-mouth face}\N{money bag}: '
-                f'{highest_profit_perc_} of a ${initial_cash_total_:,} account')
+                f'Highest Profit so far: {round(highest_profit_cash_, 2):,}   \N{money-mouth face}\N{money bag}: '
+                f'{round(highest_profit_perc_, 2)}% of a ${initial_cash_total_:,} account')
             logger.info(f'Best Param so far: {best_parameters_}  \N{money with wings}')
             #
             logger.info(f'  -> highest_profit_cash this epoch {highest_cash_profit_this_epoch:,}')
@@ -1121,9 +1125,9 @@ class mini_genie_trader:
             long_entries, long_exits, short_entries, short_exits, \
             strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params_record)
             #
-            pf, extra_sim_info = simulation_handler.simulate_events(long_entries, long_exits,
-                                                                    short_entries, short_exits,
-                                                                    strategy_specific_kwargs)
+            pf = simulation_handler.simulate_events(long_entries, long_exits,
+                                                    short_entries, short_exits,
+                                                    strategy_specific_kwargs)
             #
             # pf = vbt.Portfolio.load(
             #     f'{self.portfolio_dir_path}/{self.runtime_settings["Portfolio_Settings.saved_pf_optimization"]}')
@@ -1318,9 +1322,9 @@ class mini_genie_trader:
             long_entries, long_exits, short_entries, short_exits, \
             strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params_record)
             #
-            pf, extra_sim_info = simulation_handler.simulate_events(long_entries, long_exits,
-                                                                    short_entries, short_exits,
-                                                                    strategy_specific_kwargs)
+            pf = simulation_handler.simulate_events(long_entries, long_exits,
+                                                    short_entries, short_exits,
+                                                    strategy_specific_kwargs)
             #
             '''Reconstruct Metrics from Order Records and Save'''
             #

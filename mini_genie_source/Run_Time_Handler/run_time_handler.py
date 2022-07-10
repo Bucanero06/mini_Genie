@@ -12,8 +12,11 @@ EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings
 
 #
 
-CONFIG_FILE_DEFAULT = "mmt_debug_config.py.debug_settings"
+# CONFIG_FILE_DEFAULT = "mmt_debug_config.py.debug_settings"
 
+CONFIG_FILE_DEFAULT = "mmt_USA100_config.py.Run_Time_Settings"
+
+# CONFIG_FILE_DEFAULT = "mmt_USA30_update_test_config.py.Run_Time_Settings"
 # CONFIG_FILE_DEFAULT = "mmt_USA30_update_config.py.Run_Time_Settings"
 
 
