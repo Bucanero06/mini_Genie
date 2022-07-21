@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import datetime
 
+import numpy as np
+
 Run_Time_Settings = dict(
     # Data Settings
     Data_Settings=dict(
@@ -13,10 +15,11 @@ Run_Time_Settings = dict(
             # 'NZDUSD',  # momentary
             # 'USDCAD',  # momentary
             # 'USDCHF',  # momentary
-            "DAX",  # momentary
-            # "XAUUSD",  # momentary
+            "DAXUSD",  # momentary
             # "OILUSD",  # momentary
-
+            # "USA100",  # momentary
+            # "USA100_w_spread",  # momentary
+            # "USA100_w_spread_truncated"
         ],  # momentary
 
         delocalize_data=True,
@@ -30,37 +33,27 @@ Run_Time_Settings = dict(
     ),
 
     Simulation_Settings=dict(
-        study_name='mmt_DAXUSD_66M',
+        study_name='mmt_DAXUSD_update',
+        # study_name='mmt_test_delete_debug',
         optimization_period=dict(
-            start_date=datetime.datetime(month=2, day=1, year=2022),
-            end_date=datetime.datetime(month=6, day=3, year=2022)
+            start_date=datetime.datetime(month=1, day=1, year=2022),
+            end_date=datetime.datetime(month=7, day=7, year=2022)
             # end_date=datetime.datetime(month=10, day=1, year=2021)
         ),
         #
         timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # todo: logic missing,not used/needed
-        Continue=True,
-        run_mode="eco_friendly",  # ["eco_friendly","ludicrous","plaid_plus"]
+        Continue=False,
+        run_mode="plaid_plus",  # todo: ["ludicrous","plaid_plus"]
         #
-        # # whenever continuing, load parameter combs, then delete all with no trade ones, shuffle,
-        # # fill in values with trades, then start run with the ones that are missing
-        # soft_reset=False,  # todo: section of code missing
-        # # Same as soft reset, but saves ones with trades in a different file and computes the rest
-        # medium_reset=False,  # todo: section of code missing
-        # # Deletes files and starts again from scratch with settings
-        # hard_reset=False,  # todo: section of code missing
-        # #
-        # reset_withouts_those_with_no_trials=False,  # todo: section of code missing
-        # reset_withouts_those_with_negative_profits=False,  # todo: section of code missing
-        # reset_withouts_any_ran_ones=False,  # todo: section of code missing
-        #
-        batch_size=1000,
+        batch_size=5000,
         save_every_nth_chunk=1,
         Initial_Search_Space=dict(
             # _extensions available -> csv and gzip
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            max_initial_combinations=66_000_000,
+            max_initial_combinations=1_200_000_000,
+            # max_initial_combinations=1000,
             stop_after_n_epoch=None,
             # force_to_finish=True,  # todo: logic missing
             #
@@ -68,12 +61,12 @@ Run_Time_Settings = dict(
                 timeframes='all',  # todo: needs to add settings for how to reduce, these dont do anything
                 windows='grid',  # todo: needs to add settings for how to reduce, these dont do anything
                 tp_sl=dict(
-                    bar_atr_days=datetime.timedelta(days=120, hours=0, minutes=0, seconds=0),
-                    bar_atr_periods=[14],  # todo multiple inputs
+                    bar_atr_days=datetime.timedelta(days=90, hours=0, minutes=0, seconds=0),
+                    bar_atr_periods=[7],  # todo multiple inputs
                     bar_atr_multiplier=[3],  # todo multiple inputs
                     #
-                    n_ratios=[0.2, 0.5, 1, 1.5, 2],
-                    gamma_ratios=[0.5, 1, 1.5, 2, 2.5, 3],
+                    n_ratios=[0.5, 1, 1.5],  # Scaling factor for \bar{ATR}
+                    gamma_ratios=[1, 1.5],  # Risk Reward Ratio
                     number_of_bar_trends=1,
                 ),
             ),
@@ -82,20 +75,21 @@ Run_Time_Settings = dict(
         Loss_Function=dict(
             metrics=[
                 'Total Return [%]',
-                'Benchmark Return [%]',
-                'Max Gross Exposure [%]',
-                'Total Fees Paid',
-                'Max Drawdown [%]',
+                # 'Benchmark Return [%]',
+                # 'Max Gross Exposure [%]',
+                # 'Total Fees Paid',
+                # 'Max Drawdown [%]',
+                'Expectancy',
                 'Total Trades',
-                'Win Rate [%]',
-                'Best Trade [%]',
-                'Worst Trade [%]',
-                'Avg Winning Trade [%]',
-                'Avg Losing Trade [%]',
-                'Profit Factor',
-                'Sharpe Ratio',
-                'Omega Ratio',
-                'Sortino Ratio',
+                # 'Win Rate [%]',
+                # 'Best Trade [%]',
+                # 'Worst Trade [%]',
+                # 'Avg Winning Trade [%]',
+                # 'Avg Losing Trade [%]',
+                # 'Profit Factor',
+                # 'Sharpe Ratio',
+                # 'Omega Ratio',
+                # 'Sortino Ratio',
             ],
         ),
         #
@@ -113,9 +107,8 @@ Run_Time_Settings = dict(
         #
         sim_timeframe='1m',
         JustLoadpf=False,
-        saved_pf_backtest='My_pf_backtest',
-        saved_pf_optimization='My_pf_optimization',
         slippage=0,  # 0.0001,
+        max_spread_allowed=np.inf,  # 0.0001,
         trading_fees=0.00005,  # 0.00005 or 0.005%, $5 per $100_000
         cash_sharing=False,
         group_by=[],  # Leave blank
@@ -124,32 +117,33 @@ Run_Time_Settings = dict(
         # max_orders=-1,
         init_cash=1_000_000,
         size_type='cash',  # 'shares',  # cash or shares
-        size=25_000,  # cash, else set size type to shares for share amount
+        size=100_000,  # cash, else set size type to shares for share amount
         type_percent=False,  # if true then take_profit and stop_loss are given in percentages, else cash amount
-
     ),
     Strategy_Settings=dict(
         Strategy="mini_genie_source/Strategies/Money_Maker_Strategy.py.MMT_Strategy",
         # The order of parameter key_names should be honored across all files
         parameter_windows=dict(
-            PEAK_and_ATR_timeframes=dict(type='timeframe',
-                                         values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
-
-            atr_windows=dict(type='window', lower_bound=1, upper_bound=10, min_step=1),
-            data_lookback_windows=dict(type='window', lower_bound=2, upper_bound=16, min_step=1),
-            EMAs_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
-            ema_1_windows=dict(type='window', lower_bound=5, upper_bound=45, min_step=1),
-            ema_2_windows=dict(type='window', lower_bound=20, upper_bound=60, min_step=1),
+            Trend_filter_1_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
+            Trend_filter_atr_windows=dict(type='window', lower_bound=7, upper_bound=14, min_step=1),
+            Trend_filter_1_data_lookback_windows=dict(type='window', lower_bound=5, upper_bound=8, min_step=1),
             #
-            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=10000, min_step=10),
-            stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=10000, min_step=10),
-
+            PEAK_and_ATR_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
+            #
+            atr_windows=dict(type='window', lower_bound=7, upper_bound=14, min_step=1),
+            data_lookback_windows=dict(type='window', lower_bound=3, upper_bound=8, min_step=1),
+            EMAs_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
+            ema_1_windows=dict(type='window', lower_bound=7, upper_bound=50, min_step=1),
+            ema_2_windows=dict(type='window', lower_bound=20, upper_bound=80, min_step=1),
+            #
+            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=10000000, min_step=1000),
+            stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=10000000, min_step=1000),
         ),
         strategy_user_picked_params=dict(
             output_file_name='backtest_result.csv',
             # if compute_product then will compute the product of all the parameter values passed,
             #   else parameter values length must be equal
-            compute_product=False,
+            compute_product=True,
             #
             # Can Read Parameters from file instead if the path to it is provided
             # read_user_defined_param_file='backtest_result.csv',
@@ -158,16 +152,16 @@ Run_Time_Settings = dict(
             # Can use  -->  values = np.arrange(start,stop,step) or np.linespace(start,stop,#)
             # The order of parameter key_names should be honored across all files
             parameter_windows=dict(
-                PEAK_and_ATR_timeframes=dict(type='timeframe', values=['15 min']),
+                PEAK_and_ATR_timeframes=dict(type='timeframe', values=['5 min']),
                 #
                 atr_windows=dict(type='window', values=[5]),
-                data_lookback_windows=dict(type='window', values=[3]),
-                EMAs_timeframes=dict(type='timeframe', values=['1 min']),
-                ema_1_windows=dict(type='window', values=[5]),
-                ema_2_windows=dict(type='window', values=[81]),
+                data_lookback_windows=dict(type='window', values=[5]),
+                EMAs_timeframes=dict(type='timeframe', values=['15 min']),
+                ema_1_windows=dict(type='window', values=[27]),
+                ema_2_windows=dict(type='window', values=[28]),
                 #
-                take_profit_points=dict(type='take_profit', values=[7200]),
-                stop_loss_points=dict(type='stop_loss', values=[4700]),
+                take_profit_points=dict(type='take_profit', values=[909]),
+                stop_loss_points=dict(type='stop_loss', values=[556]),
             )
         ),
     ),

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import json
+import os
 import os.path
+import shutil
 import sys
-from os import remove, listdir
+from os import listdir
 from os.path import exists, isfile
 
 import numpy as np
@@ -10,8 +12,10 @@ import pandas as pd
 import ray
 import vectorbtpro as vbt
 from logger_tt import logger
+from vectorbtpro import register_jitted
 
 
+@register_jitted(cache=True)
 def compute_np_arrays_mean_nb(values: object) -> object:
     """
 
@@ -25,6 +29,16 @@ def compute_np_arrays_mean_nb(values: object) -> object:
         return result
     else:
         return vbt.nb.mean_reduce_nb(values)
+
+
+@ray.remote
+def resample_apply_remote(ask_dataframe, apply_function, timeframe, dropnan=False):
+    # noinspection PyUnresolvedReferences
+    import vectorbtpro as vbt
+    result = ask_dataframe.vbt.resample_apply(timeframe, apply_function)
+    if dropnan:
+        result = result.dropna()
+    return result
 
 
 def put_objects_list_to_ray(objects):
@@ -126,35 +140,54 @@ def is_empty_dir(_path):
     return exists(_path) and not isfile(_path) and not listdir(_path)
 
 
-def create_dir(directories, delete_content=False):
-    """
+def create_dir(directory):
+    if not os.path.exists(directory):
+        logger.info(f'Creating directory {directory}')
+        os.mkdir(directory)
+
+
+def create_dirs(*directories):
+    logger.info(f'Accepting list of directories {directories}')
+    for directory in directories:
+        create_dir(directory)
+
+
+def delete_everything(directory):
+    """Deletes everything within a directory.
 
     Args:
-        dir:
+        directory: The directory to delete everything from.
 
     Returns:
-        object:
+        None
     """
-    from os import path, mkdir
-    def _create_or_clean_dir(_directory, _delete):
-        if not path.exists(_directory):
-            logger.info(f'Creating directory {_directory}')
-            mkdir(_directory)
-        else:
-            logger.info(f'Found {_directory}')
-            if _delete:
-                for f in listdir(_directory):
-                    if os.path.isfile(f):
-                        _path_to_delete = path.join(_directory, f)
-                        logger.info(f"deleting {_path_to_delete}")
-                        remove(_path_to_delete)
 
-    if not isinstance(directories, str):
-        logger.info(f'Accepting list of directories {directories}')
-        for directory in directories:
-            _create_or_clean_dir(directory, delete_content)
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            logger.info('Failed to delete %s. Reason: %s' % (file_path, e))
+
+
+def create_or_clean_directory(directory, delete_content=False):
+    if not os.path.exists(directory):
+        logger.info(f'Creating directory {directory}')
+        os.mkdir(directory)
+    elif delete_content:
+        logger.info(f'Cleaning directory {directory}')
+        delete_everything(directory)
     else:
-        _create_or_clean_dir(directories, delete_content)
+        logger.info(f'Found directory {directory}')
+
+
+def create_or_clean_directories(*directories, delete_content=False):
+    logger.info(f'Accepting list of directories {directories}')
+    for directory in directories:
+        create_or_clean_directory(directory, delete_content)
 
 
 def clean_params_record(a):
@@ -169,6 +202,13 @@ def indexes_where_eq_1d(array, value):
     #
     return np.where(array == value)[0]
 
+
+def flip_bool(param):
+    """ Takes in a boolean value and returns the opposite """
+    if param:
+        return False
+    else:
+        return True
 
 def next_path(path_pattern):
     import os

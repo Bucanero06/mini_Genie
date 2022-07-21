@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import numpy as np
 import pandas as pd
+import ray
 import vectorbtpro as vbt
+from logger_tt import logger
 from numba import prange
 from scipy.ndimage.filters import maximum_filter1d, minimum_filter1d
 from vectorbtpro import _typing as tp
@@ -46,6 +48,50 @@ def BARSINCE_genie(df: object) -> object:
 
     return df.apply(intervaled_cumsum_).replace(-1, np.nan)
 
+
+@ray.remote
+def resample_dask_series_remote(dask_series, freq, label=None):
+    return dask_series.resample(freq, label=label).dropna()
+
+
+def resample_dask_series(dask_series, freq, label=None):
+    return dask_series.resample(freq, label=label).dropna()
+
+
+def resample_by_cols_dask_n_ray(dask_df, resample_dict):
+    # Resample price
+    logger.info(f'_resampling')
+
+    logger.info(f'{dask_df = }')
+
+    resampled_ohlc_values = ray.get(
+        [resample_dask_series_remote.remote(dask_df[key_name], resample_dict["resample_columns"][key_name],
+                                            resample_dict["new_frequency"]) for
+         key_name in resample_dict["resample_columns"].keys()])
+    #
+    resampled_ohlcs = pd.DataFrame(resampled_ohlc_values, columns=resample_dict.keys())
+
+    return resampled_ohlcs
+
+# resample = dict(
+#     new_frequency='1 min',
+#     resample_dict=dict(
+#         # OPEN=first_reduce_nb,
+#         # LOW=min_reduce_nb,
+#         # HIGH=max_reduce_nb,
+#         # CLOSE=last_reduce_nb,
+#         SPREAD=first_reduce_nb,
+#         # ASK=first_reduce_nb,
+#         # BID=first_reduce_nb,
+#     )
+# )
+# if resample_dict is not None:
+#     from Utilities.bars_utilities import resample_dask_series
+#     res = pd.DataFrame()
+#     for key_name in resample_dict["resample_columns"].keys():
+#         res[key_name] = resample_dask_series(resample_dict["resample_columns"][key_name],
+#                                              resample_dict["new_frequency"], label=None)
+#     bar_data = res
 
 def max_filter1d_same(a: object, W: object, fillna: object = np.nan) -> object:
     """
@@ -183,6 +229,49 @@ def split_uptrend_n_downtrend_atr(atr_df: object, dir_df: object) -> object:
     atr_uptrend_mask = dir_df.values == 1
     atr_downtrend_mask = dir_df.values == -1
     return atr_df.loc[atr_uptrend_mask], atr_df.loc[atr_downtrend_mask]
+
+
+from vectorbtpro import register_jitted
+from vectorbtpro import _typing as tp
+
+
+@register_jitted(cache=True)
+def first_reduce_nb(arr: tp.Array1d) -> float:
+    """Get first non-NA element."""
+    if arr.shape[0] == 0:
+        raise ValueError("index is out of bounds")
+    for i in range(len(arr)):
+        if not np.isnan(arr[i]):
+            return arr[i]
+    return np.nan
+
+
+
+# ###
+# def create_params(df):
+#     return (df.reset_index().groupby(['orgacom', 'client'], observed=True, )['date']
+#             .agg(['min', 'max']).sort_index().reset_index())
+#
+# def create_multiindex(df, params):
+#     all_dates = pd.date_range(start='2016-12-31', end='2020-12-31', freq='B')
+#     midx = (
+#         (row.orgacom, row.client, d)
+#         for row in params.itertuples()
+#         for d in all_dates[(row.min <= all_dates) & (all_dates <= row.max)])
+#     return pd.MultiIndex.from_tuples(midx, names=['orgacom', 'client', 'date'])
+#
+# def apply_mulitindex(df, midx):
+#     return df.set_index(['orgacom', 'client', 'date']).reindex(midx)
+#
+# def new_pipeline(df):
+#     params = create_params(df)
+#     midx = create_multiindex(df, params)
+#     return apply_mulitindex(df, midx)
+#
+#
+# sol3 = new_pipeline(to_process.reset_index())
+###
+
 # # # Change timeframes
 #     # resampled_data_dict = resample_olhc_genie(timeframes, low=low_data, high=high_data, close=close_data)
 #     # super_trend_dict = {}

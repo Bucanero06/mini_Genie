@@ -1,23 +1,15 @@
 #!/usr/bin/env python3
 import datetime
 
-Run_Time_Settings = dict(
+debug_settings = dict(
     # Data Settings
     Data_Settings=dict(
         load_CSV_from_pickle=True,  # momentary
         data_files_dir='Datas',  # momentary
         data_files_names=[
-            # 'AUDUSD',  # momentary
-            # 'EURUSD',  # momentary
-            # 'GBPUSD',  # momentary
-            # 'NZDUSD',  # momentary
-            # 'USDCAD',  # momentary
-            # 'USDCHF',  # momentary
-            # "DAX",  # momentary
-            # "XAUUSD",  # momentary
-            # "OILUSD",  # momentary
-            "USA30",  # momentary
-
+            'US30'
+            # 'US30_tick'
+            # 'US30_with_spread_column_'
         ],  # momentary
 
         delocalize_data=True,
@@ -26,15 +18,24 @@ Run_Time_Settings = dict(
         fill_dates=False,
         saved_data_file='SymbolData',
         # tick_size=0.01
-        tick_size=[0.01]
+        tick_size=[0.01],
         # tick_size=0.00001
+        minute_data_input_format="%m.%d.%Y %H:%M:%S",
+        # minute_data_input_format="%Y.%m.%d %H:%M:%S",
+        minute_data_output_format="%m.%d.%Y %H:%M:%S",
+        accompanying_tick_data_input_format="%d.%m.%Y %H:%M:%S.%f",
+        # accompanying_tick_data_output_format="%m.%d.%Y %H:%M:%S.%f",
+        accompanying_tick_data_output_format="%m.%d.%Y %H:%M:%S.%f"
+
+        #     2021-10-03 22:04:00
     ),
 
     Simulation_Settings=dict(
-        study_name='mmt_USA30_update_66M',
+        study_name='mmt_USD30_1.2B',
+        # study_name='mmt_test_delete_debug',
         optimization_period=dict(
-            start_date=datetime.datetime(month=2, day=1, year=2022),
-            end_date=datetime.datetime(month=6, day=3, year=2022)
+            start_date=datetime.datetime(month=1, day=1, year=2022),
+            end_date=datetime.datetime(month=7, day=7, year=2022)
             # end_date=datetime.datetime(month=10, day=1, year=2021)
         ),
         #
@@ -49,22 +50,21 @@ Run_Time_Settings = dict(
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            max_initial_combinations=66_000_000,
-            stop_after_n_epoch=None,
+            max_initial_combinations=1_200_000_000,
+            # max_initial_combinations=1000,
+            stop_after_n_epoch=85,
             # force_to_finish=True,  # todo: logic missing
             #
             parameter_selection=dict(
                 timeframes='all',  # todo: needs to add settings for how to reduce, these dont do anything
                 windows='grid',  # todo: needs to add settings for how to reduce, these dont do anything
                 tp_sl=dict(
-                    bar_atr_days=datetime.timedelta(days=120, hours=0, minutes=0, seconds=0),
+                    bar_atr_days=datetime.timedelta(days=90, hours=0, minutes=0, seconds=0),
                     bar_atr_periods=[7],  # todo multiple inputs
                     bar_atr_multiplier=[3],  # todo multiple inputs
                     #
-                    # n_ratios=[0.2, 0.5, 1, 1.5, 2],
-                    # gamma_ratios=[0.5, 1, 1.5, 2, 2.5, 3],
                     n_ratios=[0.5, 1, 1.5],  # Scaling factor for \bar{ATR}
-                    gamma_ratios=[0.5, 1, 1.5],  # Risk Reward Ratio
+                    gamma_ratios=[1, 1.5],  # Risk Reward Ratio
                     number_of_bar_trends=1,
                 ),
             ),
@@ -105,7 +105,8 @@ Run_Time_Settings = dict(
         #
         sim_timeframe='1m',
         JustLoadpf=False,
-        slippage=200,  # 0.0001,
+        slippage=0,  # 0.0001,
+        max_spread_allowed=300,  # 0.0001,
         trading_fees=0.00005,  # 0.00005 or 0.005%, $5 per $100_000
         cash_sharing=False,
         group_by=[],  # Leave blank
@@ -116,24 +117,25 @@ Run_Time_Settings = dict(
         size_type='cash',  # 'shares',  # cash or shares
         size=100_000,  # cash, else set size type to shares for share amount
         type_percent=False,  # if true then take_profit and stop_loss are given in percentages, else cash amount
-
     ),
     Strategy_Settings=dict(
         Strategy="mini_genie_source/Strategies/Money_Maker_Strategy.py.MMT_Strategy",
         # The order of parameter key_names should be honored across all files
         parameter_windows=dict(
-            PEAK_and_ATR_timeframes=dict(type='timeframe',
-                                         values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
-
-            atr_windows=dict(type='window', lower_bound=1, upper_bound=10, min_step=1),
-            data_lookback_windows=dict(type='window', lower_bound=2, upper_bound=16, min_step=1),
-            EMAs_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
-            ema_1_windows=dict(type='window', lower_bound=5, upper_bound=45, min_step=1),
-            ema_2_windows=dict(type='window', lower_bound=20, upper_bound=60, min_step=1),
+            Trend_filter_1_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
+            Trend_filter_atr_windows=dict(type='window', lower_bound=7, upper_bound=14, min_step=1),
+            Trend_filter_1_data_lookback_windows=dict(type='window', lower_bound=5, upper_bound=8, min_step=1),
             #
-            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=100000, min_step=100),
-            stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=100000, min_step=100),
-
+            PEAK_and_ATR_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
+            #
+            atr_windows=dict(type='window', lower_bound=7, upper_bound=14, min_step=1),
+            data_lookback_windows=dict(type='window', lower_bound=3, upper_bound=8, min_step=1),
+            EMAs_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
+            ema_1_windows=dict(type='window', lower_bound=7, upper_bound=50, min_step=1),
+            ema_2_windows=dict(type='window', lower_bound=20, upper_bound=80, min_step=1),
+            #
+            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=10000000, min_step=1000),
+            stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=10000000, min_step=1000),
         ),
         strategy_user_picked_params=dict(
             output_file_name='backtest_result.csv',

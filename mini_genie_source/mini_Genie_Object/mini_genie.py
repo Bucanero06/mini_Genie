@@ -14,7 +14,10 @@ from logger_tt import logger
 from Analysis_Handler.analysis_handler import compute_stats_remote
 from Equipment_Handler.equipment_handler import CHECKTEMPS
 from Run_Time_Handler.equipment_settings import TEMP_DICT
-from Utilities.general_utilities import rm_field_from_record, next_path, create_dir
+from Utilities.general_utilities import rm_field_from_record, next_path, create_dirs, create_or_clean_directories, \
+    flip_bool
+
+np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -90,6 +93,7 @@ class mini_genie_trader:
         self.sl_keyname = tuple(key_name for key_name in self.key_names if self.parameter_windows[key_name][
             'type'].lower() in self.ACCEPTED_SL_TYPES)
         assert len(self.tp_keyname) == len(self.sl_keyname) == 1
+        self.keynames_not_tp_sl = tuple(keyname for keyname in self.key_names if keyname not in self.tp_sl_keynames)
         #
         self.tp_sl_selection_space = self.runtime_settings[
             "Simulation_Settings.Initial_Search_Space.parameter_selection.tp_sl"]
@@ -143,20 +147,10 @@ class mini_genie_trader:
         if not path.exists(study_dir_path):
             self.continuing = False
         #
-        create_dir(studies_directory)
-        create_dir(data_dir_path)
+        create_dirs(studies_directory, data_dir_path)
         #
-        dirs = [
-            study_dir_path,
-            portfolio_dir_path,
-            reports_dir_path,
-            misc_dir_path,
-        ]
-        create_dir(dirs, delete_content=~self.continuing)
-        # create_dir(study_dir_path)
-        # create_dir(portfolio_dir_path)
-        # create_dir(reports_dir_path)
-        # create_dir(misc_dir_path)
+        create_or_clean_directories(study_dir_path, portfolio_dir_path, reports_dir_path, misc_dir_path,
+                                    delete_content=flip_bool(self.continuing))
 
         self.study_dir_path = study_dir_path
         self.portfolio_dir_path = portfolio_dir_path
@@ -171,7 +165,6 @@ class mini_genie_trader:
         self.path_of_saved_study_config_file = f'{self.study_dir_path}/{self.config_file_path}'
 
         #
-        # pathlib.Path('my_file.txt').suffix
         self.compression_of_initial_params_record = file_name_of_initial_params_record.rsplit('.', 1)[-1]
         self.compression_of_initial_params_record = file_name_of_initial_metrics_record.rsplit('.', 1)[-1]
         #
@@ -206,7 +199,9 @@ class mini_genie_trader:
         if os.path.exists(path_of_initial_params_record):
             logger.info(f'Loading parameters from file {path_of_initial_params_record}  ...')
             if self.compression_of_initial_params_record == 'csv':
-                parameter_df = pd.read_csv(path_of_initial_params_record)
+                # parameter_df = pd.read_csv(path_of_initial_params_record)
+                from dask import dataframe as dd
+                parameter_df = dd.read_csv(path_of_initial_params_record).compute(scheduler='processes')
             else:
                 parameter_df = pd.read_pickle(path_of_initial_params_record)
             #
@@ -231,7 +226,9 @@ class mini_genie_trader:
             if os.path.exists(path_of_initial_metrics_record):
                 logger.info(f'Loading metrics from file {path_of_initial_metrics_record}  ...')
                 # column_names = list(self.key_names) + self.runtime_settings['Simulation_Settings.Loss_Function.metrics']
-                metrics_df = pd.read_csv(path_of_initial_metrics_record)
+                # metrics_df = pd.read_csv(path_of_initial_metrics_record)
+                from dask import dataframe as dd
+                metrics_df = dd.read_csv(path_of_initial_params_record).compute(scheduler='processes')
                 #
                 # Determine number of parameter combinations ran
                 self.number_of_parameters_ran = int(len(metrics_df) / len(self.asset_names))
@@ -529,9 +526,9 @@ class mini_genie_trader:
 
             elif self.parameter_windows[key_name]["type"].lower() in self.ACCEPTED_WINDOW_TYPES:
                 if isinstance(self.parameter_windows[key_name]['min_step'], int):
-                    parameters_record_dtype.append((key_name, 'i8'))
+                    parameters_record_dtype.append((key_name, 'i4'))
                 elif isinstance(self.parameter_windows[key_name]['min_step'], float):
-                    parameters_record_dtype.append((key_name, 'f8'))
+                    parameters_record_dtype.append((key_name, 'f4'))
                 else:
                     logger.error(f'Parameter {key_name} is defined as type window but inputs are inconsistent.\n'
                                  f'     (e.g. -> Either lower_bound or upper_bound is a float => float)\n'
@@ -546,9 +543,9 @@ class mini_genie_trader:
 
             elif self.parameter_windows[key_name]["type"].lower() in self.ACCEPTED_TP_SL_TYPES:
                 if isinstance(self.parameter_windows[key_name]['min_step'], int):
-                    parameters_record_dtype.append((key_name, 'i8'))
+                    parameters_record_dtype.append((key_name, 'i4'))
                 elif isinstance(self.parameter_windows[key_name]['min_step'], float):
-                    parameters_record_dtype.append((key_name, 'f8'))
+                    parameters_record_dtype.append((key_name, 'f4'))
                 else:
                     logger.error(f'Parameter {key_name} is defined as type window but inputs are inconsistent.\n'
                                  f'     (e.g. -> Either lower_bound or upper_bound is a float => float)\n'
@@ -599,10 +596,10 @@ class mini_genie_trader:
                 )
 
             self.parameter_data_dtype = np.dtype(parameters_record_dtype)
-
-            self.parameters_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
-                                              dtype=self.parameter_data_dtype)
-            #
+            # FIXME exploring initiating it after elminating some parameter to reduce memory usage
+            # self.parameters_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
+            #                                   dtype=self.parameter_data_dtype)
+            # #
         else:
             ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
             self.parameter_windows = self.runtime_settings[
@@ -636,35 +633,69 @@ class mini_genie_trader:
 
     def _compute_params_product_n_fill_record(self, params):
         from itertools import product
-
+        logger.info(f'Computing Cartesian Product for Parameter Record')
         initial_param_combinations = list(
             set(
                 product(
                     *[
-                        params[key_name] for key_name in self.key_names if key_name not in self.tp_sl_keynames
+                        # params[key_name] for key_name in self.key_names if key_name not in self.tp_sl_keynames
+                        params[key_name] for key_name in self.keynames_not_tp_sl
                     ], params["tp_sl"]
                 )
             )
         )
 
-        from Utilities.general_utilities import shuffle_it
+        logger.info(f'Allocating parameter_record')
+        logger.info(f'{len(initial_param_combinations) = }')
+        self.parameters_record = np.empty(len(initial_param_combinations), dtype=self.parameter_data_dtype)
         #
-        logger.info(f"Shuffling Once \N{Face with Finger Covering Closed Lips}\n"
-                    f"Shuffling Twice \N{Grinning Face with One Large and One Small Eye}\n"
-                    f"Shuffling a Third time \N{Hugging Face}\n")
-        initial_param_combinations = shuffle_it(initial_param_combinations, n_times=3)
+        logger.info(f"Shuffling Once \N{Face with Finger Covering Closed Lips}")
+        initial_param_combinations = np.random.permutation(initial_param_combinations)
+        # indexes = [(i,) for i in np.arange(0, len(initial_param_combinations))]
+        indexes = np.arange(0, len(initial_param_combinations))
+        # value = ([(i,) for i in indexes] + initial_param_combinations[:, :-1] + initial_param_combinations[:, -1])
+        column_names = list(self.parameters_record.dtype.names)
         #
-        for index in range(len(initial_param_combinations)):
-            value = ((index,) + initial_param_combinations[index][:-1] + initial_param_combinations[index][-1])
-            self.parameters_record[index] = value
+        logger.info(f'Filling Parameter Record')
+        self.parameters_record["trial_id"] = indexes
+        for col_index, key_name in enumerate(self.keynames_not_tp_sl):
+            self.parameters_record[key_name] = initial_param_combinations[:, col_index]
+        #
+        tp_sl = initial_param_combinations[:, -1]
+        self.parameters_record[self.tp_sl_keynames[0]] = list(list(zip(*tp_sl))[0])
+        self.parameters_record[self.tp_sl_keynames[1]] = list(list(zip(*tp_sl))[1])
+        #
+        # for index in range(len(initial_param_combinations)):
+        #     # logger.info(index)
+        #     ipci = initial_param_combinations[index]
+        #     value = ((index,) + ipci[:-1] + ipci[-1])
+        #     self.parameters_record[index] = value
 
+        logger.info(f'Clean Up Parameter Record')
         from Utilities.general_utilities import delete_non_filled_elements
         self.parameters_record = delete_non_filled_elements(self.parameters_record)
-
         #
-        #  fixme!!!   HOTFIX
+        # fixme!!!   HOTFIX
+        # fixme need to remove this, or create a setting for. this was a hot fix to eliminate ema1 parameters combinations
+        #   that are less than ema2
         self.parameters_record = self.parameters_record[
             np.where(self.parameters_record["ema_1_windows"] <= self.parameters_record["ema_2_windows"])[0]]
+        #
+        self.parameters_record = self.parameters_record[
+            np.where(self.parameters_record["Trend_filter_1_timeframes"] != self.parameters_record[
+                "PEAK_and_ATR_timeframes"])[0]]
+        #
+        rng = np.random.default_rng()
+        logger.info(f"Shuffling Once \N{Face with Finger Covering Closed Lips}")
+        self.parameters_record = rng.permutation(self.parameters_record)
+        logger.info(f"Shuffling Twice \N{Grinning Face with One Large and One Small Eye}")
+        self.parameters_record = rng.permutation(self.parameters_record)
+        logger.info(f"Shuffling a Third time \N{Hugging Face}")
+        self.parameters_record = rng.permutation(self.parameters_record)
+        #
+        # value = ([(i,) for i in indexes] + initial_param_combinations[:, :-1] + initial_param_combinations[:, -1])
+        logger.info(f'Sorting Index')
+        self.parameters_record["trial_id"] = indexes[:len(self.parameters_record["trial_id"])]
 
     def _compute_bar_atr(self):
         """
@@ -754,7 +785,7 @@ class mini_genie_trader:
                                                       self.parameter_windows[self.sl_keyname[0]]["min_step"]
         #
 
-        dtype = 'i8' if isinstance(self.parameter_windows[self.tp_keyname[0]]['lower_bound'], int) else 'f4'
+        dtype = 'i4' if isinstance(self.parameter_windows[self.tp_keyname[0]]['lower_bound'], int) else 'f4'
         tp_sl_record = np.zeros(self.parameters_lengths_dict["tp_sl_length"],
                                 dtype=np.dtype([
                                     ('take_profit', dtype),
@@ -813,13 +844,13 @@ class mini_genie_trader:
         """
         metrics_record_dtype = []
         if add_ids:
-            metrics_record_dtype.append(('trial_id', 'i8'))
+            metrics_record_dtype.append(('trial_id', 'i4'))
         #
         metrics_record_dtype.append(('asset', 'U8'))
         #
         for metric_name in self.metrics_key_names:
             if 'duration' not in metric_name.lower():
-                metrics_record_dtype.append((metric_name, 'f8'))
+                metrics_record_dtype.append((metric_name, 'f4'))
             else:
                 metrics_record_dtype.append((metric_name, 'timedelta64'))
         #
@@ -959,6 +990,7 @@ class mini_genie_trader:
 
     @staticmethod
     def _save_record_to_file(record, path_to_file, extension=None, write_mode='w'):
+        logger.info(f"Saving record to {path_to_file}")
         if not extension:
             extension = path_to_file.rsplit('.', 1)[-1]
         import pandas as pd

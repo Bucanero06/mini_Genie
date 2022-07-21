@@ -31,6 +31,8 @@ chunked = dict(
             flex_array_gl_slicer,  # size_type
             flex_array_gl_slicer,  # fees
             flex_array_gl_slicer,  # slippage
+            flex_array_gl_slicer,  # spread
+            flex_array_gl_slicer,  # max_spread_allowed
             flex_array_gl_slicer,  # tick_size
             flex_array_gl_slicer,  # type_percent
             flex_array_gl_slicer,  # breakeven_1_distance_points
@@ -168,7 +170,7 @@ def pre_sim_func_nb(c):
 def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
                        # _____Passed From Settings_____
                        long_entries, long_exits, short_entries, short_exits, order_size, size_type, fees,
-                       slippage, tick_size, type_percent,
+                       slippage, spread, max_spread_allowed, tick_size, type_percent,
                        breakeven_1_distance_points, breakeven_2_distance_points,
                        long_progressive_condition, short_progressive_condition,
                        progressive_bool, max_number_of_trades_open, exit_on_opposite_direction_entry):
@@ -186,6 +188,11 @@ def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
     #
     fees_now = nb.flex_select_auto_nb(fees, c.i, c.from_col, c.flex_2d)
     slippage_now = nb.flex_select_auto_nb(slippage, c.i, c.from_col, c.flex_2d)
+    spread_now = nb.flex_select_auto_nb(spread, c.i, c.from_col, c.flex_2d)
+    max_spread_allowed_now = nb.flex_select_auto_nb(max_spread_allowed, c.i, c.from_col, c.flex_2d)
+    if spread_now > max_spread_allowed_now:
+        print("skipping because max allowed spread hit")
+        return -1, NoOrder
     tick_size_now = nb.flex_select_auto_nb(tick_size, c.i, c.from_col, c.flex_2d)
 
     #
@@ -559,6 +566,7 @@ def post_order_func_nb(c, open_order_tracker, entry_and_exit_police,
 
 def Flexible_Simulation_Optimization(runtime_settings,
                                      open_data, low_data, high_data, close_data,
+                                     spread_data,
                                      long_entries, long_exits, short_entries, short_exits,
                                      strategy_specific_kwargs, number_of_parameter_comb):
     """What do I do"""
@@ -569,7 +577,9 @@ def Flexible_Simulation_Optimization(runtime_settings,
         flex_order_func_nb,
         vbt.Rep('long_entries'), vbt.Rep('long_exits'), vbt.Rep('short_entries'), vbt.Rep('short_exits'),
         vbt.Rep('order_size'),
-        vbt.Rep('size_type'), vbt.Rep('fees'), vbt.Rep('slippage'), vbt.Rep('tick_size'), vbt.Rep('type_percent'),
+        vbt.Rep('size_type'), vbt.Rep('fees'), vbt.Rep('slippage'),
+        vbt.Rep('spread_data'), vbt.Rep('max_spread_allowed'),
+        vbt.Rep('tick_size'), vbt.Rep('type_percent'),
         vbt.Rep('breakeven_1_distance_points'),
         vbt.Rep('breakeven_2_distance_points'),
         #
@@ -602,6 +612,8 @@ def Flexible_Simulation_Optimization(runtime_settings,
             size_type=1 if runtime_settings["Portfolio_Settings.size_type"] == 'cash' else 0,
             fees=runtime_settings["Portfolio_Settings.trading_fees"],
             slippage=runtime_settings["Portfolio_Settings.slippage"],
+            spread_data=spread_data,
+            max_spread_allowed=runtime_settings["Portfolio_Settings.max_spread_allowed"],
             tick_size=runtime_settings["Data_Settings.tick_size"] * number_of_parameter_comb,
             type_percent=runtime_settings["Portfolio_Settings.type_percent"],
 

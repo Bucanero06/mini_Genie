@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import warnings
 
+import numpy as np
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
@@ -87,6 +89,7 @@ if __name__ == "__main__":
     from Run_Time_Handler.run_time_handler import run_time_handler
 
     setup_logging(full_context=1)
+
     #
     run_time_handler = run_time_handler(run_function=call_genie)
     run_time_handler.call_run_function()

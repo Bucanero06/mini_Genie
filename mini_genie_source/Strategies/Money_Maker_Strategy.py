@@ -17,6 +17,7 @@ from Utilities.bars_utilities import BARSINCE_genie, ROLLING_MAX_genie, ROLLING_
 
 
 def cache_func(low, high, close,
+               Trend_filter_1_timeframes, Trend_filter_atr_windows, Trend_filter_1_data_lookback_windows,
                PEAK_and_ATR_timeframes, atr_windows, data_lookback_windows,
                EMAs_timeframes, ema_1_windows, ema_2_windows,
                take_profit_points, stop_loss_points):
@@ -35,7 +36,9 @@ def cache_func(low, high, close,
     }
 
     # Create a set of all timeframes to resample data to
-    timeframes = tuple(set(tuple(PEAK_and_ATR_timeframes) + tuple(EMAs_timeframes)))
+    timeframes = tuple(set(
+        tuple(PEAK_and_ATR_timeframes) + tuple(EMAs_timeframes) + tuple(Trend_filter_1_timeframes)
+    ))
     #
     '''Pre-Resample Data'''
     #
@@ -61,6 +64,7 @@ def cache_func(low, high, close,
 
 
 def apply_function(low_data, high_data, close_data,
+                   Trend_filter_1_timeframe, Trend_filter_atr_window, Trend_filter_1_data_lookback_window,
                    PEAK_and_ATR_timeframe, atr_window, data_lookback_window,
                    EMAs_timeframe, ema_1_window, ema_2_window,
                    take_profit_points,
@@ -75,15 +79,68 @@ def apply_function(low_data, high_data, close_data,
     PEAK_and_ATR_timeframe_low = cache['Low'][PEAK_and_ATR_timeframe]
     PEAK_and_ATR_timeframe_high = cache['High'][PEAK_and_ATR_timeframe]
     PEAK_and_ATR_timeframe_close = cache['Close'][PEAK_and_ATR_timeframe]
+    #
+    Trend_filter_1_timeframe_low = cache['Low'][Trend_filter_1_timeframe]
+    Trend_filter_1_timeframe_high = cache['High'][Trend_filter_1_timeframe]
+    Trend_filter_1_timeframe_close = cache['Close'][Trend_filter_1_timeframe]
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    ##########################################################################################
+    ##########################################################################################
+    ##########################################################################################
+    ##########################################################################################
+    ''' Trend_Filter 1 ATR Indicator'''
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    # Fetch pre-computed atr from cache. Uses Trend_filter_1_timeframe
+    Trend_filter_1_atr_indicator = vbt.indicators.ATR.run(
+        Trend_filter_1_timeframe_high,
+        Trend_filter_1_timeframe_high,
+        Trend_filter_1_timeframe_close,
+        window=Trend_filter_atr_window,
+        ewm=False,
+        short_name='atr').atr
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+    '''Trend_Filter 1 PeakHigh and PeakLow'''
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    # All indicators and datas in this section use the Trend_filter_1_timeframe
+    #
+    # Compute the rolling max of the high_data using a window of size data_lookback_window "highest(3,high)"
+    Trend_filter_1_rolling_max = ROLLING_MAX_genie(Trend_filter_1_timeframe_high.to_numpy(),
+                                                   Trend_filter_1_data_lookback_window)
+    # Compare where the high_data is the same as the rolling_max "high == highest(3,high)"
+    Trend_filter_1_high_eq_highest_in_N = Trend_filter_1_timeframe_high == Trend_filter_1_rolling_max
+    # Find where the diff b/w the high_data and close_data is bigger than the ATR "( high - close > atr(AtrPeriod) )"
+    Trend_filter_1_high_minus_close_gt_atr = (
+                                                     Trend_filter_1_timeframe_high.to_numpy() - Trend_filter_1_timeframe_close.to_numpy()) \
+                                             > Trend_filter_1_atr_indicator
+    # Compute the PeakHigh "( high == highest(3,high) and ( high - close > atr(AtrPeriod) )"
+    Trend_filter_1_PeakHigh = (Trend_filter_1_high_eq_highest_in_N) & (Trend_filter_1_high_minus_close_gt_atr)
+
+    # Compute the rolling min of the low_data using a window of size data_lookback_window "lowest(3,low)"
+    Trend_filter_1_rolling_min = ROLLING_MIN_genie(Trend_filter_1_timeframe_low.to_numpy(),
+                                                   Trend_filter_1_data_lookback_window)
+    # Compare where the low_data is the same as the rolling_min "low == lowest(3,low)"
+    Trend_filter_1_low_eq_lowest_in_N = Trend_filter_1_timeframe_low == Trend_filter_1_rolling_min
+    # Find where the diff b/w the close_data and low_data is bigger than the ATR "( close - low > atr(AtrPeriod) ) "
+    Trend_filter_1_close_minus_low_bt_atr = (
+                                                    Trend_filter_1_timeframe_close.to_numpy() - Trend_filter_1_timeframe_low.to_numpy()) \
+                                            > Trend_filter_1_atr_indicator
+    # Compute the PeakLow "( low == lowest(3,low) and ( close - low > atr(AtrPeriod) )  "
+    Trend_filter_1_PeakLow = (Trend_filter_1_low_eq_lowest_in_N) & (Trend_filter_1_close_minus_low_bt_atr)
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+    #########################################################################################33
+    #########################################################################################33
+    #########################################################################################33
+    #########################################################################################33
 
     '''ATR Indicator'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     # Fetch pre-computed atr from cache. Uses PEAK_and_ATR_timeframe
     atr_indicator = vbt.indicators.ATR.run(
-        cache['High'][PEAK_and_ATR_timeframe],
-        cache['Low'][PEAK_and_ATR_timeframe],
-        cache['Close'][PEAK_and_ATR_timeframe],
+        PEAK_and_ATR_timeframe_high,
+        PEAK_and_ATR_timeframe_low,
+        PEAK_and_ATR_timeframe_close,
         window=atr_window,
         ewm=False,
         short_name='atr').atr
@@ -94,7 +151,12 @@ def apply_function(low_data, high_data, close_data,
     # All indicators and datas in this section use the PEAK_and_ATR_timeframe
     #
     # Compute the rolling max of the high_data using a window of size data_lookback_window "highest(3,high)"
+
     rolling_max = ROLLING_MAX_genie(PEAK_and_ATR_timeframe_high.to_numpy(), data_lookback_window)
+    # from Utilities.test_utilities import rolling_max as rolling_max
+    # rolling_max_ai = rolling_max(PEAK_and_ATR_timeframe_high.to_numpy(), data_lookback_window)
+    # print(f'{rolling_max == rolling_max_ai = }')
+
     # Compare where the high_data is the same as the rolling_max "high == highest(3,high)"
     high_eq_highest_in_N = PEAK_and_ATR_timeframe_high == rolling_max
     # Find where the diff b/w the high_data and close_data is bigger than the ATR "( high - close > atr(AtrPeriod) )"
@@ -124,12 +186,16 @@ def apply_function(low_data, high_data, close_data,
     '''Resample Indicators Back To 1 minute'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     # Fetch the resamplers from cache for a given timeframe
+    Trend_filter_1_timeframe_to_1min_Resampler = cache['Resamplers'][Trend_filter_1_timeframe]
     PEAK_and_ATR_timeframe_to_1min_Resampler = cache['Resamplers'][PEAK_and_ATR_timeframe]
     EMAs_timeframe_to_1min_Resampler = cache['Resamplers'][EMAs_timeframe]
 
     # Resample indicators to 1m
-    atr_indicator = atr_indicator.vbt.resample_closing(
-        PEAK_and_ATR_timeframe_to_1min_Resampler) if PEAK_and_ATR_timeframe_to_1min_Resampler else atr_indicator
+    Trend_filter_1_PeakHigh = Trend_filter_1_PeakHigh.vbt.resample_closing(
+        Trend_filter_1_timeframe_to_1min_Resampler) if Trend_filter_1_timeframe_to_1min_Resampler else Trend_filter_1_PeakHigh
+    Trend_filter_1_PeakLow = Trend_filter_1_PeakLow.vbt.resample_closing(
+        Trend_filter_1_timeframe_to_1min_Resampler) if Trend_filter_1_timeframe_to_1min_Resampler else Trend_filter_1_PeakLow
+    #
     PeakHigh = PeakHigh.vbt.resample_closing(
         PEAK_and_ATR_timeframe_to_1min_Resampler) if PEAK_and_ATR_timeframe_to_1min_Resampler else PeakHigh
     PeakLow = PeakLow.vbt.resample_closing(
@@ -140,15 +206,22 @@ def apply_function(low_data, high_data, close_data,
         EMAs_timeframe_to_1min_Resampler) if EMAs_timeframe_to_1min_Resampler else ema_2_indicator
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+    # Trend_filter_1_
     '''Long Entries Conditions'''
     # Bars since last PeakLow are less than Bars PeakHigh "barssince(PeakLow) < barssince(PeakHigh)"
-    long_entry_condition_1 = BARSINCE_genie(PeakLow).lt(BARSINCE_genie(PeakHigh))
+    long_peak_condition = BARSINCE_genie(PeakLow).lt(BARSINCE_genie(PeakHigh))
+    long_trend_1_peak_condition = BARSINCE_genie(Trend_filter_1_PeakLow).lt(BARSINCE_genie(Trend_filter_1_PeakHigh))
+    long_entry_condition_1 = long_peak_condition & long_trend_1_peak_condition.to_numpy()
+    #
     # EMA 1 crosses above EMA 2 "crossover(ema_EmaTF(13) , ema_EmaTF(50) )"
     long_entry_condition_2 = ema_1_indicator.vbt.crossed_above(ema_2_indicator)
 
     '''Short Entries Conditions'''
     # Bars since last PeakLow are greater than Bars PeakHigh "barssince(PeakLow) > barssince(PeakHigh)"
-    short_entry_condition_1 = BARSINCE_genie(PeakLow).gt(BARSINCE_genie(PeakHigh))
+    short_peak_condition = BARSINCE_genie(PeakLow).gt(BARSINCE_genie(PeakHigh))
+    short_trend_1_peak_condition = BARSINCE_genie(Trend_filter_1_PeakLow).gt(BARSINCE_genie(Trend_filter_1_PeakHigh))
+    short_entry_condition_1 = short_peak_condition & short_trend_1_peak_condition.to_numpy()
+
     # EMA 1 crosses below EMA 2 "crossunder(ema_EmaTF(13) , ema_EmaTF(50) )"
     short_entry_condition_2 = ema_1_indicator.vbt.crossed_below(ema_2_indicator)
 
@@ -183,7 +256,11 @@ def apply_function(low_data, high_data, close_data,
 def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray_sim_n_cpus):
     """MMT_Strategy"""
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
+    # Trend_filter_1_timeframes, Trend_filter_atr_windows, Trend_filter_1_data_lookback_windows
+    Trend_filter_1_timeframes = np.array(parameter_data["Trend_filter_1_timeframes"])
+    Trend_filter_atr_windows = np.array(parameter_data["Trend_filter_atr_windows"])
+    Trend_filter_1_data_lookback_windows = np.array(parameter_data["Trend_filter_1_data_lookback_windows"])
+    #
     PEAK_and_ATR_timeframes = np.array(parameter_data["PEAK_and_ATR_timeframes"])
     atr_windows = np.array(parameter_data["atr_windows"])
     data_lookback_windows = np.array(parameter_data["data_lookback_windows"])
@@ -202,11 +279,13 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         input_names=[
             'low_data', 'high_data', 'close_data',
         ],
-        param_names=['PEAK_and_ATR_timeframes', 'atr_windows', 'data_lookback_windows',
-                     'EMAs_timeframes', 'ema_1_windows', 'ema_2_windows',
-                     'take_profit_points',
-                     'stop_loss_points'
-                     ],
+        param_names=[
+            'Trend_filter_1_timeframes', 'Trend_filter_atr_windows', 'Trend_filter_1_data_lookback_windows',
+            'PEAK_and_ATR_timeframes', 'atr_windows', 'data_lookback_windows',
+            'EMAs_timeframes', 'ema_1_windows', 'ema_2_windows',
+            'take_profit_points',
+            'stop_loss_points'
+        ],
         output_names=[
             'long_entries', 'long_exits', 'short_entries', 'short_exits',
             'take_profit_points', 'stop_loss_points'
@@ -224,6 +303,9 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
             },
             show_progress=True
         ),
+        Trend_filter_1_timeframes='1d',
+        Trend_filter_atr_windows=5,
+        Trend_filter_1_data_lookback_windows=3,
         PEAK_and_ATR_timeframes='1d',
         atr_windows=5,
         data_lookback_windows=3,
@@ -234,6 +316,9 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         stop_loss_points=-600,
     ).run(
         low_data, high_data, close_data,
+        Trend_filter_1_timeframes=Trend_filter_1_timeframes,
+        Trend_filter_atr_windows=Trend_filter_atr_windows,
+        Trend_filter_1_data_lookback_windows=Trend_filter_1_data_lookback_windows,
         PEAK_and_ATR_timeframes=PEAK_and_ATR_timeframes,
         atr_windows=atr_windows,
         data_lookback_windows=data_lookback_windows,
@@ -242,15 +327,13 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         ema_2_windows=ema_2_windows,
         take_profit_points=take_profit_points,
         stop_loss_points=stop_loss_points,
-        # ##############################################
     )
-
     '''Type C conditions'''
     strategy_specific_kwargs = dict(
         exit_on_opposite_direction_entry=True,  # strategy_specific_kwargs['exit_on_opposite_direction_entry'],
         #
         progressive_bool=True,  # Master_Indicator.progressive_bool,
-        max_number_of_trades_open=5,
+        max_number_of_trades_open=10,
 
         long_progressive_condition=False,  # Master_Indicator.long_entry_condition_3.vbt.signals.fshift(),
         short_progressive_condition=False,  # Master_Indicator.short_entry_condition_3.vbt.signals.fshift(),
