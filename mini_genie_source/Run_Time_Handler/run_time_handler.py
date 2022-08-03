@@ -80,19 +80,20 @@ class run_time_handler:
                                    dest="run_time_dictionary_path", action='store',
                                    default=CONFIG_FILE_DEFAULT
                                    )
+        #
         general_group.add_argument("--example",
                                    help="Creates example Run-Time-Parameters (a.k.a settings) file in current "
                                         "directory",
                                    dest="create_example_file", action='store_true', default=False)
-        #
-        expand_study_group.add_argument("--expand_study_params",
-                                        help="Provide path to parameter's file you want to add to current study "
-                                             "(repeated params will be ignored) *not-available",
-                                        dest="expand_study_params_path", action='store_true', default=False)
-        expand_study_group.add_argument("--expand_study_metrics",
-                                        help="Provide path to metrics' file you want to add to current study "
-                                             "(repeated params will be ignored) *not-available",
-                                        dest="expand_study_metrics_path", action='store_true', default=False)
+        # #
+        # expand_study_group.add_argument("--expand_study_params",
+        #                                 help="Provide path to parameter's file you want to add to current study "
+        #                                      "(repeated params will be ignored) *not-available",
+        #                                 dest="expand_study_params_path", action='store_true', default=False)
+        # expand_study_group.add_argument("--expand_study_metrics",
+        #                                 help="Provide path to metrics' file you want to add to current study "
+        #                                      "(repeated params will be ignored) *not-available",
+        #                                 dest="expand_study_metrics_path", action='store_true', default=False)
 
         self.parser = parser
         self.parser.set_defaults(func=run_function)
