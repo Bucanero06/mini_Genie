@@ -7,9 +7,13 @@ debug_settings = dict(
         load_CSV_from_pickle=True,  # momentary
         data_files_dir='Datas',  # momentary
         data_files_names=[
-            'US30'
+            # 'US30'
             # 'US30_tick'
             # 'US30_with_spread_column_'
+            # 'USA100',
+            # 'USA100_with_spread_column'
+            # 'TSLA'
+            'AMZN'
         ],  # momentary
 
         delocalize_data=True,
@@ -23,24 +27,27 @@ debug_settings = dict(
         minute_data_input_format="%m.%d.%Y %H:%M:%S",
         # minute_data_input_format="%Y.%m.%d %H:%M:%S",
         minute_data_output_format="%m.%d.%Y %H:%M:%S",
-        accompanying_tick_data_input_format="%d.%m.%Y %H:%M:%S.%f",
-        # accompanying_tick_data_output_format="%m.%d.%Y %H:%M:%S.%f",
+        # minute_data_output_format="%Y.%m.%d %H:%M:%S",
+
+        # accompanying_tick_data_input_format="%d.%m.%Y %H:%M:%S.%f",
+        accompanying_tick_data_input_format="%m.%d.%Y %H:%M:%S.%f",
         accompanying_tick_data_output_format="%m.%d.%Y %H:%M:%S.%f"
 
         #     2021-10-03 22:04:00
     ),
 
     Simulation_Settings=dict(
-        study_name='mmt_USD30_1.2B',
-        # study_name='mmt_test_delete_debug',
+        # study_name='mmt_TSLA_Expo_Optimization_03042022_07262022',
+        study_name='mmt_AMZN_Expo_Optimization_03042022_07262022',
+        # study_name='mmt_debug',
         optimization_period=dict(
-            start_date=datetime.datetime(month=1, day=1, year=2022),
-            end_date=datetime.datetime(month=7, day=7, year=2022)
+            start_date=datetime.datetime(month=3, day=4, year=2022),  # 01.03.2022
+            end_date=datetime.datetime(month=7, day=26, year=2022)  # 07.27.2022
             # end_date=datetime.datetime(month=10, day=1, year=2021)
         ),
         #
         timer_limit=datetime.timedelta(days=0, hours=7, minutes=0, seconds=0),  # todo: logic missing,not used/needed
-        Continue=True,
+        Continue=False,
         run_mode="plaid_plus",  # todo: ["ludicrous","plaid_plus"]
         #
         batch_size=5000,
@@ -52,7 +59,7 @@ debug_settings = dict(
             #
             max_initial_combinations=1_200_000_000,
             # max_initial_combinations=1000,
-            stop_after_n_epoch=85,
+            stop_after_n_epoch=200,
             # force_to_finish=True,  # todo: logic missing
             #
             parameter_selection=dict(
@@ -106,7 +113,7 @@ debug_settings = dict(
         sim_timeframe='1m',
         JustLoadpf=False,
         slippage=0,  # 0.0001,
-        max_spread_allowed=300,  # 0.0001,
+        max_spread_allowed=400,  # 0.0001,
         trading_fees=0.00005,  # 0.00005 or 0.005%, $5 per $100_000
         cash_sharing=False,
         group_by=[],  # Leave blank
@@ -124,7 +131,7 @@ debug_settings = dict(
         parameter_windows=dict(
             Trend_filter_1_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
             Trend_filter_atr_windows=dict(type='window', lower_bound=7, upper_bound=14, min_step=1),
-            Trend_filter_1_data_lookback_windows=dict(type='window', lower_bound=5, upper_bound=8, min_step=1),
+            Trend_filter_1_data_lookback_windows=dict(type='window', lower_bound=3, upper_bound=8, min_step=1),
             #
             PEAK_and_ATR_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
             #

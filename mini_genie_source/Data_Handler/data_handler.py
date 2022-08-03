@@ -10,7 +10,7 @@ import vectorbtpro as vbt
 from dask import dataframe as dd
 from logger_tt import logger
 
-from Utilities.reduce_utilities import max_reduce_nb
+from Utilities.reduce_utilities import min_reduce_nb
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -67,39 +67,50 @@ class Data_Handler:
     def fetch_csv_data_dask(data: object, data_files_dir: object,
                             input_format='%m.%d.%Y %H:%M:%S',
                             output_format='%m.%d.%Y %H:%M:%S'):
+        """
+        Loads data from a CSV file into a dask dataframe
+        :param data: name of the data file
+        :param data_files_dir: directory of the data file
+        :param input_format: format of the date in the data file
+        :param output_format: format of the date to be outputted
+        :return: dask dataframe
+        """
         logger.info(f'Loading {data} from CSV file')
+        # load the data into a dask dataframe
         bar_data = dd.read_csv(f'{data_files_dir}/{data}.csv', parse_dates=True)
+        # convert all column names to upper case
         bar_data.columns = bar_data.columns.str.upper()
         logger.info(f'Finished Loading {data} from CSV file')
-        #
         logger.info(f'Prepping {data} for use')
-        #
         logger.info(f'_parsing dates')
+        # get the name of the datetime column
         datetime_col = bar_data.columns[0]
+        # parse the datetime column
         bar_data[datetime_col] = dd.to_datetime(bar_data[datetime_col], format=input_format)
-        if input_format != output_format:
-            bar_data[datetime_col] = bar_data[datetime_col].dt.strftime(output_format)
-        #
+        # bar_data[datetime_col] = bar_data[datetime_col].dt.strftime(output_format)
         logger.info(f'_dask_compute')
+        # compute the dask dataframe
         bar_data = bar_data.compute(scheduler='processes')
-        # logger.info(f'_setting_index to {datetime_col}')
-        # bar_data = bar_data.set_index(datetime_col)
-        #
-        # logger.info(f'_setting_index to {datetime_col}')
+        # set the datetime column as the index
         bar_data.index = bar_data[datetime_col]
+        # delete the datetime column
         del bar_data[datetime_col]
-        # or
-        # bar_data = bar_data.set_index(datetime_col)
-
         return bar_data
 
-    @staticmethod
-    def compute_spread_from_ask_bid_data(tick_data):
+    def compute_spread_from_ask_bid_data(self, tick_data):
+        """
+        Compute the spread from the ask and bid data
+        :param self:
+        :param tick_data:
+        :return:
+        """
         logger.info(f'_computing_spread')
-        tick_data["SPREAD"] = (tick_data["BID"] - tick_data["ASK"]).abs()
+        # Compute the spread
+        tick_size = self.genie_object.runtime_settings["Data_Settings.tick_size"]
+        tick_data["SPREAD"] = ((tick_data["BID"] - tick_data["ASK"]).abs() / tick_size).round()
         return tick_data
 
-    def fetch_csv_data_add_spread(self, data_name: object, data_files_dir: object) -> object:
+    def fetch_csv_data_add_spread_(self, data_name: object, data_files_dir: object) -> object:
         """
 
         Args:
@@ -122,53 +133,99 @@ class Data_Handler:
         logger.info(f'1{bar_data.head() = }')
         logger.info(f'_done')
         # exit()
-        # if "SPREAD" not in bar_data.columns and exists(f'{data_files_dir}/{data_name}_tick.csv'):
-        #     bar_data_tick = self.fetch_csv_data_dask(f'{data_name}_tick', data_files_dir,
-        #                                              input_format=self.genie_object.runtime_settings[
-        #                                                  "Data_Settings.accompanying_tick_data_input_format"],
-        #                                              output_format=self.genie_object.runtime_settings[
-        #                                                  "Data_Settings.accompanying_tick_data_output_format"],
-        #                                              )
-        #     # todo for now genie does not use tick data other than to compute the max spread
-        #     if ("ASK" and "BID") in (bar_data_tick.columns):
-        #         logger.info(
-        #             f'Loading {data_name}_tick.csv to compute, resample to minute, and add spread column to {data_name}.csv')
-        #         bar_data_tick = bar_data_tick[["ASK", "BID"]]
-        #         #
-        #         bar_data_tick = self.compute_spread_from_ask_bid_data(bar_data_tick)
-        #         logger.info(f'1{bar_data_tick.head() = }')
-        #         #
-        #         logger.info(f'_resampling spread')
-        #         # tick_spread_resampled = bar_data_tick["SPREAD"].vbt.resample_apply('1 min', max_reduce_nb)
-        #         # tick_spread_resampled = bar_data_tick["SPREAD"].groupby(['id', pd.Grouper(freq='D')])['value'].sum()
-        #
-        #         # dd_tick_spread = dd.from_pandas(bar_data_tick["SPREAD"], npartitions=100)
-        #         # logger.info(f'{dd_tick_spread.divisions= }')
-        #         # tick_spread_resampled = dd_tick_spread.resample('1 min').agg(np.max)
-        #
-        #         # tick_spread_resampled = bar_data_tick["SPREAD"].groupby(pd.Grouper(freq='1 min')).max().dropna()
-        #         # logger.info(f'{tick_spread_resampled.head(10) = }')
-        #         # tick_spread_resampled = dask_series.resample(freq, label=label).dropna()
-        #
-        #         tick_spread_resampled = bar_data_tick["SPREAD"].vbt.resample_apply('1 min', max_reduce_nb).dropna()
-        #         logger.info(f'2{tick_spread_resampled.head() = }')
-        #         #
-        #         # from Utilities.bars_utilities import resample_dask_series
-        #         # tick_spread_resampled = resample_dask_series(bar_data_tick["SPREAD"], '1 min', label=None).sum().compute(scheduler='processes')
-        #         #
-        #         logger.info(f'{tick_spread_resampled.head()=  }')
-        #         logger.info(f'{len(tick_spread_resampled) =  }')
-        #         logger.info(f'{len(bar_data) =  }')
-        #         assert len(tick_spread_resampled) == len(bar_data)
-        #         bar_data["SPREAD"] = tick_spread_resampled
-        #         logger.info(f'{bar_data["SPREAD"].head() =  }')
-        #         bar_data.to_csv(f'{data_files_dir}/{data_name}_with_spread_column.csv')
-        #         #
-        #         # bar_data = self.resample_ask_bid_data_to_minute()
+        if "SPREAD" not in bar_data.columns and exists(f'{data_files_dir}/{data_name}_tick.csv'):
+            bar_data_tick = self.fetch_csv_data_dask(f'{data_name}_tick', data_files_dir,
+                                                     input_format=self.genie_object.runtime_settings[
+                                                         "Data_Settings.accompanying_tick_data_input_format"],
+                                                     output_format=self.genie_object.runtime_settings[
+                                                         "Data_Settings.accompanying_tick_data_output_format"],
+                                                     )
+            # todo for now genie does not use tick data other than to compute the max spread
+            if ("ASK" and "BID") in (bar_data_tick.columns):
+                logger.info(
+                    f'Loading {data_name}_tick.csv to compute, resample to minute, and add spread column to {data_name}.csv')
+                bar_data_tick = bar_data_tick[["ASK", "BID"]]
+                #
+                bar_data_tick = self.compute_spread_from_ask_bid_data(bar_data_tick)
+                logger.info(f'1{bar_data_tick.head() = }')
+                #
+                logger.info(f'_resampling spread')
+                tick_spread_resampled = bar_data_tick["SPREAD"].vbt.resample_apply('1 min', min_reduce_nb,
+                                                                                   # chunked=True
+                                                                                   ).dropna()
 
-        # bar_data.to_csv(f'{data_files_dir}/{data_name}_with_spread_column_.csv')
+                # tick_spread_resampled = bar_data_tick["SPREAD"].vbt.resample_apply('1 min', max_reduce_nb)
+                # tick_spread_resampled = bar_data_tick["SPREAD"].groupby(['id', pd.Grouper(freq='D')])['value'].sum()
+
+                # dd_tick_spread = dd.from_pandas(bar_data_tick["SPREAD"], npartitions=100)
+                # logger.info(f'{dd_tick_spread.divisions= }')
+                # tick_spread_resampled = dd_tick_spread.resample('1 min').agg(np.max)
+
+                # tick_spread_resampled = bar_data_tick["SPREAD"].groupby(pd.Grouper(freq='1 min')).max().dropna()
+                # logger.info(f'{tick_spread_resampled.head(10) = }')
+                # tick_spread_resampled = dask_series.resample(freq, label=label).dropna()
+
+                logger.info(f'2{tick_spread_resampled.head() = }')
+                #
+                # from Utilities.bars_utilities import resample_dask_series
+                # tick_spread_resampled = resample_dask_series(bar_data_tick["SPREAD"], '1 min', label=None).sum().compute(scheduler='processes')
+                #
+                logger.info(f'{tick_spread_resampled.head()=  }')
+                logger.info(f'{len(tick_spread_resampled) =  }')
+                logger.info(f'{len(bar_data) =  }')
+                assert len(tick_spread_resampled) == len(bar_data)
+                bar_data["SPREAD"] = tick_spread_resampled
+                logger.info(f'{bar_data["SPREAD"].head() =  }')
+                bar_data.to_csv(f'{data_files_dir}/{data_name}_with_spread_column.csv')
+
+                # bar_data = self.fetch_csv_data_dask(f'{data_name}_with_spread_column.csv', data_files_dir,
+                #                                     input_format="%Y.%m.%d %H:%M:%S",
+                #                                     output_format='%m.%d.%Y %H:%M:%S')
+                # bar_data.to_csv(f'{data_files_dir}/{data_name}_with_spread_column.csv')
+
+                ## bar_data = self.resample_ask_bid_data_to_minute()
+
         logger.info(f'{bar_data.head() = }')
+        exit()
+        return bar_data
 
+    def fetch_csv_data_add_spread(self, data_name: object, data_files_dir: object) -> object:
+        """
+        add spread column to minute data
+        :param self:
+        :param data_name:
+        :param data_files_dir:
+        :return:
+        """
+
+        bar_data = self.fetch_csv_data_dask(data_name, data_files_dir,  # load minute data
+                                            input_format=self.genie_object.runtime_settings[
+                                                "Data_Settings.minute_data_input_format"],
+                                            output_format=self.genie_object.runtime_settings[
+                                                "Data_Settings.minute_data_output_format"])
+        if "SPREAD" not in bar_data.columns and exists(
+                f'{data_files_dir}/{data_name}_tick.csv'):  # if spread column is not in minute data and tick data exists
+            bar_data_tick = self.fetch_csv_data_dask(f'{data_name}_tick', data_files_dir,
+                                                     input_format=self.genie_object.runtime_settings[
+                                                         "Data_Settings.accompanying_tick_data_input_format"],
+                                                     output_format=self.genie_object.runtime_settings[
+                                                         "Data_Settings.accompanying_tick_data_output_format"],
+                                                     )
+            if ("ASK" and "BID") in (bar_data_tick.columns):  # if ask and bid columns are in tick data
+                logger.info(
+                    f'Loading {data_name}_tick.csv to compute, resample to minute, and add spread column to {data_name}.csv')
+                bar_data_tick = bar_data_tick[["ASK", "BID"]]  # select only ask and bid columns
+                bar_data_tick = self.compute_spread_from_ask_bid_data(bar_data_tick)  # compute spread column
+                logger.info(f'_resampling spread')
+                tick_spread_resampled = bar_data_tick["SPREAD"].vbt.resample_apply('1 min', min_reduce_nb,
+                                                                                   # resample spread column to minute
+                                                                                   # chunked=True
+                                                                                   ).dropna()
+                assert len(tick_spread_resampled) == len(
+                    bar_data)  # check if length of resampled spread column is equal to length of minute data
+                bar_data["SPREAD"] = tick_spread_resampled  # add resampled spread column to minute data
+                bar_data.to_csv(
+                    f'{data_files_dir}/{data_name}_with_spread_column.csv')  # save minute data with spread column
         return bar_data
 
     def fetch_data(self) -> object:
@@ -208,22 +265,6 @@ class Data_Handler:
         setattr(self.genie_object, "symbols_data_id", ray.put(symbols_data))
 
         return self
-
-    @staticmethod
-    def fetch_dates_from_df_old(df, start_date=None, end_date=None):
-        """
-
-        Args:
-            df:
-            start_date:
-            end_date:
-
-        Returns:
-            Cut DF
-        """
-        df_index = df.index
-        mask = (df_index >= start_date) & (df_index <= end_date)
-        return df.loc[mask]
 
     @staticmethod
     def fetch_dates_from_df(df, start_date=None, end_date=None):
@@ -330,7 +371,8 @@ class Data_Handler:
                 "Data_Settings.delocalize_data"] else spread_data
             spread_data = spread_data.dropna() if self.genie_object.runtime_settings[
                 "Data_Settings.drop_nan"] else spread_data
-            spread_data = spread_data.ffill() if self.genie_object.runtime_settings["Data_Settings.ffill"] else spread_data
+            spread_data = spread_data.ffill() if self.genie_object.runtime_settings[
+                "Data_Settings.ffill"] else spread_data
             spread_data = close_data.reindex(idx) if self.genie_object.runtime_settings[
                 "Data_Settings.fill_dates"] else spread_data
             optimization_spread_data = self.fetch_dates_from_df(spread_data,

@@ -704,9 +704,12 @@ class mini_genie_trader:
 
         """
         from Simulation_Handler.compute_bar_atr import compute_bar_atr
+        logger.info(f'I am here bar')
         self.bar_atr = compute_bar_atr(self)
+        logger.info(f'I am here bar after')
         from pprint import pprint
         pprint(self.bar_atr)
+        logger.info(f'I am here bar print done')
 
     @staticmethod
     def _fill_tp_sl_n_skip_out_of_bound_suggestions(tp_sl_record, tp_sl_0, n_ratios, gamma_ratios, tick_size,
@@ -927,6 +930,7 @@ class mini_genie_trader:
                 #
                 from Simulation_Handler.simulation_handler import Simulation_Handler
                 simulation_handler = Simulation_Handler(self)
+                logger.info(f'I am here before compute atr')
                 simulation_handler.compute_bar_atr
                 #
                 number_of_suggestions = self.parameters_lengths_dict[f'tp_sl_length']
@@ -1106,31 +1110,43 @@ class mini_genie_trader:
         # simulation_handler_id, analysis_handler_id = put_objects_list_to_ray([simulation_handler, analysis_handler])
         # simulation_handler_id, analysis_handler_id = simulation_handler, analysis_handler
         #
+        logger.info(f'I am here 1')
         highest_profit_cash = -sys.maxsize
         highest_profit_perc = -sys.maxsize
         best_parameters = None
         #
+        logger.info(f'I am here 2')
+
         initial_cash_total = self.runtime_settings["Portfolio_Settings.init_cash"]
         stop_after_n_epoch = self.runtime_settings["Simulation_Settings.Initial_Search_Space.stop_after_n_epoch"]
         save_every_nth_chunk = self.runtime_settings["Simulation_Settings.save_every_nth_chunk"]
         #
         # If metrics record empty then initiate
         if not any(self.metrics_record):
+            logger.info(f'I am here 3')
+
             self._initiate_metric_records(add_ids=True, params_size=self.parameters_record_length * len(
                 self.asset_names))  # we need n_assets as many metric elements as there are trial.params
         else:
+            logger.info(f'I am here 4')
+
             highest_profit_perc = np.max(self.metrics_record["Total Return [%]"])
             #
+            logger.info(f'I am here 5')
+
             highest_profit_cash = highest_profit_perc * initial_cash_total / 100
             # self.parameters_record[]
 
         if not self.user_pick:
+            logger.info(f'I am here 6')
+
             # Get an array of indexes remaining to compute
             from Utilities.general_utilities import fetch_non_filled_elements_indexes
             # Since metric_record is n_assets times bigger than parameters_record,and because metrics record just
             #   repeats every 1/n_assets of the array we only need the first portion it
             trials_ids_not_computed = fetch_non_filled_elements_indexes(
                 self.metrics_record[:self.parameters_record_length])
+            logger.info(f'I am here 7')
 
             # Take elements from parameter record that match with trials_ids_not_computed
             # params_to_compute = np.take(ray.get(self.parameters_record), trials_ids_not_computed)
@@ -1138,10 +1154,13 @@ class mini_genie_trader:
         else:
             params_to_compute = self.parameters_record
         #
+        logger.info(f'I am here 8')
 
         # Get max n_chunks given max batch_size
         n_chunks = int(np.floor(len(params_to_compute) / batch_size)) if batch_size < len(params_to_compute) else 1
         # Split arrays into n_chunks
+        logger.info(f'I am here 9')
+
         chunks_of_params_left_to_compute = np.array_split(params_to_compute, n_chunks)
         #
         # from Utilities.general_utilities import put_objects_list_to_ray
@@ -1151,6 +1170,8 @@ class mini_genie_trader:
             if epoch_n == stop_after_n_epoch:
                 break
             #
+            logger.info(f'I am here 10')
+
             start_time = perf_counter()
             CHECKTEMPS(TEMP_DICT)
             #

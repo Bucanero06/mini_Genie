@@ -13,8 +13,8 @@ EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings
 #
 
 # CONFIG_FILE_DEFAULT = "mmt_DAXUSD_config.py.Run_Time_Settings"
-CONFIG_FILE_DEFAULT = "mmt_debug.py.debug_settings"
 # CONFIG_FILE_DEFAULT = "mmt_debug.py.debug_settings"
+CONFIG_FILE_DEFAULT = "mmt_debug.py.debug_settings"
 
 # CONFIG_FILE_DEFAULT = "mmt_USA100_config.py.Run_Time_Settings"
 
