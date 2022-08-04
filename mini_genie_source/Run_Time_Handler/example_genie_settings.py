@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
 import datetime
 
-debug_settings = dict(
+example_settings = dict(
     # Data Settings
     Data_Settings=dict(
         load_CSV_from_pickle=True,  # momentary
         data_files_dir='Datas',  # momentary
         data_files_names=[
-            # 'US30'
-            # 'US30_tick'
-            # 'US30_with_spread_column_'
             # 'USA100',
             # 'USA100_with_spread_column'
             # 'TSLA'
             # 'AMZN'
-            'AMZN'
+            'AUDUSD'
         ],  # momentary
 
         delocalize_data=True,
@@ -22,15 +19,10 @@ debug_settings = dict(
         ffill=False,
         fill_dates=False,
         saved_data_file='SymbolData',
-        # tick_size=0.01
         tick_size=[0.01],
-        # tick_size=0.00001
         minute_data_input_format="%m.%d.%Y %H:%M:%S",
-        # minute_data_input_format="%Y.%m.%d %H:%M:%S",
         minute_data_output_format="%m.%d.%Y %H:%M:%S",
-        # minute_data_output_format="%Y.%m.%d %H:%M:%S",
-
-        # accompanying_tick_data_input_format="%d.%m.%Y %H:%M:%S.%f",
+        #
         accompanying_tick_data_input_format="%m.%d.%Y %H:%M:%S.%f",
         accompanying_tick_data_output_format="%m.%d.%Y %H:%M:%S.%f"
 
@@ -38,12 +30,10 @@ debug_settings = dict(
     ),
 
     Simulation_Settings=dict(
-        # study_name='mmt_TSLA_Expo_Optimization_03042022_07262022',
-        study_name='mmt_AMZN_Expo_Optimization_03042022_07262022',
-        # study_name='mmt_debug',
+        study_name='Example_AUDUSD',
         optimization_period=dict(
-            start_date=datetime.datetime(month=3, day=4, year=2022),  # 01.03.2022
-            end_date=datetime.datetime(month=7, day=26, year=2022)  # 07.27.2022
+            start_date=datetime.datetime(month=1, day=1, year=2022),  # 01.03.2022
+            end_date=datetime.datetime(month=3, day=30, year=2022)  # 07.27.2022
             # end_date=datetime.datetime(month=10, day=1, year=2021)
         ),
         #
@@ -51,17 +41,16 @@ debug_settings = dict(
         Continue=False,
         run_mode="plaid_plus",  # todo: ["ludicrous","plaid_plus"]
         #
-        batch_size=5000,
+        batch_size=10,
         save_every_nth_chunk=1,
         Initial_Search_Space=dict(
             # _extensions available -> csv and gzip
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            max_initial_combinations=1_200_000_000,
-            # max_initial_combinations=1000,
+            # max_initial_combinations=1_200_000_000,
+            max_initial_combinations=1000,
             stop_after_n_epoch=200,
-            # force_to_finish=True,  # todo: logic missing
             #
             parameter_selection=dict(
                 timeframes='all',  # todo: needs to add settings for how to reduce, these dont do anything

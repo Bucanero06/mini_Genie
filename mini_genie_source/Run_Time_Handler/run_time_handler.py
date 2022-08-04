@@ -8,13 +8,14 @@ UP_DEFAULT = False
 POST_ANALYSIS_DEFAULT = False
 TSV_DEFAULT = False
 CONFIG_FILE_DEFAULT = False
-EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings.py"
+EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings.py.example_settings"
+
 
 #
 
 # CONFIG_FILE_DEFAULT = "mmt_DAXUSD_config.py.Run_Time_Settings"
 # CONFIG_FILE_DEFAULT = "mmt_debug.py.debug_settings"
-CONFIG_FILE_DEFAULT = "mmt_debug.py.debug_settings"
+# CONFIG_FILE_DEFAULT = "mmt_debug.py.debug_settings"
 
 # CONFIG_FILE_DEFAULT = "mmt_USA100_config.py.Run_Time_Settings"
 
@@ -75,7 +76,7 @@ class run_time_handler:
                                    help="Convert csv to tsv previously computed metric files. File will vary based on "
                                         "whether user or genie pick option was used.",
                                    dest="metrics_to_tsv", action='store_true', default=TSV_DEFAULT)
-        general_group.add_argument("-c",
+        general_group.add_argument("-c","-config_file_path",
                                    help="Point to Run-Time-Parameters (a.k.a settings) dictionary path",
                                    dest="run_time_dictionary_path", action='store',
                                    default=CONFIG_FILE_DEFAULT
@@ -129,7 +130,7 @@ class run_time_handler:
     def create_example(self):
         logger.info("Creating example_genie_settings.py")
         import shutil
-        shutil.copy2(EXAMPLE_CONFIG_PATH, "../Equipment_Handler/example_genie_settings.py")
+        shutil.copy2(EXAMPLE_CONFIG_PATH, ".")
 
     @staticmethod
     def load_module_from_path(filename, object_name=None):
