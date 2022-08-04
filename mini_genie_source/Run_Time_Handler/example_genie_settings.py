@@ -25,7 +25,6 @@ example_settings = dict(
         #
         accompanying_tick_data_input_format="%m.%d.%Y %H:%M:%S.%f",
         accompanying_tick_data_output_format="%m.%d.%Y %H:%M:%S.%f"
-
         #     2021-10-03 22:04:00
     ),
 

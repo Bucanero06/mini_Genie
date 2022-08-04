@@ -616,13 +616,13 @@ def Flexible_Simulation_Optimization(runtime_settings,
             max_spread_allowed=runtime_settings["Portfolio_Settings.max_spread_allowed"],
             tick_size=runtime_settings["Data_Settings.tick_size"] * number_of_parameter_comb,
             type_percent=runtime_settings["Portfolio_Settings.type_percent"],
-
+            max_number_of_trades_open=runtime_settings['Portfolio_Settings.max_orders'] if runtime_settings[
+                                                                                               'Portfolio_Settings.max_orders'] > 0 else np.inf,
             # strategy Specific Kwargs
             long_progressive_condition=strategy_specific_kwargs['long_progressive_condition'],
             short_progressive_condition=strategy_specific_kwargs['short_progressive_condition'],
             #
             progressive_bool=strategy_specific_kwargs['progressive_bool'],
-            max_number_of_trades_open=strategy_specific_kwargs['max_number_of_trades_open'],
             exit_on_opposite_direction_entry=strategy_specific_kwargs['exit_on_opposite_direction_entry'],
 
             #

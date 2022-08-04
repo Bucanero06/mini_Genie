@@ -333,8 +333,7 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         exit_on_opposite_direction_entry=True,  # strategy_specific_kwargs['exit_on_opposite_direction_entry'],
         #
         progressive_bool=True,  # Master_Indicator.progressive_bool,
-        max_number_of_trades_open=10,
-
+        #
         long_progressive_condition=False,  # Master_Indicator.long_entry_condition_3.vbt.signals.fshift(),
         short_progressive_condition=False,  # Master_Indicator.short_entry_condition_3.vbt.signals.fshift(),
         #

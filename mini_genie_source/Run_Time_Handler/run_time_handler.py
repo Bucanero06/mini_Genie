@@ -11,29 +11,8 @@ CONFIG_FILE_DEFAULT = False
 EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings.py.example_settings"
 
 
-#
-
 # CONFIG_FILE_DEFAULT = "mmt_DAXUSD_config.py.Run_Time_Settings"
 # CONFIG_FILE_DEFAULT = "mmt_debug.py.debug_settings"
-# CONFIG_FILE_DEFAULT = "mmt_debug.py.debug_settings"
-
-# CONFIG_FILE_DEFAULT = "mmt_USA100_config.py.Run_Time_Settings"
-
-# CONFIG_FILE_DEFAULT = "mmt_USA30_update_test_config.py.Run_Time_Settings"
-# CONFIG_FILE_DEFAULT = "mmt_USA30_update_config.py.Run_Time_Settings"
-
-
-# CONFIG_FILE_DEFAULT = "mmt_USA30_config.py.Run_Time_Settings"
-# CONFIG_FILE_DEFAULT = "mmt_DAXUSD_config.py.Run_Time_Settings"
-
-
-# CONFIG_FILE_DEFAULT = "rlgl_GOLD_66M_config.py.Run_Time_Settings"
-
-# CONFIG_FILE_DEFAULT = "rlgl_debug_config.py.debug_settings"
-# CONFIG_FILE_DEFAULT = "rlgl_OIL_66M_config.py.Run_Time_Settings"
-# CONFIG_FILE_DEFAULT = "rlgl_ETHUSD_66M_config.py.Run_Time_Settings"
-# CONFIG_FILE_DEFAULT = "rlgl_GBPUSD_66M_config.py.Run_Time_Settings"
-# CONFIG_FILE_DEFAULT = "rlgl_EURUSD_66M_config.py.Run_Time_Settings"
 
 
 class run_time_handler:
@@ -60,7 +39,7 @@ class run_time_handler:
         #
         parser = argparse.ArgumentParser(description="Help for mini-Genie Trader")
         general_group = parser.add_argument_group(description="Basic Usage")
-        expand_study_group = parser.add_argument_group(description="Expand Study Usage")
+        # expand_study_group = parser.add_argument_group(description="Expand Study Usage")
         #
         general_group.add_argument("-gp", help="Simulate using genie picked space based on user settings",
                                    dest="genie_pick",
@@ -76,7 +55,7 @@ class run_time_handler:
                                    help="Convert csv to tsv previously computed metric files. File will vary based on "
                                         "whether user or genie pick option was used.",
                                    dest="metrics_to_tsv", action='store_true', default=TSV_DEFAULT)
-        general_group.add_argument("-c","-config_file_path",
+        general_group.add_argument("-c", "-config_file_path",
                                    help="Point to Run-Time-Parameters (a.k.a settings) dictionary path",
                                    dest="run_time_dictionary_path", action='store',
                                    default=CONFIG_FILE_DEFAULT
