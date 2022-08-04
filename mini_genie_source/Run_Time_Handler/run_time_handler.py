@@ -8,7 +8,7 @@ UP_DEFAULT = False
 POST_ANALYSIS_DEFAULT = False
 TSV_DEFAULT = False
 CONFIG_FILE_DEFAULT = False
-EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings.py.example_settings"
+EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings.py"
 
 
 # CONFIG_FILE_DEFAULT = "mmt_DAXUSD_config.py.Run_Time_Settings"
@@ -148,6 +148,11 @@ class run_time_handler:
 
         run_time_settings = self.load_module_from_path(self.run_time_module_path,
                                                        object_name=self.run_time_dictionary_name)
+        #
+        strategy_path = run_time_settings["Portfolio_Settings"]["Simulator"]["Strategy"]
+        strategy_settings_dict = self.load_module_from_path(strategy_path, object_name="Strategy_Settings")
+        strategy_settings_dict["Strategy"] = f'{strategy_path}.{strategy_settings_dict["Strategy"]}'
+        run_time_settings["Strategy_Settings"] = strategy_settings_dict
         #
         optimization_sim_path = run_time_settings["Portfolio_Settings"]["Simulator"]["optimization"]
         optimization_sim_module_path, optimization_sim_dictionary_name = optimization_sim_path.rsplit('.', 1)

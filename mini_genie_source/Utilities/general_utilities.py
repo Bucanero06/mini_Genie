@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import ast
+import inspect
 import json
 import os
 import os.path
@@ -13,6 +15,31 @@ import ray
 import vectorbtpro as vbt
 from logger_tt import logger
 from vectorbtpro import register_jitted
+
+from Utilities import _typing as tp
+
+
+def multiline_eval(expr: str, context: tp.KwargsLike = None) -> tp.Any:
+    """Evaluate several lines of input, returning the result of the last line.
+
+    Args:
+        expr: The expression to evaluate.
+        context: The context to evaluate the expression in.
+
+    Returns:
+        The result of the last line of the expression.
+
+    Raises:
+        SyntaxError: If the expression is not valid Python.
+        ValueError: If the expression is not valid Python.
+    """
+    if context is None:
+        context = {}
+    tree = ast.parse(inspect.cleandoc(expr))
+    eval_expr = ast.Expression(tree.body[-1].value)
+    exec_expr = ast.Module(tree.body[:-1], type_ignores=[])
+    exec(compile(exec_expr, "file", "exec"), context)
+    return eval(compile(eval_expr, "file", "eval"), context)
 
 
 @register_jitted(cache=True)
@@ -209,6 +236,7 @@ def flip_bool(param):
         return False
     else:
         return True
+
 
 def next_path(path_pattern):
     import os

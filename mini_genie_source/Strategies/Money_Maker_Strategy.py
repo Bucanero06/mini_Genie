@@ -12,8 +12,45 @@ import vectorbtpro as vbt
 
 from Utilities.bars_utilities import BARSINCE_genie, ROLLING_MAX_genie, ROLLING_MIN_genie
 
-
 # --- ↑ Do not remove these libs ↑ -------------------------------------------------------------------------------------
+
+Strategy_Settings = dict(
+    Strategy="MMT_Strategy",
+    # The order of parameter key_names should be honored across all files
+    parameter_windows=dict(
+        Trend_filter_1_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
+        Trend_filter_atr_windows=dict(type='window', lower_bound=7, upper_bound=14, min_step=1),
+        Trend_filter_1_data_lookback_windows=dict(type='window', lower_bound=3, upper_bound=8, min_step=1),
+        #
+        PEAK_and_ATR_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
+        #
+        atr_windows=dict(type='window', lower_bound=7, upper_bound=14, min_step=1),
+        data_lookback_windows=dict(type='window', lower_bound=3, upper_bound=8, min_step=1),
+        EMAs_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
+        ema_1_windows=dict(type='window', lower_bound=7, upper_bound=50, min_step=1),
+        ema_2_windows=dict(type='window', lower_bound=20, upper_bound=80, min_step=1),
+        #
+        take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=10000000, min_step=1000),
+        stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=10000000, min_step=1000),
+    ),
+    strategy_user_picked_params=dict(
+        output_file_name='backtest_result.csv',
+        compute_product=True,
+        read_user_defined_param_file=None,
+        parameter_windows=dict(
+            PEAK_and_ATR_timeframes=dict(type='timeframe', values=['5 min']),
+            #
+            atr_windows=dict(type='window', values=[5]),
+            data_lookback_windows=dict(type='window', values=[5]),
+            EMAs_timeframes=dict(type='timeframe', values=['15 min']),
+            ema_1_windows=dict(type='window', values=[27]),
+            ema_2_windows=dict(type='window', values=[28]),
+            #
+            take_profit_points=dict(type='take_profit', values=[909]),
+            stop_loss_points=dict(type='stop_loss', values=[556]),
+        )
+    ),
+)
 
 
 def cache_func(low, high, close,

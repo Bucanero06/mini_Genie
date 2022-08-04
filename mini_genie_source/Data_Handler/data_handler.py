@@ -326,36 +326,37 @@ class Data_Handler:
         close_data = close_data.reindex(idx) if self.genie_object.runtime_settings[
             "Data_Settings.fill_dates"] else close_data
 
-        #  Split
-        optimization_open_data = self.fetch_dates_from_df(open_data,
-                                                          self.genie_object.optimization_start_date,
-                                                          self.genie_object.optimization_end_date)
-        optimization_low_data = self.fetch_dates_from_df(low_data,
-                                                         self.genie_object.optimization_start_date,
-                                                         self.genie_object.optimization_end_date)
-        optimization_high_data = self.fetch_dates_from_df(high_data,
-                                                          self.genie_object.optimization_start_date,
-                                                          self.genie_object.optimization_end_date)
-        optimization_close_data = self.fetch_dates_from_df(close_data,
-                                                           self.genie_object.optimization_start_date,
-                                                           self.genie_object.optimization_end_date)
+        # assert there is enough data for the optimization period and the warm up period
+        data_start_date = close_data.index[0]
+        data_end_date = close_data.index[len(close_data) - 1]
+        print(f'Range of Data Source from {data_start_date} to {data_end_date}')
         #
         bar_atr_days = self.genie_object.tp_sl_selection_space["bar_atr_days"]
         from datetime import timedelta
         one_day = timedelta(days=1, hours=0, minutes=0, seconds=0)
+        bar_atr_start_date = self.genie_object.optimization_start_date - bar_atr_days
+        bar_atr_end_date = self.genie_object.optimization_start_date - one_day
         #
-        bar_atr_open_data = self.fetch_dates_from_df(open_data,
-                                                     self.genie_object.optimization_start_date - bar_atr_days,
-                                                     self.genie_object.optimization_start_date - one_day)
-        bar_atr_low_data = self.fetch_dates_from_df(low_data,
-                                                    self.genie_object.optimization_start_date - bar_atr_days,
-                                                    self.genie_object.optimization_start_date - one_day)
-        bar_atr_high_data = self.fetch_dates_from_df(high_data,
-                                                     self.genie_object.optimization_start_date - bar_atr_days,
-                                                     self.genie_object.optimization_start_date - one_day)
-        bar_atr_close_data = self.fetch_dates_from_df(close_data,
-                                                      self.genie_object.optimization_start_date - bar_atr_days,
-                                                      self.genie_object.optimization_start_date - one_day)
+        optimization_start_date = self.genie_object.optimization_start_date
+        optimization_end_date = self.genie_object.optimization_end_date
+        #
+        try:
+            assert data_start_date < bar_atr_start_date
+            assert data_end_date > optimization_end_date
+        except:
+            logger.error(f'Not enough data to meet Warm-up or Optimization Period')
+            exit()
+
+        #  Split
+        optimization_open_data = self.fetch_dates_from_df(open_data, optimization_start_date, optimization_end_date)
+        optimization_low_data = self.fetch_dates_from_df(low_data, optimization_start_date, optimization_end_date)
+        optimization_high_data = self.fetch_dates_from_df(high_data, optimization_start_date, optimization_end_date)
+        optimization_close_data = self.fetch_dates_from_df(close_data, optimization_start_date, optimization_end_date)
+        #
+        bar_atr_open_data = self.fetch_dates_from_df(open_data, bar_atr_start_date, bar_atr_end_date)
+        bar_atr_low_data = self.fetch_dates_from_df(low_data, bar_atr_start_date, bar_atr_end_date)
+        bar_atr_high_data = self.fetch_dates_from_df(high_data, bar_atr_start_date, bar_atr_end_date)
+        bar_atr_close_data = self.fetch_dates_from_df(close_data, bar_atr_start_date, bar_atr_end_date)
 
         logger.info(
             f'\\bar_ATR Warm-Up Data -> From: {bar_atr_close_data.index[0]} to {bar_atr_close_data.index[len(bar_atr_close_data) - 1]}')
@@ -375,13 +376,10 @@ class Data_Handler:
                 "Data_Settings.ffill"] else spread_data
             spread_data = close_data.reindex(idx) if self.genie_object.runtime_settings[
                 "Data_Settings.fill_dates"] else spread_data
-            optimization_spread_data = self.fetch_dates_from_df(spread_data,
-                                                                self.genie_object.optimization_start_date,
-                                                                self.genie_object.optimization_end_date)
-
+            optimization_spread_data = self.fetch_dates_from_df(spread_data, optimization_start_date,
+                                                                optimization_end_date)
         else:
             optimization_spread_data = pd.DataFrame().reindex_like(optimization_close_data).fillna(-np.inf)
-            # optimization_spread_data = (optimization_high_data - optimization_low_data)
 
         # Set \bar{ATR} Data Attr's  (ray.put)
         setattr(self.genie_object, "bar_atr_open_data", ray.put(bar_atr_open_data))
