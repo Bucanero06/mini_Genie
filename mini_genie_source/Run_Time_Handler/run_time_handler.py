@@ -3,7 +3,7 @@ import argparse
 
 from logger_tt import logger
 
-GP_DEFAULT = True
+GP_DEFAULT = False
 UP_DEFAULT = False
 POST_ANALYSIS_DEFAULT = False
 TSV_DEFAULT = False
