@@ -113,7 +113,6 @@ class run_time_handler:
 
     @staticmethod
     def load_module_from_path(filename, object_name=None):
-
         module_path = filename.rsplit('.', 1)[0]
         module = module_path.replace("/", ".")
 
@@ -148,8 +147,10 @@ class run_time_handler:
 
         run_time_settings = self.load_module_from_path(self.run_time_module_path,
                                                        object_name=self.run_time_dictionary_name)
+
         #
         strategy_path = run_time_settings["Portfolio_Settings"]["Simulator"]["Strategy"]
+
         strategy_settings_dict = self.load_module_from_path(strategy_path, object_name="Strategy_Settings")
         strategy_settings_dict["Strategy"] = f'{strategy_path}.{strategy_settings_dict["Strategy"]}'
         run_time_settings["Strategy_Settings"] = strategy_settings_dict
@@ -172,4 +173,5 @@ class run_time_handler:
         return self.run_time_settings
 
     def call_run_function(self):
+        import pprint
         self.args.func(self.run_time_settings, self.args)

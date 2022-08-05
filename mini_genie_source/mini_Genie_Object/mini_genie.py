@@ -53,6 +53,7 @@ class mini_genie_trader:
         self.batch_size = self.runtime_settings["Simulation_Settings.batch_size"]
         #
         self.user_pick = args.user_pick
+
         self.config_file_path = args.run_time_dictionary_path.rsplit('.', 1)[0]
         #
         self.parameter_windows = self.runtime_settings["Strategy_Settings.parameter_windows"]._values

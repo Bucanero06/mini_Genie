@@ -16,7 +16,7 @@ import vectorbtpro as vbt
 from logger_tt import logger
 from vectorbtpro import register_jitted
 
-from Utilities import _typing as tp
+import _typing as tp
 
 
 def multiline_eval(expr: str, context: tp.KwargsLike = None) -> tp.Any:
