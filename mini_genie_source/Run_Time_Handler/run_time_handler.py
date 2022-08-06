@@ -55,7 +55,7 @@ class run_time_handler:
                                    help="Convert csv to tsv previously computed metric files. File will vary based on "
                                         "whether user or genie pick option was used.",
                                    dest="metrics_to_tsv", action='store_true', default=TSV_DEFAULT)
-        general_group.add_argument("-c", "-config_file_path",
+        general_group.add_argument("-c", "--config_file_path",
                                    help="Point to Run-Time-Parameters (a.k.a settings) dictionary path",
                                    dest="run_time_dictionary_path", action='store',
                                    default=CONFIG_FILE_DEFAULT
