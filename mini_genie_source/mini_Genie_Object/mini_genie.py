@@ -599,8 +599,9 @@ class mini_genie_trader:
 
             self.parameter_data_dtype = np.dtype(parameters_record_dtype)
             # FIXME exploring initiating it after elminating some parameter to reduce memory usage
-            # self.parameters_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
-            #                                   dtype=self.parameter_data_dtype)
+            if self.continuing:
+                self.parameters_record = np.empty(self.parameters_lengths_dict["n_initial_combinations"],
+                                                  dtype=self.parameter_data_dtype)
             # #
         else:
             ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
