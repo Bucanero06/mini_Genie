@@ -2,6 +2,7 @@
 import os.path
 import sys
 import warnings
+from datetime import datetime
 from os import path, remove
 from time import perf_counter
 
@@ -127,7 +128,7 @@ class mini_genie_trader:
 
         logger.debug('''Create Folders if needed''')
         studies_directory = 'Studies'
-        study_dir_path = f'{studies_directory}/Study_{self.study_name}'
+        study_dir_path = f'{studies_directory}/{self.study_name}'
         portfolio_dir_path = f'{study_dir_path}/Portfolio'
         reports_dir_path = f'{study_dir_path}/Reports'
         data_dir_path = f'Datas'
@@ -1168,7 +1169,7 @@ class mini_genie_trader:
         # chunks_ids_of_params_left_to_compute = put_objects_list_to_ray(chunks_of_params_left_to_compute)
         # for epoch_n, epoch_params_record_id in enumerate(chunks_of_params_left_to_compute):
         for epoch_n, epoch_params_record in enumerate(chunks_of_params_left_to_compute):
-            if epoch_n == stop_after_n_epoch:
+            if epoch_n == stop_after_n_epoch or datetime.now() >= self.stop_sim_time:
                 break
             #
             logger.info(f'I am here 10')
