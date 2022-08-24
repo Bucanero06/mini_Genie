@@ -18,7 +18,18 @@ debug_settings = dict(
         fill_dates=False,
         saved_data_file='SymbolData',
         # tick_size=0.01
-        tick_size=[0.01]
+        tick_size=[0.01],
+        # tick_size=0.00001
+        minute_data_input_format="%m.%d.%Y %H:%M:%S",
+        # minute_data_input_format="%Y.%m.%d %H:%M:%S",
+        minute_data_output_format="%m.%d.%Y %H:%M:%S",
+        # minute_data_output_format="%Y.%m.%d %H:%M:%S",
+
+        # accompanying_tick_data_input_format="%d.%m.%Y %H:%M:%S.%f",
+        accompanying_tick_data_input_format="%m.%d.%Y %H:%M:%S.%f",
+        accompanying_tick_data_output_format="%m.%d.%Y %H:%M:%S.%f"
+
+        #     2021-10-03 22:04:00
     ),
 
     Simulation_Settings=dict(
@@ -39,8 +50,9 @@ debug_settings = dict(
             path_of_initial_metrics_record='saved_param_metrics.csv',
             path_of_initial_params_record='saved_initial_params.csv',
             #
-            max_initial_combinations=1_000,
-            stop_after_n_epoch=None,
+            # max_initial_combinations=1_200_000_000,
+            max_initial_combinations=1000,
+            stop_after_n_epoch=200,
             # force_to_finish=True,  # todo: logic missing
             #
             parameter_selection=dict(
@@ -94,7 +106,7 @@ debug_settings = dict(
         sim_timeframe='1m',
         JustLoadpf=False,
         slippage=0,  # 0.0001,
-        max_spread_allowed=250,  # 0.0001,
+        max_spread_allowed=400,  # 0.0001,
         trading_fees=0.00005,  # 0.00005 or 0.005%, $5 per $100_000
         cash_sharing=False,
         group_by=[],  # Leave blank
@@ -125,8 +137,8 @@ debug_settings = dict(
             # T2_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
             # T2_ema_2_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
             #
-            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=100000, min_step=1000),
-            stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=100000, min_step=1000),
+            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=10000000, min_step=1000),
+            stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=10000000, min_step=1000),
             #
             #
             #

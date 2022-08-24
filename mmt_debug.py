@@ -39,7 +39,8 @@ debug_settings = dict(
 
     Simulation_Settings=dict(
         # study_name='mmt_TSLA_Expo_Optimization_03042022_07262022',
-        study_name='mmt_AMZN_Expo_Optimization_03042022_07262022',
+        # study_name='mmt_AMZN_Expo_Optimization_03042022_07262022',
+        study_name='debug',
         # study_name='mmt_debug',
         optimization_period=dict(
             start_date=datetime.datetime(month=3, day=4, year=2022),  # 01.03.2022
