@@ -3,6 +3,74 @@ import vectorbtpro as vbt
 
 from Utilities.bars_utilities import BARSINCE_genie
 
+Strategy_Settings = dict(
+    Strategy="mini_genie_source/Strategies/RLGL_Strategy.py.RLGL_Strategy",
+    # The order of parameter key_names should be honored across all files
+    parameter_windows=dict(
+        rsi_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
+        rsi_windows=dict(type='window', lower_bound=2, upper_bound=100, min_step=1),
+        #
+        sma_on_rsi_1_windows=dict(type='window', lower_bound=2, upper_bound=63, min_step=1),
+        sma_on_rsi_2_windows=dict(type='window', lower_bound=5, upper_bound=70, min_step=1),
+        sma_on_rsi_3_windows=dict(type='window', lower_bound=15, upper_bound=80, min_step=1),
+        #
+        T1_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
+        T1_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=63, min_step=1),
+        T1_ema_2_windows=dict(type='window', lower_bound=15, upper_bound=80, min_step=1),
+        #
+        # T2_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']),
+        # T2_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
+        # T2_ema_2_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
+        #
+        take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=10000000, min_step=1000),
+        stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=10000000, min_step=1000),
+        #
+        #
+        #
+        # breakeven_1_trigger_bool=False,
+        # breakeven_1_trigger_points=dict(step_n_type='break_even_trigger', lower_bound=50, upper_bound=2000),
+        # breakeven_1_distance_points=dict(step_n_type='break_even_distance', lower_bound=20, upper_bound=2000),
+        # #
+        # breakeven_2_trigger_bool=False,
+        # breakeven_2_trigger_points=dict(step_n_type='break_even_trigger', lower_bound=50, upper_bound=2000),
+        # breakeven_2_distance_points=dict(step_n_type='break_even_distance', lower_bound=20, upper_bound=2000),
+
+    ),
+    # strategy_user_picked_params
+    strategy_user_picked_params=dict(
+        output_file_name='backtest_result.csv',
+        # if compute_product then will compute the product of all the parameter values passed,
+        #   else parameter values length must be equal
+        compute_product=True,
+        #
+        # Can Read Parameters from file instead if the path to it is provided
+        # read_user_defined_param_file='backtest_result.csv',
+        read_user_defined_param_file=None,
+        #
+        # Can use  -->  values = np.arrange(start,stop,step) or np.linespace(start,stop,#)
+        # The order of parameter key_names should be honored across all files
+        parameter_windows=dict(
+            rsi_timeframes=dict(type='timeframe', values=['15 min', '15 min']),
+            rsi_windows=dict(type='window', values=[41, 30]),
+            #
+            sma_on_rsi_1_windows=dict(type='window', values=[32, 43]),
+            sma_on_rsi_2_windows=dict(type='window', values=[26, 26]),
+            sma_on_rsi_3_windows=dict(type='window', values=[15, 15]),
+            #
+            T1_ema_timeframes=dict(type='timeframe', values=['1 min', "5 min"]),
+            T1_ema_1_windows=dict(type='window', values=[2, 3]),
+            T1_ema_2_windows=dict(type='window', values=[15, 20]),
+            #
+            # T2_ema_timeframes=dict(type='timeframe', values=['5 min']),
+            # T2_ema_1_windows=dict(type='window', values=[5]),
+            # T2_ema_2_windows=dict(type='window', values=[5]),
+            #
+            take_profit_points=dict(type='take_profit', values=[86, 200]),
+            stop_loss_points=dict(type='stop_loss', values=[-43, 200]),
+        )
+    ),
+)
+
 
 def cache_func(close_data,
                rsi_timeframes, rsi_windows,
