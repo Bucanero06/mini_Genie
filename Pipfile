@@ -14,7 +14,8 @@ psutil = "~=5.9.1"
 logger-tt = "~=1.7.0"
 protobuf = "<=3.20.0"
 flatdict = "~=4.0.1"
-vectorbtpro = {extras = ["full"], editable = true, git = "https://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@github.com/polakowo/vectorbt.pro.git"}
+vectorbtpro = {extras = ["base"], editable = true, git = "https://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@github.com/polakowo/vectorbt.pro.git"}
+urllib3 = "*"
 
 [dev-packages]
 
