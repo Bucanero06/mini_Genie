@@ -4,6 +4,8 @@
 import gc
 import warnings
 
+from Indicators.simple_indicators import ATR_EWM,EMA
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import numpy as np
@@ -13,6 +15,7 @@ import vectorbtpro as vbt
 from Utilities.bars_utilities import BARSINCE_genie, ROLLING_MAX_genie, ROLLING_MIN_genie
 
 # --- ↑ Do not remove these libs ↑ -------------------------------------------------------------------------------------
+
 
 Strategy_Settings = dict(
     Strategy="MMT_Strategy",
@@ -128,13 +131,17 @@ def apply_function(low_data, high_data, close_data,
     ''' Trend_Filter 1 ATR Indicator'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     # Fetch pre-computed atr from cache. Uses Trend_filter_1_timeframe
-    Trend_filter_1_atr_indicator = vbt.indicators.ATR.run(
-        Trend_filter_1_timeframe_high,
-        Trend_filter_1_timeframe_high,
-        Trend_filter_1_timeframe_close,
-        window=Trend_filter_atr_window,
-        ewm=False,
-        short_name='atr').atr
+    # Trend_filter_1_atr_indicator = vbt.indicators.ATR.run(
+    #     Trend_filter_1_timeframe_high,
+    #     Trend_filter_1_timeframe_low,
+    #     Trend_filter_1_timeframe_close,
+    #     window=Trend_filter_atr_window,
+    #     ewm=False,
+    #     short_name='atr').atr
+
+    Trend_filter_1_atr_indicator = ATR_EWM.run(high=Trend_filter_1_timeframe_high, low=Trend_filter_1_timeframe_low,
+                                               close=Trend_filter_1_timeframe_close, window=Trend_filter_atr_window).atr
+
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
     '''Trend_Filter 1 PeakHigh and PeakLow'''
@@ -174,13 +181,15 @@ def apply_function(low_data, high_data, close_data,
     '''ATR Indicator'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     # Fetch pre-computed atr from cache. Uses PEAK_and_ATR_timeframe
-    atr_indicator = vbt.indicators.ATR.run(
-        PEAK_and_ATR_timeframe_high,
-        PEAK_and_ATR_timeframe_low,
-        PEAK_and_ATR_timeframe_close,
-        window=atr_window,
-        ewm=False,
-        short_name='atr').atr
+    # atr_indicator = vbt.indicators.ATR.run(
+    #     PEAK_and_ATR_timeframe_high,
+    #     PEAK_and_ATR_timeframe_low,
+    #     PEAK_and_ATR_timeframe_close,
+    #     window=atr_window,
+    #     ewm=False,
+    #     short_name='atr').atr
+    atr_indicator = ATR_EWM.run(high=PEAK_and_ATR_timeframe_high, low=PEAK_and_ATR_timeframe_low,
+                                               close=PEAK_and_ATR_timeframe_close, window=atr_window).atr
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
     '''PeakHigh and PeakLow'''
@@ -216,8 +225,12 @@ def apply_function(low_data, high_data, close_data,
     '''EMA Indicators'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     # Fetch pre-computed ema from cache. Uses EMAs_timeframe
-    ema_1_indicator = vbt.MA.run(cache['Close'][EMAs_timeframe], window=ema_1_window, ewm=True).ma
-    ema_2_indicator = vbt.MA.run(cache['Close'][EMAs_timeframe], window=ema_2_window, ewm=True).ma
+    # ema_1_indicator = vbt.MA.run(cache['Close'][EMAs_timeframe], window=ema_1_window, ewm=True).ma
+    # ema_2_indicator = vbt.MA.run(cache['Close'][EMAs_timeframe], window=ema_2_window, ewm=True).ma
+    ema_1_indicator= EMA.run(close=cache['Close'][EMAs_timeframe], window=ema_1_window).ema
+    ema_2_indicator= EMA.run(close=cache['Close'][EMAs_timeframe], window=ema_2_window).ema
+
+
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
     '''Resample Indicators Back To 1 minute'''

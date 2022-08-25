@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import gc
+import sys
 import warnings
 from os.path import exists
 
@@ -340,6 +341,7 @@ class Data_Handler:
         optimization_start_date = self.genie_object.optimization_start_date
         optimization_end_date = self.genie_object.optimization_end_date
         #
+
         try:
             assert data_start_date < bar_atr_start_date
             assert data_end_date > optimization_end_date
@@ -380,6 +382,23 @@ class Data_Handler:
                                                                 optimization_end_date)
         else:
             optimization_spread_data = pd.DataFrame().reindex_like(optimization_close_data).fillna(-np.inf)
+
+        # EMA = vbt.IF.from_expr("""
+        #                         ema=@talib_ema(close, window)
+        #                         ema""")
+        # ATR_EWM = vbt.IF.from_expr("""
+        #                             ATR:
+        #                             tr0 = abs(high - low)
+        #                             tr1 = abs(high - fshift(close))
+        #                             tr2 = abs(low - fshift(close))
+        #                             tr = nanmax(column_stack((tr0, tr1, tr2)), axis=1)
+        #                             atr = @talib_ema(tr, 2 * window - 1)  # Wilder's EMA
+        #                             tr, atr
+        #                             """)
+        # print(ATR_EWM.run(high=optimization_high_data, low=optimization_low_data, close=optimization_close_data,
+        #                   window=14).atr)
+        # print(EMA.run(close=optimization_close_data, window=14).ema)
+        # sys.exit()
 
         # Set \bar{ATR} Data Attr's  (ray.put)
         setattr(self.genie_object, "bar_atr_open_data", ray.put(bar_atr_open_data))

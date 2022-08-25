@@ -3,7 +3,7 @@ import argparse
 
 from logger_tt import logger
 
-GP_DEFAULT = False
+GP_DEFAULT = True
 UP_DEFAULT = False
 POST_ANALYSIS_DEFAULT = False
 TSV_DEFAULT = False
@@ -13,7 +13,7 @@ EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings
 
 # CONFIG_FILE_DEFAULT = "mmt_DAXUSD_config.py.Run_Time_Settings"
 # CONFIG_FILE_DEFAULT = "mmt_debug.py.debug_settings"
-# CONFIG_FILE_DEFAULT = "rlgl_debug_config.py.debug_settings"
+CONFIG_FILE_DEFAULT = "temp_run_time_settings.py.run_time_settings"
 
 
 class run_time_handler:

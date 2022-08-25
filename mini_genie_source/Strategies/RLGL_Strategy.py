@@ -1,22 +1,23 @@
 import pandas as pd
 import vectorbtpro as vbt
 
+from Indicators.simple_indicators import EMA
 from Utilities.bars_utilities import BARSINCE_genie
 
 Strategy_Settings = dict(
-    Strategy="mini_genie_source/Strategies/RLGL_Strategy.py.RLGL_Strategy",
+    Strategy="RLGL_Strategy",
     # The order of parameter key_names should be honored across all files
     parameter_windows=dict(
         rsi_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
-        rsi_windows=dict(type='window', lower_bound=2, upper_bound=100, min_step=1),
+        rsi_windows=dict(type='window', lower_bound=2, upper_bound=5, min_step=1),
         #
-        sma_on_rsi_1_windows=dict(type='window', lower_bound=2, upper_bound=63, min_step=1),
-        sma_on_rsi_2_windows=dict(type='window', lower_bound=5, upper_bound=70, min_step=1),
-        sma_on_rsi_3_windows=dict(type='window', lower_bound=15, upper_bound=80, min_step=1),
+        sma_on_rsi_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
+        sma_on_rsi_2_windows=dict(type='window', lower_bound=5, upper_bound=10, min_step=1),
+        sma_on_rsi_3_windows=dict(type='window', lower_bound=15, upper_bound=20, min_step=1),
         #
         T1_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
-        T1_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=63, min_step=1),
-        T1_ema_2_windows=dict(type='window', lower_bound=15, upper_bound=80, min_step=1),
+        T1_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
+        T1_ema_2_windows=dict(type='window', lower_bound=15, upper_bound=20, min_step=1),
         #
         # T2_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']),
         # T2_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
@@ -119,15 +120,18 @@ def apply_function(close_data,
     '''RSI and SMA Indicators'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     rsi_indicator = vbt.RSI.run(cached_data['Close'][rsi_timeframe], window=rsi_window, ewm=False).rsi
-    sma_on_rsi_1_indicator = vbt.MA.run(rsi_indicator, window=sma_on_rsi_1_window, ewm=False).ma
-    sma_on_rsi_2_indicator = vbt.MA.run(rsi_indicator, window=sma_on_rsi_2_window, ewm=False).ma
-    sma_on_rsi_3_indicator = vbt.MA.run(rsi_indicator, window=sma_on_rsi_3_window, ewm=False).ma
+    sma_on_rsi_1_indicator = vbt.MA.run(rsi_indicator, window=sma_on_rsi_1_window).ma
+    sma_on_rsi_2_indicator = vbt.MA.run(rsi_indicator, window=sma_on_rsi_2_window).ma
+    sma_on_rsi_3_indicator = vbt.MA.run(rsi_indicator, window=sma_on_rsi_3_window).ma
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
     '''Trend I EMA Indicators'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    T1_ema_1_indicator = vbt.MA.run(cached_data['Close'][T1_ema_timeframe], window=T1_ema_1_window, ewm=True).ma
-    T1_ema_2_indicator = vbt.MA.run(cached_data['Close'][T1_ema_timeframe], window=T1_ema_2_window, ewm=True).ma
+    # T1_ema_1_indicator = vbt.MA.run(cached_data['Close'][T1_ema_timeframe], window=T1_ema_1_window, ewm=True).ma
+    # T1_ema_2_indicator = vbt.MA.run(cached_data['Close'][T1_ema_timeframe], window=T1_ema_2_window, ewm=True).ma
+
+    T1_ema_1_indicator = EMA.run(close=cached_data['Close'][T1_ema_timeframe], window=T1_ema_1_window).ema
+    T1_ema_2_indicator = EMA.run(close=cached_data['Close'][T1_ema_timeframe], window=T1_ema_2_window).ema
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
     # '''Trend II EMA Indicators'''
