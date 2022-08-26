@@ -1,5 +1,6 @@
 #!/usr/bin/env python3.9
 import os.path
+import re
 import sys
 import warnings
 from datetime import datetime
@@ -148,6 +149,7 @@ class mini_genie_trader:
         from os import path
         if not path.exists(study_dir_path):
             self.continuing = False
+
         #
         create_dirs(studies_directory, data_dir_path)
         #
@@ -635,8 +637,23 @@ class mini_genie_trader:
             self.parameters_record = delete_non_filled_elements(self.parameters_record)
 
     def _compute_params_product_n_fill_record(self, params):
+
+        a_1 = params["rsi_windows"][np.where(params["rsi_windows"] < 35)[0]]
+        a_2 = params["rsi_windows"][np.where(params["rsi_windows"] > 65)[0]]
+
+        a_3 = []
+        for a, b in zip(a_1, a_2):
+            a_3.append(a)
+            a_3.append(b)
+        params["rsi_windows"] = a_3
+
+        del a_1, a_2, a_3
+
+        logger.info(f'rsi_windows: {len(params["rsi_windows"])}')
+
         from itertools import product
-        logger.info(f'Computing Cartesian Product for Parameter Record')
+        logger.info(
+            f'`````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````Computing Cartesian Product for Parameter Record')
         initial_param_combinations = list(
             set(
                 product(
@@ -647,21 +664,33 @@ class mini_genie_trader:
                 )
             )
         )
+        if not len(initial_param_combinations):
+            logger.warning(f'No initial parameter combinations found ...')
+            sys.exit()
+        del params
 
         logger.info(f'Allocating parameter_record')
         logger.info(f'{len(initial_param_combinations) = }')
-        self.parameters_record = np.empty(len(initial_param_combinations), dtype=self.parameter_data_dtype)
         #
         logger.info(f"Shuffling Once \N{Face with Finger Covering Closed Lips}")
         initial_param_combinations = np.random.permutation(initial_param_combinations)
         # indexes = [(i,) for i in np.arange(0, len(initial_param_combinations))]
         indexes = np.arange(0, len(initial_param_combinations))
         # value = ([(i,) for i in indexes] + initial_param_combinations[:, :-1] + initial_param_combinations[:, -1])
+        self.parameters_record = np.empty(len(initial_param_combinations), dtype=self.parameter_data_dtype)
         column_names = list(self.parameters_record.dtype.names)
         #
+
+        print(f'{column_names = }')
+        print(f'{len(initial_param_combinations) = }')
+        print(f'{indexes = }')
+        print(f'{len(indexes) = }')
+
         logger.info(f'Filling Parameter Record')
         self.parameters_record["trial_id"] = indexes
         for col_index, key_name in enumerate(self.keynames_not_tp_sl):
+            print(f'{col_index = }')
+            print(f'{len(key_name) = }')
             self.parameters_record[key_name] = initial_param_combinations[:, col_index]
         #
         tp_sl = initial_param_combinations[:, -1]
@@ -676,17 +705,89 @@ class mini_genie_trader:
 
         logger.info(f'Clean Up Parameter Record')
         from Utilities.general_utilities import delete_non_filled_elements
+        del initial_param_combinations
         self.parameters_record = delete_non_filled_elements(self.parameters_record)
         #
         # fixme!!!   HOTFIX
         # fixme need to remove this, or create a setting for. this was a hot fix to eliminate ema1 parameters combinations
         #   that are less than ema2
+
+        seconds_per_unit = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800}
+
+        # def convert_to_seconds(s):
+        #     return int(s[:-1]) * seconds_per_unit[s[-1]]
+        def convert_to_seconds(input_timeframe):
+            '''
+            Can accept any time frame as long as it is composed of a signle continuous interger and a timeframe recognized by pandas and convert the string timeframe into seconds.
+            e.g. 1m,5 m,15min, 34 min, 1h, h4,etc ...
+            '''
+            seconds_per_unit = {"s": 1, "m": 60, "h": 3600, "d": 3600 * 24, "w": 3600 * 24 * 7}
+            input_timeframe = input_timeframe.lower()
+            # try to extract an integer string
+            splits = re.split('(\d+)', input_timeframe)
+            integer_str = splits[1]
+
+            # try to extract the time intervel
+            if splits[2].startswith('s'):
+                timeframe_str = 's'
+            elif splits[2].startswith('m'):
+                timeframe_str = 'm'
+            elif 'm' in splits[2]:
+                timeframe_str = 'm'
+            elif 'h' in splits[2]:
+                timeframe_str = 'h'
+            elif 'd' in splits[2]:
+                timeframe_str = 'd'
+            elif 'w' in splits[2]:
+                timeframe_str = 'w'
+            elif splits[2].startswith('h'):
+                timeframe_str = 'h'
+            elif splits[2].startswith('d'):
+                timeframe_str = 'd'
+            elif splits[2].startswith('w'):
+                timeframe_str = 'w'
+            else:
+                print('unknown timeframe:', input_timeframe)
+                print('please input a timeframe in the form of 1min, 5min, 1h, 60s, etc ....')
+                return
+            return int(integer_str) * seconds_per_unit[timeframe_str]
+
+        logger.info(f'{self.parameters_record.shape = }')
         self.parameters_record = self.parameters_record[
-            np.where(self.parameters_record["ema_1_windows"] <= self.parameters_record["ema_2_windows"])[0]]
+            np.where(np.less_equal([convert_to_seconds(i) for i in self.parameters_record["T1_ema_timeframes"]],
+                                   [convert_to_seconds(i) for i in self.parameters_record["rsi_timeframes"]]))[0]]
+
+        # logger.info(f'{self.parameters_record.shape = }')
+        # self.parameters_record = self.parameters_record[
+        #     np.where([convert_to_seconds(i) for i in self.parameters_record["T2_ema_timeframes"]]
+        #              <= [convert_to_seconds(i) for i in self.parameters_record["rsi_timeframes"]])[0]]
+
+        logger.info(f'1{self.parameters_record.shape = }')
+        self.parameters_record = self.parameters_record[
+            # np.where(self.parameters_record["ema_1_windows"] <= self.parameters_record["ema_2_windows"])[0]]
+            np.where(self.parameters_record["T1_ema_1_windows"] <= self.parameters_record["T1_ema_2_windows"])[0]]
+
+        logger.info(f'2{self.parameters_record.shape = }')
+        self.parameters_record = self.parameters_record[
+            np.where(self.parameters_record["sma_on_rsi_1_windows"] <= self.parameters_record["sma_on_rsi_2_windows"])[
+                0]]
+
+        logger.info(f'3{self.parameters_record.shape = }')
+        self.parameters_record = self.parameters_record[
+            np.where(self.parameters_record["sma_on_rsi_2_windows"] <= self.parameters_record["sma_on_rsi_3_windows"])[
+                0]]
+
         #
-        self.parameters_record = self.parameters_record[
-            np.where(self.parameters_record["Trend_filter_1_timeframes"] != self.parameters_record[
-                "PEAK_and_ATR_timeframes"])[0]]
+        # self.parameters_record = self.parameters_record[
+        #     np.where(self.parameters_record["Trend_filter_1_timeframe"] != self.parameters_record[
+        #         "PEAK_and_ATR_timeframes"])[0]]
+
+        # self.parameters_record = self.parameters_record[
+        #     np.where(self.parameters_record["ema_1_windows"] <= self.parameters_record["ema_2_windows"])[0]]
+        # #
+        # self.parameters_record = self.parameters_record[
+        #     np.where(self.parameters_record["Trend_filter_1_timeframes"] != self.parameters_record[
+        #         "PEAK_and_ATR_timeframes"])[0]]
         #
         rng = np.random.default_rng()
         logger.info(f"Shuffling Once \N{Face with Finger Covering Closed Lips}")
@@ -1431,4 +1532,3 @@ class mini_genie_trader:
         #
         else:
             logger.info(f'Could not find {original_file_path} to convert to tsv')
-

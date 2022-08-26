@@ -4,39 +4,71 @@ import vectorbtpro as vbt
 from Indicators.simple_indicators import EMA
 from Utilities.bars_utilities import BARSINCE_genie
 
+
+
+# parameter_windows=dict(
+#         rsi_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
+#         rsi_windows=dict(type='window', lower_bound=20, upper_bound=80, min_step=1),
+#         #
+#         sma_on_rsi_1_windows=dict(type='window', lower_bound=2, upper_bound=30, min_step=1),
+#         sma_on_rsi_2_windows=dict(type='window', lower_bound=5, upper_bound=50, min_step=1),
+#         sma_on_rsi_3_windows=dict(type='window', lower_bound=15, upper_bound=70, min_step=1),
+#         #
+#         T1_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
+#         T1_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=45, min_step=1),
+#         T1_ema_2_windows=dict(type='window', lower_bound=15, upper_bound=90, min_step=1),
+#         #
+#         # T2_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']),
+#         # T2_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
+#         # T2_ema_2_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
+#         #
+#         take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=10000000, min_step=1000),
+#         stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=10000000, min_step=1000),
+#         #
+#         #
+#         #
+#         # breakeven_1_trigger_bool=False,
+#         # breakeven_1_trigger_points=dict(step_n_type='break_even_trigger', lower_bound=50, upper_bound=2000),
+#         # breakeven_1_distance_points=dict(step_n_type='break_even_distance', lower_bound=20, upper_bound=2000),
+#         # #
+#         # breakeven_2_trigger_bool=False,
+#         # breakeven_2_trigger_points=dict(step_n_type='break_even_trigger', lower_bound=50, upper_bound=2000),
+#         # breakeven_2_distance_points=dict(step_n_type='break_even_distance', lower_bound=20, upper_bound=2000),
+#
+#     ),
 Strategy_Settings = dict(
     Strategy="RLGL_Strategy",
     # The order of parameter key_names should be honored across all files
     parameter_windows=dict(
-        rsi_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
-        rsi_windows=dict(type='window', lower_bound=2, upper_bound=5, min_step=1),
-        #
-        sma_on_rsi_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
-        sma_on_rsi_2_windows=dict(type='window', lower_bound=5, upper_bound=10, min_step=1),
-        sma_on_rsi_3_windows=dict(type='window', lower_bound=15, upper_bound=20, min_step=1),
-        #
-        T1_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
-        T1_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
-        T1_ema_2_windows=dict(type='window', lower_bound=15, upper_bound=20, min_step=1),
-        #
-        # T2_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']),
-        # T2_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
-        # T2_ema_2_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
-        #
-        take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=10000000, min_step=1000),
-        stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=10000000, min_step=1000),
-        #
-        #
-        #
-        # breakeven_1_trigger_bool=False,
-        # breakeven_1_trigger_points=dict(step_n_type='break_even_trigger', lower_bound=50, upper_bound=2000),
-        # breakeven_1_distance_points=dict(step_n_type='break_even_distance', lower_bound=20, upper_bound=2000),
-        # #
-        # breakeven_2_trigger_bool=False,
-        # breakeven_2_trigger_points=dict(step_n_type='break_even_trigger', lower_bound=50, upper_bound=2000),
-        # breakeven_2_distance_points=dict(step_n_type='break_even_distance', lower_bound=20, upper_bound=2000),
+            rsi_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
+            rsi_windows=dict(type='window', lower_bound=2, upper_bound=98, min_step=1),
+            #
+            sma_on_rsi_1_windows=dict(type='window', lower_bound=2, upper_bound=50, min_step=1),
+            sma_on_rsi_2_windows=dict(type='window', lower_bound=5, upper_bound=70, min_step=1),
+            sma_on_rsi_3_windows=dict(type='window', lower_bound=15, upper_bound=90, min_step=1),
+            #
+            T1_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
+            T1_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=65, min_step=1),
+            T1_ema_2_windows=dict(type='window', lower_bound=15, upper_bound=70, min_step=1),
+            #
+            # T2_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']),
+            # T2_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
+            # T2_ema_2_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
+            #
+            take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=10000000, min_step=100000),
+            stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=10000000, min_step=100000),
+            #
+            #
+            #
+            # breakeven_1_trigger_bool=False,
+            # breakeven_1_trigger_points=dict(step_n_type='break_even_trigger', lower_bound=50, upper_bound=2000),
+            # breakeven_1_distance_points=dict(step_n_type='break_even_distance', lower_bound=20, upper_bound=2000),
+            # #
+            # breakeven_2_trigger_bool=False,
+            # breakeven_2_trigger_points=dict(step_n_type='break_even_trigger', lower_bound=50, upper_bound=2000),
+            # breakeven_2_distance_points=dict(step_n_type='break_even_distance', lower_bound=20, upper_bound=2000),
 
-    ),
+        ),
     # strategy_user_picked_params
     strategy_user_picked_params=dict(
         output_file_name='backtest_result.csv',
@@ -119,7 +151,7 @@ def apply_function(close_data,
 
     '''RSI and SMA Indicators'''
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    rsi_indicator = vbt.RSI.run(cached_data['Close'][rsi_timeframe], window=rsi_window, ewm=False).rsi
+    rsi_indicator = vbt.RSI.run(cached_data['Close'][rsi_timeframe], window=rsi_window).rsi
     sma_on_rsi_1_indicator = vbt.MA.run(rsi_indicator, window=sma_on_rsi_1_window).ma
     sma_on_rsi_2_indicator = vbt.MA.run(rsi_indicator, window=sma_on_rsi_2_window).ma
     sma_on_rsi_3_indicator = vbt.MA.run(rsi_indicator, window=sma_on_rsi_3_window).ma
