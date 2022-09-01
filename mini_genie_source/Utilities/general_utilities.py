@@ -16,7 +16,7 @@ import vectorbtpro as vbt
 from logger_tt import logger
 from vectorbtpro import register_jitted
 
-from Utilities import _typing as tp
+from mini_genie_source.Utilities import _typing as tp
 
 
 def multiline_eval(expr: str, context: tp.KwargsLike = None) -> tp.Any:
@@ -42,7 +42,7 @@ def multiline_eval(expr: str, context: tp.KwargsLike = None) -> tp.Any:
     return eval(compile(eval_expr, "file", "eval"), context)
 
 
-@register_jitted(cache=True)
+# @register_jitted(cache=True)
 def compute_np_arrays_mean_nb(values: object) -> object:
     """
 

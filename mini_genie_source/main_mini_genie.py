@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import warnings
+from logger_tt import setup_logging, logger
 
 import numpy as np
 
@@ -8,7 +9,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 def call_genie(run_time_settings, arg_parser_values):
     # Initiate the genie object
-    from mini_Genie_Object.mini_genie import mini_genie_trader
+    from mini_genie_source.mini_Genie_Object.mini_genie import mini_genie_trader
     '''
     The genie object works as an operator, can act on itself through its methods, can be acted upon by other 
         operators, and must always return the latest state of genie_operator.
@@ -54,26 +55,27 @@ def call_genie(run_time_settings, arg_parser_values):
         genie_object.suggest_parameters()
 
         if run_time_settings["Simulation_Settings"]["run_mode"] == "ludicrous":
+            """
             # In chunks/batches:
             #    1.  Simulate N parameters' indicators
             #    2.  Simulate N parameters' events
             #    3.  Compute Metrics
             #    4.  Save Results to file
-
+            """
             genie_object.simulate()
-        elif run_time_settings["Simulation_Settings"]["run_mode"] == "plaid_plus":
-            #
-            genie_object.simulate_with_post_processing()
+        # elif run_time_settings["Simulation_Settings"]["run_mode"] == "plaid_plus":
+        #     #
+        #     genie_object. -...
 
         else:
-            logger.error("Given run_mode is not known, please refer to documentation for accepted inputs")
+            logger.error("The given run_mode is not known, please refer to documentation for accepted inputs")
     #
     elif arg_parser_values.user_pick:
         genie_object.prepare_backtest()
         #
         genie_object.simulate()
     #
-    from Utilities.general_utilities import is_empty_dir
+    from mini_genie_source.Utilities.general_utilities import is_empty_dir
     if arg_parser_values.post_analysis and not is_empty_dir(genie_object.portfolio_dir_path):
         from Utilities.general_utilities import Execute
         # self.args.post_analysis_path
@@ -85,7 +87,6 @@ def call_genie(run_time_settings, arg_parser_values):
 
 
 if __name__ == "__main__":
-    from logger_tt import setup_logging, logger
     from Run_Time_Handler.run_time_handler import run_time_handler
 
     setup_logging(full_context=1)

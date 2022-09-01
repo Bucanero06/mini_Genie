@@ -2,7 +2,7 @@
 import gc
 import warnings
 
-from Utilities.general_utilities import get_objects_list_from_ray
+from mini_genie_source.Utilities.general_utilities import get_objects_list_from_ray
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -33,7 +33,7 @@ class Simulation_Handler:
     def __init__(self, genie_object):
         """Constructor for Simulation_Handler"""
         self.genie_object = genie_object
-        from Utilities.general_utilities import print_dict
+        from mini_genie_source.Utilities.general_utilities import print_dict
         self.print_dict = print_dict
 
     @property
@@ -44,7 +44,7 @@ class Simulation_Handler:
             object: 
 
         """
-        from Simulation_Handler.compute_bar_atr import compute_bar_atr
+        from mini_genie_source.Simulation_Handler.compute_bar_atr import compute_bar_atr
         bar_atr = compute_bar_atr(self.genie_object)
         setattr(self.genie_object, "bar_atr", bar_atr)
         return self

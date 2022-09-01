@@ -5,8 +5,8 @@ import numpy as np
 import vectorbtpro as vbt
 from numba import njit
 
-from Utilities.bars_utilities import resample_olhc_genie, split_uptrend_n_downtrend_atr
-from Utilities.general_utilities import compute_np_arrays_mean_nb, get_objects_list_from_ray
+from mini_genie_source.Utilities.bars_utilities import resample_olhc_genie, split_uptrend_n_downtrend_atr
+from mini_genie_source.Utilities.general_utilities import compute_np_arrays_mean_nb, get_objects_list_from_ray
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 

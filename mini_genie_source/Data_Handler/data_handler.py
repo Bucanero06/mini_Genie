@@ -11,7 +11,7 @@ import vectorbtpro as vbt
 from dask import dataframe as dd
 from logger_tt import logger
 
-from Utilities.reduce_utilities import min_reduce_nb
+from mini_genie_source.Utilities.reduce_utilities import min_reduce_nb
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 

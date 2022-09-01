@@ -3,7 +3,9 @@ import argparse
 
 from logger_tt import logger
 
-GP_DEFAULT = True
+from mini_genie_source.Utilities.general_utilities import print_dict
+
+GP_DEFAULT = False
 UP_DEFAULT = False
 POST_ANALYSIS_DEFAULT = False
 TSV_DEFAULT = False
@@ -13,7 +15,7 @@ EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings
 
 # CONFIG_FILE_DEFAULT = "mmt_DAXUSD_config.py.Run_Time_Settings"
 # CONFIG_FILE_DEFAULT = "mmt_debug.py.debug_settings"
-CONFIG_FILE_DEFAULT = "temp_run_time_settings.py.run_time_settings"
+# CONFIG_FILE_DEFAULT = "temp_run_time_settings.py.run_time_settings"
 
 
 class run_time_handler:
@@ -32,11 +34,19 @@ class run_time_handler:
 
     """
 
-    def __init__(self, run_function):
+    def __init__(self, run_function,
+                 GP_DEFAULT=GP_DEFAULT, UP_DEFAULT=UP_DEFAULT, POST_ANALYSIS_DEFAULT=POST_ANALYSIS_DEFAULT,
+                 TSV_DEFAULT=TSV_DEFAULT, CONFIG_FILE_DEFAULT=CONFIG_FILE_DEFAULT):
         """Constructor for run_time_handler"""
-        from Utilities.general_utilities import print_dict
         self.print_dict = print_dict
-
+        #
+        # Overwrite_Defaults
+        self.GP_DEFAULT = GP_DEFAULT
+        self.UP_DEFAULT = UP_DEFAULT
+        self.POST_ANALYSIS_DEFAULT = POST_ANALYSIS_DEFAULT
+        self.TSV_DEFAULT = TSV_DEFAULT
+        self.CONFIG_FILE_DEFAULT = CONFIG_FILE_DEFAULT
+        self.EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings.py"
         #
         parser = argparse.ArgumentParser(description="Help for mini-Genie Trader")
         general_group = parser.add_argument_group(description="Basic Usage")
@@ -103,7 +113,7 @@ class run_time_handler:
         #
         if self.args.post_analysis:
             # fetch paths to add-ons for Genie
-            from genie_add_ons_paths import genie_add_ons_paths
+            from mini_genie_source.genie_add_ons_paths import genie_add_ons_paths
             self.args.post_analysis_path = genie_add_ons_paths["post_analysis_main"]
         #
 
@@ -174,5 +184,4 @@ class run_time_handler:
         return self.run_time_settings
 
     def call_run_function(self):
-        import pprint
         self.args.func(self.run_time_settings, self.args)

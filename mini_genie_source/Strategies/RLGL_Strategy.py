@@ -1,8 +1,8 @@
 import pandas as pd
 import vectorbtpro as vbt
 
-from Indicators.simple_indicators import EMA
-from Utilities.bars_utilities import BARSINCE_genie
+from mini_genie_source.Indicators.simple_indicators import EMA
+from mini_genie_source.Utilities.bars_utilities import BARSINCE_genie
 
 
 

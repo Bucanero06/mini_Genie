@@ -8,7 +8,7 @@ import ray
 import vectorbtpro as vbt
 from logger_tt import logger
 
-from Run_Time_Handler.vbtmetricsdictionary import vbtmetricsdictionary
+from mini_genie_source.Run_Time_Handler.vbtmetricsdictionary import vbtmetricsdictionary
 
 
 @vbt.chunked(
