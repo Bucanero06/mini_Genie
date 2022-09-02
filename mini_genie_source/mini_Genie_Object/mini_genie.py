@@ -20,7 +20,6 @@ from mini_genie_source.Utilities.general_utilities import rm_field_from_record, 
     flip_bool
 
 np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
-
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
@@ -1507,32 +1506,10 @@ class mini_genie_trader:
         # Do a final save !
         self._save_computed_params_metrics()
 
+
     def prepare_backtest(self):
         """Simulate parameters passed by user; either explicitly or produced from settings"""
         ...
         self._initiate_parameters_records(add_ids=True)
 
-    def _metric_record_to_tsv(self):
-        original_file_path = self.path_of_initial_metrics_record if not self.user_pick else self.file_name_of_backtest_results
-        #
-        original_file_path_without_extension = original_file_path.rsplit('.', 1)[:-1]
-        df = pd.DataFrame(self.metrics_record).set_index('trial_id')
-        df.to_csv(f'{original_file_path_without_extension}.tsv', delimiter='\t')
 
-    def metric_csv_file_to_tsv(self):
-        original_file_path = self.path_of_initial_metrics_record if not self.user_pick else self.file_name_of_backtest_results
-        #
-        if os.path.exists(original_file_path):
-            metrics_df = pd.read_csv(original_file_path)
-            #
-            logger.info(f'Loaded metrics csv')
-            #
-            original_file_path_without_extension = original_file_path.rsplit('.', 1)[0]
-            #
-            metrics_df.set_index('trial_id', inplace=True)
-            metrics_df.to_csv(f'{original_file_path_without_extension}.tsv', sep='\t')
-            #
-            logger.info(f'Successfully created tsv file from csv file')
-        #
-        else:
-            logger.info(f'Could not find {original_file_path} to convert to tsv')

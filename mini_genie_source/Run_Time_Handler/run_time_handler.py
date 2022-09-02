@@ -7,8 +7,7 @@ from mini_genie_source.Utilities.general_utilities import print_dict
 
 GP_DEFAULT = False
 UP_DEFAULT = False
-POST_ANALYSIS_DEFAULT = False
-TSV_DEFAULT = False
+# POST_ANALYSIS_DEFAULT = False
 CONFIG_FILE_DEFAULT = False
 EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings.py"
 
@@ -35,16 +34,16 @@ class run_time_handler:
     """
 
     def __init__(self, run_function,
-                 GP_DEFAULT=GP_DEFAULT, UP_DEFAULT=UP_DEFAULT, POST_ANALYSIS_DEFAULT=POST_ANALYSIS_DEFAULT,
-                 TSV_DEFAULT=TSV_DEFAULT, CONFIG_FILE_DEFAULT=CONFIG_FILE_DEFAULT):
+                 GP_DEFAULT=GP_DEFAULT, UP_DEFAULT=UP_DEFAULT,
+                 # POST_ANALYSIS_DEFAULT=POST_ANALYSIS_DEFAULT,
+                 CONFIG_FILE_DEFAULT=CONFIG_FILE_DEFAULT):
         """Constructor for run_time_handler"""
         self.print_dict = print_dict
         #
         # Overwrite_Defaults
         self.GP_DEFAULT = GP_DEFAULT
         self.UP_DEFAULT = UP_DEFAULT
-        self.POST_ANALYSIS_DEFAULT = POST_ANALYSIS_DEFAULT
-        self.TSV_DEFAULT = TSV_DEFAULT
+        # self.POST_ANALYSIS_DEFAULT = POST_ANALYSIS_DEFAULT
         self.CONFIG_FILE_DEFAULT = CONFIG_FILE_DEFAULT
         self.EXAMPLE_CONFIG_PATH = "mini_genie_source/Run_Time_Handler/example_genie_settings.py"
         #
@@ -58,14 +57,10 @@ class run_time_handler:
         general_group.add_argument("-up", help="Simulate using solely the user picked space", dest="user_pick",
                                    action='store_true',
                                    default=UP_DEFAULT)
-        general_group.add_argument("-pa", help="Calls Genie's post analysis module", dest="post_analysis",
-                                   action='store_true',
-                                   default=POST_ANALYSIS_DEFAULT)
+        # general_group.add_argument("-pa", help="Calls Genie's post analysis module", dest="post_analysis",
+        #                            action='store_true',
+        #                            default=POST_ANALYSIS_DEFAULT)
         # default=True)
-        general_group.add_argument("-tsv",
-                                   help="Convert csv to tsv previously computed metric files. File will vary based on "
-                                        "whether user or genie pick option was used.",
-                                   dest="metrics_to_tsv", action='store_true', default=TSV_DEFAULT)
         general_group.add_argument("--config_file_path",
                                    help="Point to Run-Time-Parameters (a.k.a settings) dictionary path",
                                    dest="run_time_dictionary_path", action='store',
@@ -111,10 +106,10 @@ class run_time_handler:
 
             exit()
         #
-        if self.args.post_analysis:
-            # fetch paths to add-ons for Genie
-            from mini_genie_source.genie_add_ons_paths import genie_add_ons_paths
-            self.args.post_analysis_path = genie_add_ons_paths["post_analysis_main"]
+        # if self.args.post_analysis:
+        #     # fetch paths to add-ons for Genie
+        #     from mini_genie_source.genie_add_ons_paths import genie_add_ons_paths
+        #     self.args.post_analysis_path = genie_add_ons_paths["post_analysis_main"]
         #
 
     def create_example(self):
