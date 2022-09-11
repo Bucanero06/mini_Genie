@@ -4,15 +4,15 @@
 import gc
 import warnings
 
-from Indicators.simple_indicators import ATR_EWM,EMA
+from mini_Genie.mini_genie_source.Indicators.simple_indicators import ATR_EWM, EMA
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import numpy as np
 import pandas as pd
 import vectorbtpro as vbt
-
-from Utilities.bars_utilities import BARSINCE_genie, ROLLING_MAX_genie, ROLLING_MIN_genie
+from logger_tt import logger
+from mini_Genie.mini_genie_source.Utilities.bars_utilities import BARSINCE_genie, ROLLING_MAX_genie, ROLLING_MIN_genie
 
 # --- ↑ Do not remove these libs ↑ -------------------------------------------------------------------------------------
 
@@ -56,7 +56,35 @@ Strategy_Settings = dict(
 )
 
 
+def comb_split_price_n_datetime_index(price_cols, datetime_cols, n_splits):
+    from Utils import comb_price_and_range_index
+
+    if np.ndim(price_cols) == 2:
+        new_split_data = [int(0) for x in range(n_splits)]
+        for j in range(n_splits):
+            new_split_data[j] = comb_price_and_range_index(price_cols[j], datetime_cols[j])
+        return new_split_data
+    else:
+        logger.exception("split price_cols is not 2D array")
+
+
+def resample_split_data(split_data, timeframe):
+    n_splits = len(split_data)
+    print(split_data)
+    exit()
+    new_split_data = [int(0) for x in range(n_splits)]
+    for j in range(n_splits):
+        # print(split_data[j])
+
+        new_split_data[j] = split_data[j].vbt.resample_apply(timeframe,
+                                                             vbt.nb.min_reduce_nb).dropna() if timeframe != '1 min' else \
+            split_data[j]
+
+    return new_split_data
+
+
 def cache_func(low, high, close,
+               # datetime_index,
                Trend_filter_1_timeframes, Trend_filter_atr_windows, Trend_filter_1_data_lookback_windows,
                PEAK_and_ATR_timeframes, atr_windows, data_lookback_windows,
                EMAs_timeframes, ema_1_windows, ema_2_windows,
@@ -83,6 +111,10 @@ def cache_func(low, high, close,
     '''Pre-Resample Data'''
     #
     for timeframe in timeframes:
+        # cache['Low'][timeframe] = resample_split_data(low,  timeframe=timeframe)
+        # cache['High'][timeframe] = resample_split_data(high,  timeframe=timeframe)
+        # cache['Close'][timeframe] = resample_split_data(close,  timeframe=timeframe)
+        #
         # LOW
         cache['Low'][timeframe] = low.vbt.resample_apply(timeframe,
                                                          vbt.nb.min_reduce_nb).dropna() if timeframe != '1 min' else low
@@ -104,6 +136,7 @@ def cache_func(low, high, close,
 
 
 def apply_function(low_data, high_data, close_data,
+                   # datetime_index,
                    Trend_filter_1_timeframe, Trend_filter_atr_window, Trend_filter_1_data_lookback_window,
                    PEAK_and_ATR_timeframe, atr_window, data_lookback_window,
                    EMAs_timeframe, ema_1_window, ema_2_window,
@@ -139,6 +172,8 @@ def apply_function(low_data, high_data, close_data,
     #     ewm=False,
     #     short_name='atr').atr
 
+    # Trend_filter_1_atr_indicator=vbt.ATR.run(high=Trend_filter_1_timeframe_high, low=Trend_filter_1_timeframe_low,
+    #                                            close=Trend_filter_1_timeframe_close, window=Trend_filter_atr_window).atr
     Trend_filter_1_atr_indicator = ATR_EWM.run(high=Trend_filter_1_timeframe_high, low=Trend_filter_1_timeframe_low,
                                                close=Trend_filter_1_timeframe_close, window=Trend_filter_atr_window).atr
 
@@ -189,7 +224,7 @@ def apply_function(low_data, high_data, close_data,
     #     ewm=False,
     #     short_name='atr').atr
     atr_indicator = ATR_EWM.run(high=PEAK_and_ATR_timeframe_high, low=PEAK_and_ATR_timeframe_low,
-                                               close=PEAK_and_ATR_timeframe_close, window=atr_window).atr
+                                close=PEAK_and_ATR_timeframe_close, window=atr_window).atr
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
     '''PeakHigh and PeakLow'''
@@ -227,9 +262,8 @@ def apply_function(low_data, high_data, close_data,
     # Fetch pre-computed ema from cache. Uses EMAs_timeframe
     # ema_1_indicator = vbt.MA.run(cache['Close'][EMAs_timeframe], window=ema_1_window, ewm=True).ma
     # ema_2_indicator = vbt.MA.run(cache['Close'][EMAs_timeframe], window=ema_2_window, ewm=True).ma
-    ema_1_indicator= EMA.run(close=cache['Close'][EMAs_timeframe], window=ema_1_window).ema
-    ema_2_indicator= EMA.run(close=cache['Close'][EMAs_timeframe], window=ema_2_window).ema
-
+    ema_1_indicator = EMA.run(close=cache['Close'][EMAs_timeframe], window=ema_1_window).ema
+    ema_2_indicator = EMA.run(close=cache['Close'][EMAs_timeframe], window=ema_2_window).ema
 
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -303,8 +337,25 @@ def apply_function(low_data, high_data, close_data,
     return long_entries, long_exits, short_entries, short_exits, take_profit_points, stop_loss_points
 
 
-def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray_sim_n_cpus):
+def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, param_product, ray_sim_n_cpus):
     """MMT_Strategy"""
+    # ATR_EWM = vbt.IF.from_expr("""
+    #                         ATR:
+    #                         tr0 = abs(high - low)
+    #                         tr1 = abs(high - fshift(close))
+    #                         tr2 = abs(low - fshift(close))
+    #                         tr = nanmax(column_stack((tr0, tr1, tr2)), axis=1)
+    #
+    #                         print(window)
+    #                         exit()
+    #                         atr = @talib_ema(tr, 2 * window - 1)  # Wilder's EMA
+    #                         tr, atr
+    #                         """)
+
+    #
+    # print(ATR_EWM.run(high=high_data, low=low_data,
+    #                   close=close_data, window=np.array(parameter_data["Trend_filter_atr_windows"])).atr)
+    # exit()
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     # Trend_filter_1_timeframes, Trend_filter_atr_windows, Trend_filter_1_data_lookback_windows
     Trend_filter_1_timeframes = np.array(parameter_data["Trend_filter_1_timeframes"])
@@ -322,12 +373,18 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
     take_profit_points = np.array(parameter_data["take_profit_points"])
     #
     stop_loss_points = np.array(parameter_data["stop_loss_points"])
+
+    # print(high_data)
+    # print(pd.concat(high_data, axis=2))
+    # exit()
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    #
+    #`1
+
     '''Compile Structure and Run Master Indicator'''
     Master_Indicator = vbt.IF(
         input_names=[
             'low_data', 'high_data', 'close_data',
+            # 'datetime_index',
         ],
         param_names=[
             'Trend_filter_1_timeframes', 'Trend_filter_atr_windows', 'Trend_filter_1_data_lookback_windows',
@@ -344,12 +401,13 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         apply_func=apply_function,
         cache_func=cache_func,
         keep_pd=True,
-        param_product=False,
+        param_product=param_product,
         execute_kwargs=dict(
             engine='ray',
             init_kwargs={
-                'address': 'auto',
+                # 'address': 'auto',
                 'num_cpus': ray_sim_n_cpus,
+                'ignore_reinit_error': True,
             },
             show_progress=True
         ),
@@ -366,6 +424,24 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         stop_loss_points=-600,
     ).run(
         low_data, high_data, close_data,
+
+        # comb_split_price_n_datetime_index(low_data[0], close_data[1], 10),
+        # comb_split_price_n_datetime_index(high_data[0], close_data[1], 10),
+        # comb_split_price_n_datetime_index(close_data[0], close_data[1], 10),
+        # try_align_to_datetime_index(
+        #     low_data.index,
+        #     datetime_index,
+        # ),
+        # try_align_to_datetime_index(
+        #     high_data.index,
+        #     datetime_index,
+        # ),
+        # try_align_to_datetime_index(
+        #     low_data.index,
+        #     close_data,
+        # ),
+
+        # datetime_index if datetime_index is not None else close_data.index,
         Trend_filter_1_timeframes=Trend_filter_1_timeframes,
         Trend_filter_atr_windows=Trend_filter_atr_windows,
         Trend_filter_1_data_lookback_windows=Trend_filter_1_data_lookback_windows,
@@ -378,6 +454,7 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
         take_profit_points=take_profit_points,
         stop_loss_points=stop_loss_points,
     )
+
     '''Type C conditions'''
     strategy_specific_kwargs = dict(
         exit_on_opposite_direction_entry=True,  # strategy_specific_kwargs['exit_on_opposite_direction_entry'],

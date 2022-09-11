@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import gc
-import sys
 import warnings
 from os.path import exists
 
@@ -43,6 +42,40 @@ class Data_Handler:
         pprint.pprint(self.__dict__ if not optional_object else optional_object.__dict__)
 
     @staticmethod
+    def fetch_data(data_file_names, data_file_dirs):
+        if not data_file_dirs:
+            data_file_dirs = [".","Datas","Sample-Data"]
+        if not isinstance(data_file_names, list):
+            data_file_names = [data_file_names]
+
+        from Legendary_Genie.Utils import find_file
+        data_file_paths = []
+
+        for file_name in data_file_names:
+            directory = find_file(file_name, *data_file_dirs)
+            __path = f'{directory}/{file_name}'
+            data_file_paths.append(__path)
+        # data_file_dir = data_file_dir or find_file(f'{data_file_name}.csv', *search_in)
+        # data_file_paths = [f'{data_file_dir}/{data_file_name}.csv' for data_file_name in data_file_names]
+        #     # data= Data_Handler.fetch_csv_data_dask(data_file_name=data_file_names, data_file_dir=data_file_dir,
+        #     #                                  scheduler=scheduler)
+        #     #
+        #     # return vbt.Data.from_data(data)
+        #
+        #
+        # data_array = [Data_Handler.fetch_csv_data_dask(data_file_name=data_file_name, data_file_dir=data_file_dir,
+        #                                                scheduler=scheduler) for data_file_name in data_file_names]
+        #
+        # datas_dict = {}
+        # for data_name, data_bars in zip(data_file_names, data_array):
+        #     datas_dict[data_name] = data_bars
+        #
+        # logger.info(f'Converting data to symbols_data obj')
+        # return vbt.Data.from_data(datas_dict)
+        return vbt.CSVData.fetch(data_file_paths, index_col=0,
+                          parse_dates=True, infer_datetime_format=True)
+
+    @staticmethod
     def fetch_csv_data(data: object, data_files_dir: object) -> object:
         """
 
@@ -65,33 +98,37 @@ class Data_Handler:
     # @staticmethod
 
     @staticmethod
-    def fetch_csv_data_dask(data: object, data_files_dir: object,
-                            input_format='%m.%d.%Y %H:%M:%S',
-                            output_format='%m.%d.%Y %H:%M:%S'):
+    def fetch_csv_data_dask(data_file_name: object, data_file_dir: object = None,
+                            search_in=(".", "Datas"), scheduler='threads') -> object:
         """
         Loads data from a CSV file into a dask dataframe
-        :param data: name of the data file
-        :param data_files_dir: directory of the data file
+        :param data_file_name: name of the data file
+        :param data_file_dir: directory of the data file
         :param input_format: format of the date in the data file
         :param output_format: format of the date to be outputted
         :return: dask dataframe
         """
-        logger.info(f'Loading {data} from CSV file')
+        logger.info(f'Loading {data_file_name} from CSV file')
+
+        data_file_path = f'{data_file_dir}/{data_file_name}.csv'
+
         # load the data into a dask dataframe
-        bar_data = dd.read_csv(f'{data_files_dir}/{data}.csv', parse_dates=True)
+        # bar_data = dd.read_csv(f'{data_file_dir}/{data_file_name}.csv', parse_dates=True)
+        bar_data = dd.read_csv(data_file_path, parse_dates=True)
         # convert all column names to upper case
         bar_data.columns = bar_data.columns.str.upper()
-        logger.info(f'Finished Loading {data} from CSV file')
-        logger.info(f'Prepping {data} for use')
+        logger.info(f'Finished Loading {data_file_name} from CSV file')
+        logger.info(f'Prepping {data_file_name} for use')
         logger.info(f'_parsing dates')
         # get the name of the datetime column
         datetime_col = bar_data.columns[0]
         # parse the datetime column
-        bar_data[datetime_col] = dd.to_datetime(bar_data[datetime_col], format=input_format)
+
+        bar_data[datetime_col] = dd.to_datetime(bar_data[datetime_col])
         # bar_data[datetime_col] = bar_data[datetime_col].dt.strftime(output_format)
         logger.info(f'_dask_compute')
         # compute the dask dataframe
-        bar_data = bar_data.compute(scheduler='processes')
+        bar_data = bar_data.compute(scheduler=scheduler)
         # set the datetime column as the index
         bar_data.index = bar_data[datetime_col]
         # delete the datetime column
@@ -123,11 +160,7 @@ class Data_Handler:
 
         """
 
-        bar_data = self.fetch_csv_data_dask(data_name, data_files_dir,
-                                            input_format=self.genie_object.runtime_settings[
-                                                "Data_Settings.minute_data_input_format"],
-                                            output_format=self.genie_object.runtime_settings[
-                                                "Data_Settings.minute_data_output_format"])
+        bar_data = self.fetch_csv_data_dask(data_name, data_files_dir)
         # bar_data = pd.DataFrame()
 
         #
@@ -136,10 +169,10 @@ class Data_Handler:
         # exit()
         if "SPREAD" not in bar_data.columns and exists(f'{data_files_dir}/{data_name}_tick.csv'):
             bar_data_tick = self.fetch_csv_data_dask(f'{data_name}_tick', data_files_dir,
-                                                     input_format=self.genie_object.runtime_settings[
-                                                         "Data_Settings.accompanying_tick_data_input_format"],
-                                                     output_format=self.genie_object.runtime_settings[
-                                                         "Data_Settings.accompanying_tick_data_output_format"],
+                                                     # input_format=self.genie_object.runtime_settings[
+                                                     #     "Data_Settings.accompanying_tick_data_input_format"],
+                                                     # output_format=self.genie_object.runtime_settings[
+                                                     #     "Data_Settings.accompanying_tick_data_output_format"]
                                                      )
             # todo for now genie does not use tick data other than to compute the max spread
             if ("ASK" and "BID") in (bar_data_tick.columns):
@@ -199,18 +232,18 @@ class Data_Handler:
         :return:
         """
 
-        bar_data = self.fetch_csv_data_dask(data_name, data_files_dir,  # load minute data
-                                            input_format=self.genie_object.runtime_settings[
-                                                "Data_Settings.minute_data_input_format"],
-                                            output_format=self.genie_object.runtime_settings[
-                                                "Data_Settings.minute_data_output_format"])
+        bar_data = self.fetch_csv_data_dask(data_name, data_files_dir,
+                                            #                                 input_format=self.genie_object.runtime_settings[
+                                            # "Data_Settings.minute_data_input_format"], output_format=self.genie_object.runtime_settings[
+                                            # "Data_Settings.minute_data_output_format"]
+                                            )
         if "SPREAD" not in bar_data.columns and exists(
                 f'{data_files_dir}/{data_name}_tick.csv'):  # if spread column is not in minute data and tick data exists
             bar_data_tick = self.fetch_csv_data_dask(f'{data_name}_tick', data_files_dir,
-                                                     input_format=self.genie_object.runtime_settings[
-                                                         "Data_Settings.accompanying_tick_data_input_format"],
-                                                     output_format=self.genie_object.runtime_settings[
-                                                         "Data_Settings.accompanying_tick_data_output_format"],
+                                                     # input_format=self.genie_object.runtime_settings[
+                                                     #     "Data_Settings.accompanying_tick_data_input_format"],
+                                                     # output_format=self.genie_object.runtime_settings[
+                                                     #     "Data_Settings.accompanying_tick_data_output_format"]
                                                      )
             if ("ASK" and "BID") in (bar_data_tick.columns):  # if ask and bid columns are in tick data
                 logger.info(
@@ -229,10 +262,10 @@ class Data_Handler:
                     f'{data_files_dir}/{data_name}_with_spread_column.csv')  # save minute data with spread column
         return bar_data
 
-    def fetch_data(self) -> object:
+    def _fetch_data(self) -> object:
         """
         Returns:
-            object: 
+            object:
         """
         logger.info(f'Fetching Data')
         #
@@ -288,11 +321,14 @@ class Data_Handler:
                         1.  Optimization Date-Range
                         2.  Date-Range prior to "(1)" to be used for \bar{ATR}
                         3.  The rest of the data that will not be utilized"""
-        if not self.genie_object.symbols_data_id:
-            self.fetch_data()
+        # if not self.genie_object.symbols_data_id:
+        #     self._fetch_data()
 
         '''Get OLHC'''
-        symbols_data = ray.get(self.genie_object.symbols_data_id)
+        # symbols_data = ray.get(self.genie_object.symbols_data_id)
+        symbols_data = ray.get(
+            self.genie_object.symbols_data_id) if self.genie_object.symbols_data_id else self.genie_object.symbols_data
+
         open_data = symbols_data.get('OPEN')
 
         idx = pd.date_range(open_data.index[0], open_data.index[len(open_data) - 1], freq='1 min')

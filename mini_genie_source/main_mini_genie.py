@@ -27,6 +27,7 @@ def call_genie(run_time_settings, arg_parser_values):
         # Load symbols_data, open, low, high, close to genie object.
         genie_object.fetch_and_prepare_input_data()
 
+
         if arg_parser_values.genie_pick:
             # todo update with new changes  in dev branch
             '''

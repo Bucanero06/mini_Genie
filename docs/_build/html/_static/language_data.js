@@ -58,7 +58,7 @@ var Stemmer = function() {
   var C = c + "[^aeiouy]*";    // consonant sequence
   var V = v + "[aeiou]*";      // vowel sequence
 
-  var mgr0 = "^(" + C + ")?" + V + C;                      // [C]VC... is m>0
+  var mgr0 = "^(" + C + ")?" + V + C;                      // [C]VC_check_study_name(Spaces_Program_Info, self.study_nameis m>0
   var meq1 = "^(" + C + ")?" + V + C + "(" + V + ")?$";    // [C]VC[V] is m=1
   var mgr1 = "^(" + C + ")?" + V + C + V + C;              // [C]VCVC... is m>1
   var s_v   = "^(" + C + ")?" + v;                         // vowel in stem
