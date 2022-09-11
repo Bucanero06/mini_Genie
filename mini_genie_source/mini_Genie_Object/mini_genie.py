@@ -16,7 +16,8 @@ from logger_tt import logger
 from mini_genie_source.Analysis_Handler.analysis_handler import compute_stats_remote
 from mini_genie_source.Equipment_Handler.equipment_handler import CHECKTEMPS
 from mini_genie_source.Run_Time_Handler.equipment_settings import TEMP_DICT
-from mini_genie_source.Utilities.general_utilities import rm_field_from_record, next_path, create_dirs, create_or_clean_directories, \
+from mini_genie_source.Utilities.general_utilities import rm_field_from_record, next_path, create_dirs, \
+    create_or_clean_directories, \
     flip_bool
 
 np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
@@ -110,8 +111,8 @@ class mini_genie_trader:
         self.ray_init = ray.init(
             ignore_reinit_error=True,
             num_cpus=self.runtime_settings["RAY_SETTINGS.ray_init_num_cpus"],
-                                 # object_store_memory=67 * 10 ** 9
-                                 )
+            # object_store_memory=67 * 10 ** 9
+        )
         #
         # Prepare directories and save file paths
         self._prepare_directory_paths_for_study()  # If path to study directory does not exist, self.continuing = False
@@ -1506,10 +1507,7 @@ class mini_genie_trader:
         # Do a final save !
         self._save_computed_params_metrics()
 
-
     def prepare_backtest(self):
         """Simulate parameters passed by user; either explicitly or produced from settings"""
         ...
         self._initiate_parameters_records(add_ids=True)
-
-
