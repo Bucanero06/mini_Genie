@@ -57,7 +57,7 @@ Strategy_Settings = dict(
 
 
 def comb_split_price_n_datetime_index(price_cols, datetime_cols, n_splits):
-    from Utils import comb_price_and_range_index
+    from Modules.Utils import comb_price_and_range_index
 
     if np.ndim(price_cols) == 2:
         new_split_data = [int(0) for x in range(n_splits)]
