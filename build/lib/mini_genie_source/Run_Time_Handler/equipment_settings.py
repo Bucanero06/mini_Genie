@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 TEMP_DICT = dict(
     Time_Dalay=0.1,  # in Seconds to cool
-    smart_offset=5,  # in Seconds to cool
 
     memory_temp_name='nvme',
     memory_critical=65,  # 74.8

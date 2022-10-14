@@ -7,7 +7,7 @@ from logger_tt import logger
 
 
 def CHECKKEEPHEATINGSTATUS(temp_dict):
-    smart_offset = temp_dict["smart_offset"]
+    smart_offset = 5
     temperatures = psutil.sensors_temperatures()
     # Save_Current_Temperatures
     memory_0400_temperature = temperatures[temp_dict['memory_temp_name']][0][1]
