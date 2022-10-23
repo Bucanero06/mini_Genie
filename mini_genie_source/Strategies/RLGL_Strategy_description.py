@@ -105,54 +105,54 @@ T2_ema_len1         =       13
 T2_ema_len2        =        50
 T2_ema_timeframe     =     '4H'
 
-#Entry Conditions:
-"""
-   All conditions must be true in order for new trades to be opened
-"""
-    1. not(EnableMaxTrades) or ('Current Active Trades' < MaxTrades)		      #limit the total active trades
-    2. not(EnableSession) or (SessionStart < 'Current Time' < SessionEnd) 		#restrict the time allowed to open trades
-
-#Entry Logic:
-"""
-   Indicator logic for opening a new trade. If all conditions are met, then a market order is made.
-"""
-    Buy Entry:
-        1. TrendType == 'T1' or (ema_4h(13) > ema_4h(50))
-        2. crossover( ema(13) , ema(50) )
-        3. barssince( crossover( rsi_4h(13).sma(2) , rsi_4h(13).sma(34) ) or crossover( rsi_4h(13).sma(2) , rsi_4h(13).sma(7) ) ) <
-           barssince( crossunder( rsi_4h(13).sma(2) , rsi_4h(13).sma(34) ) or crossunder( rsi_4h(13).sma(2) , rsi_4h(13).sma(7) ) )
-           #ask me about this one. It's tough to get in writing and I can easily show this visually
-
-    Sell Entry:
-        1. TrendType == 'T1' or (ema_4h(13) < ema_4h(50))
-        2. crossunder( ema(13) , ema(50) )
-        3. barssince( crossover( rsi_4h(13).sma(2) , rsi_4h(13).sma(34) ) or crossover( rsi_4h(13).sma(2) , rsi_4h(13).sma(7) ) ) >
-           barssince( crossunder( rsi_4h(13).sma(2) , rsi_4h(13).sma(34) ) or crossunder( rsi_4h(13).sma(2) , rsi_4h(13).sma(7) ) )
-
-#Trade Management:
-"""
-   Rules for managing a trade once it has been opened
-"""
-    'All trades are Market Type and should be executed immediately`
-    'TakeProfit and StopLoss values are set immediately'
-    'Trade Size' = LotSize
-
-
-    3. if( EnableBreakEven == true )			         #As the trade moves into profit, we move the original Stop Loss from -500 points to +200, then +300 points.
-         if( 'Trade Points' > BreakEvenTrigger1 )
-            'Trade StopLoss' = BreakEvenDis1 # only move stop_loss
-         if( 'Trade Points' > BreakEvenTrigger2 )
-            'Trade StopLoss' = BreakEvenDis2 # only move stop_loss
-    4. if( EnableTrailing and EnableTrailing2 )		#Requires price data at point resolution, so ignore for now
-           if( 'Trade Points' > BreakEvenDis2 )
-               'Trail the StopLoss by TrailingStopDis'
-    5. if( EnableTrailing and not(EnableTrailing2))	#Requires price data at point resolution, so ignore for now
-        'Trail the StopLoss by TrailingStopDis'
-
-#Exit Conditions:
-"""
-   Rules for exiting a trade, either in profit or loss.
-"""
-    1. 'Trade Points' == -StopLoss
-    2. 'Trade Points' == TakeProfit
-    3. ( CloseReversal == true ) and 'new entry signal occurs that is opposite of current active trade'	#i.e. a sell trade is active and a new buy signal occurs, exit the sell trade immediately
+# #Entry Conditions:
+# """
+#    All conditions must be true in order for new trades to be opened
+# """
+#     1. not(EnableMaxTrades) or ('Current Active Trades' < MaxTrades)		      #limit the total active trades
+#     2. not(EnableSession) or (SessionStart < 'Current Time' < SessionEnd) 		#restrict the time allowed to open trades
+#
+# #Entry Logic:
+# """
+#    Indicator logic for opening a new trade. If all conditions are met, then a market order is made.
+# """
+#     Buy Entry:
+#         1. TrendType == 'T1' or (ema_4h(13) > ema_4h(50))
+#         2. crossover( ema(13) , ema(50) )
+#         3. barssince( crossover( rsi_4h(13).sma(2) , rsi_4h(13).sma(34) ) or crossover( rsi_4h(13).sma(2) , rsi_4h(13).sma(7) ) ) <
+#            barssince( crossunder( rsi_4h(13).sma(2) , rsi_4h(13).sma(34) ) or crossunder( rsi_4h(13).sma(2) , rsi_4h(13).sma(7) ) )
+#            #ask me about this one. It's tough to get in writing and I can easily show this visually
+#
+#     Sell Entry:
+#         1. TrendType == 'T1' or (ema_4h(13) < ema_4h(50))
+#         2. crossunder( ema(13) , ema(50) )
+#         3. barssince( crossover( rsi_4h(13).sma(2) , rsi_4h(13).sma(34) ) or crossover( rsi_4h(13).sma(2) , rsi_4h(13).sma(7) ) ) >
+#            barssince( crossunder( rsi_4h(13).sma(2) , rsi_4h(13).sma(34) ) or crossunder( rsi_4h(13).sma(2) , rsi_4h(13).sma(7) ) )
+#
+# #Trade Management:
+# """
+#    Rules for managing a trade once it has been opened
+# """
+#     'All trades are Market Type and should be executed immediately`
+#     'TakeProfit and StopLoss values are set immediately'
+#     'Trade Size' = LotSize
+#
+#
+#     3. if( EnableBreakEven == true )			         #As the trade moves into profit, we move the original Stop Loss from -500 points to +200, then +300 points.
+#          if( 'Trade Points' > BreakEvenTrigger1 )
+#             'Trade StopLoss' = BreakEvenDis1 # only move stop_loss
+#          if( 'Trade Points' > BreakEvenTrigger2 )
+#             'Trade StopLoss' = BreakEvenDis2 # only move stop_loss
+#     4. if( EnableTrailing and EnableTrailing2 )		#Requires price data at point resolution, so ignore for now
+#            if( 'Trade Points' > BreakEvenDis2 )
+#                'Trail the StopLoss by TrailingStopDis'
+#     5. if( EnableTrailing and not(EnableTrailing2))	#Requires price data at point resolution, so ignore for now
+#         'Trail the StopLoss by TrailingStopDis'
+#
+# #Exit Conditions:
+# """
+#    Rules for exiting a trade, either in profit or loss.
+# """
+#     1. 'Trade Points' == -StopLoss
+#     2. 'Trade Points' == TakeProfit
+#     3. ( CloseReversal == true ) and 'new entry signal occurs that is opposite of current active trade'	#i.e. a sell trade is active and a new buy signal occurs, exit the sell trade immediately

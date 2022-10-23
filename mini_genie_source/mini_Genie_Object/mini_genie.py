@@ -1,4 +1,5 @@
 #!/usr/bin/env python3.9
+import gc
 import os.path
 import re
 import sys
@@ -39,9 +40,9 @@ class mini_genie_trader:
     """
 
     def __init__(self, runtime_kwargs, args):
-
         """Constructor for mini_genie_trader"""
 
+        print("""Constructor for mini_genie_trader""")
         self.parameters_record_length = None
         self.status = '__init__'
         from mini_genie_source.Utilities.general_utilities import print_dict
@@ -108,10 +109,11 @@ class mini_genie_trader:
         # Initial Actions
         #
         # Init Ray
+        os.environ["RAY_OBJECT_STORE_ALLOW_SLOW_STORAGE"] = '1'
         self.ray_init = ray.init(
             ignore_reinit_error=True,
             num_cpus=self.runtime_settings["RAY_SETTINGS.ray_init_num_cpus"],
-            # object_store_memory=67 * 10 ** 9
+            object_store_memory=100 * 10 ** 9
         )
         #
         # Prepare directories and save file paths
@@ -207,7 +209,8 @@ class mini_genie_trader:
             if self.compression_of_initial_params_record == 'csv':
                 # parameter_df = pd.read_csv(path_of_initial_params_record)
                 from dask import dataframe as dd
-                parameter_df = dd.read_csv(path_of_initial_params_record).compute(scheduler='processes')
+                # parameter_df = dd.read_csv(path_of_initial_params_record).compute(scheduler='processes')
+                parameter_df = dd.read_csv(path_of_initial_params_record).compute(scheduler='threads')
             else:
                 parameter_df = pd.read_pickle(path_of_initial_params_record)
             #
@@ -234,7 +237,7 @@ class mini_genie_trader:
                 # column_names = list(self.key_names) + self.runtime_settings['Simulation_Settings.Loss_Function.metrics']
                 # metrics_df = pd.read_csv(path_of_initial_metrics_record)
                 from dask import dataframe as dd
-                metrics_df = dd.read_csv(path_of_initial_params_record).compute(scheduler='processes')
+                metrics_df = dd.read_csv(path_of_initial_metrics_record).compute(scheduler='threads')
                 #
                 # Determine number of parameter combinations ran
                 self.number_of_parameters_ran = int(len(metrics_df) / len(self.asset_names))
@@ -246,6 +249,13 @@ class mini_genie_trader:
                 # Fill values
                 logger.info(f'Filling record ...')
                 dtype_names = list(self.metrics_record.dtype.names)
+
+
+                logger.info(f'{dtype_names  = }')
+                logger.info(f'{metrics_df.head()  = }')
+                logger.info(f'{metrics_df[dtype_names].to_numpy()  = }')
+                logger.info(f'{metrics_df[dtype_names[1]].to_numpy()  = }')
+
                 for row in metrics_df[dtype_names].to_numpy():
                     # First row is 'trial_id'
                     trial_id = row[0]
@@ -310,9 +320,13 @@ class mini_genie_trader:
         else:
             n_initial_combinations = len(self.parameter_windows[f'{self.key_names[0]}.values'])
             for key_name in self.key_names[1:]:
+                logger.info(f'{key_name = }')
+                logger.info(f'{len(self.parameter_windows[f"{key_name}.values"]) = }')
+                logger.info(f'{n_initial_combinations = }')
                 assert len(self.parameter_windows[f'{key_name}.values']) == n_initial_combinations
             initial_param_combinations = np.array(
                 [(self.parameter_windows[f'{key_name}.values']) for key_name in self.key_names]).transpose()
+
         #
         initial_param_combinations = initial_param_combinations if parameter_df.empty else parameter_df
         return n_initial_combinations, initial_param_combinations
@@ -639,23 +653,18 @@ class mini_genie_trader:
             self.parameters_record = delete_non_filled_elements(self.parameters_record)
 
     def _compute_params_product_n_fill_record(self, params):
+        '''Pre Cartesion Product Filtering'''
 
-        a_1 = params["rsi_windows"][np.where(params["rsi_windows"] < 35)[0]]
-        a_2 = params["rsi_windows"][np.where(params["rsi_windows"] > 65)[0]]
+        if self.runtime_settings["Strategy_Settings._pre_cartesian_product_filter.function"] is not None:
+            params = self.runtime_settings["Strategy_Settings._pre_cartesian_product_filter.function"](
+                params,
+                **self.runtime_settings["Strategy_Settings._pre_cartesian_product_filter.kwargs"]._values)
+            # logger.info(f'{params = }')
 
-        a_3 = []
-        for a, b in zip(a_1, a_2):
-            a_3.append(a)
-            a_3.append(b)
-        params["rsi_windows"] = a_3
-
-        del a_1, a_2, a_3
-
-        logger.info(f'rsi_windows: {len(params["rsi_windows"])}')
 
         from itertools import product
         logger.info(
-            f'`````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````Computing Cartesian Product for Parameter Record')
+            f'Computing Cartesian Product for Parameter Record')
         initial_param_combinations = list(
             set(
                 product(
@@ -692,7 +701,7 @@ class mini_genie_trader:
         self.parameters_record["trial_id"] = indexes
         for col_index, key_name in enumerate(self.keynames_not_tp_sl):
             print(f'{col_index = }')
-            print(f'{len(key_name) = }')
+            print(f'{key_name} = {len(key_name) = }')
             self.parameters_record[key_name] = initial_param_combinations[:, col_index]
         #
         tp_sl = initial_param_combinations[:, -1]
@@ -710,87 +719,16 @@ class mini_genie_trader:
         del initial_param_combinations
         self.parameters_record = delete_non_filled_elements(self.parameters_record)
         #
-        # fixme!!!   HOTFIX
-        # fixme need to remove this, or create a setting for. this was a hot fix to eliminate ema1 parameters combinations
-        #   that are less than ema2
 
-        seconds_per_unit = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800}
-
-        # def convert_to_seconds(s):
-        #     return int(s[:-1]) * seconds_per_unit[s[-1]]
-        def convert_to_seconds(input_timeframe):
-            '''
-            Can accept any time frame as long as it is composed of a signle continuous interger and a timeframe recognized by pandas and convert the string timeframe into seconds.
-            e.g. 1m,5 m,15min, 34 min, 1h, h4,etc ...
-            '''
-            seconds_per_unit = {"s": 1, "m": 60, "h": 3600, "d": 3600 * 24, "w": 3600 * 24 * 7}
-            input_timeframe = input_timeframe.lower()
-            # try to extract an integer string
-            splits = re.split('(\d+)', input_timeframe)
-            integer_str = splits[1]
-
-            # try to extract the time intervel
-            if splits[2].startswith('s'):
-                timeframe_str = 's'
-            elif splits[2].startswith('m'):
-                timeframe_str = 'm'
-            elif 'm' in splits[2]:
-                timeframe_str = 'm'
-            elif 'h' in splits[2]:
-                timeframe_str = 'h'
-            elif 'd' in splits[2]:
-                timeframe_str = 'd'
-            elif 'w' in splits[2]:
-                timeframe_str = 'w'
-            elif splits[2].startswith('h'):
-                timeframe_str = 'h'
-            elif splits[2].startswith('d'):
-                timeframe_str = 'd'
-            elif splits[2].startswith('w'):
-                timeframe_str = 'w'
-            else:
-                print('unknown timeframe:', input_timeframe)
-                print('please input a timeframe in the form of 1min, 5min, 1h, 60s, etc ....')
-                return
-            return int(integer_str) * seconds_per_unit[timeframe_str]
-
+        '''Post Cartesian Product Parameter Filtering'''
         logger.info(f'{self.parameters_record.shape = }')
-        self.parameters_record = self.parameters_record[
-            np.where(np.less_equal([convert_to_seconds(i) for i in self.parameters_record["T1_ema_timeframes"]],
-                                   [convert_to_seconds(i) for i in self.parameters_record["rsi_timeframes"]]))[0]]
+        if self.runtime_settings["Strategy_Settings._post_cartesian_product_filter.function"] is not None:
+            self.parameters_record = self.runtime_settings["Strategy_Settings._post_cartesian_product_filter.function"](
+                self.parameters_record,
+                **self.runtime_settings["Strategy_Settings._post_cartesian_product_filter.kwargs"]._values)
+            logger.info(f'{self.parameters_record.shape = }')
 
-        # logger.info(f'{self.parameters_record.shape = }')
-        # self.parameters_record = self.parameters_record[
-        #     np.where([convert_to_seconds(i) for i in self.parameters_record["T2_ema_timeframes"]]
-        #              <= [convert_to_seconds(i) for i in self.parameters_record["rsi_timeframes"]])[0]]
-
-        logger.info(f'1{self.parameters_record.shape = }')
-        self.parameters_record = self.parameters_record[
-            # np.where(self.parameters_record["ema_1_windows"] <= self.parameters_record["ema_2_windows"])[0]]
-            np.where(self.parameters_record["T1_ema_1_windows"] <= self.parameters_record["T1_ema_2_windows"])[0]]
-
-        logger.info(f'2{self.parameters_record.shape = }')
-        self.parameters_record = self.parameters_record[
-            np.where(self.parameters_record["sma_on_rsi_1_windows"] <= self.parameters_record["sma_on_rsi_2_windows"])[
-                0]]
-
-        logger.info(f'3{self.parameters_record.shape = }')
-        self.parameters_record = self.parameters_record[
-            np.where(self.parameters_record["sma_on_rsi_2_windows"] <= self.parameters_record["sma_on_rsi_3_windows"])[
-                0]]
-
-        #
-        # self.parameters_record = self.parameters_record[
-        #     np.where(self.parameters_record["Trend_filter_1_timeframe"] != self.parameters_record[
-        #         "PEAK_and_ATR_timeframes"])[0]]
-
-        # self.parameters_record = self.parameters_record[
-        #     np.where(self.parameters_record["ema_1_windows"] <= self.parameters_record["ema_2_windows"])[0]]
-        # #
-        # self.parameters_record = self.parameters_record[
-        #     np.where(self.parameters_record["Trend_filter_1_timeframes"] != self.parameters_record[
-        #         "PEAK_and_ATR_timeframes"])[0]]
-        #
+        '''Shuffle'''
         rng = np.random.default_rng()
         logger.info(f"Shuffling Once \N{Face with Finger Covering Closed Lips}")
         self.parameters_record = rng.permutation(self.parameters_record)
@@ -802,6 +740,8 @@ class mini_genie_trader:
         # value = ([(i,) for i in indexes] + initial_param_combinations[:, :-1] + initial_param_combinations[:, -1])
         logger.info(f'Sorting Index')
         self.parameters_record["trial_id"] = indexes[:len(self.parameters_record["trial_id"])]
+
+        gc.collect()
 
     def _compute_bar_atr(self):
         """
@@ -1137,199 +1077,6 @@ class mini_genie_trader:
         file_path = self.path_of_initial_metrics_record if not self.user_pick else self.file_name_of_backtest_results
         self._save_record_to_file(merged_array, file_path, write_mode='a')
 
-    # def simulate(self):    # Will be removed in a future update and replaced by simulate_with_post_processing
-    #     """
-    #     In chunks/batches:
-    #        1.  Simulate N parameters' indicators
-    #        2.  Simulate N parameters' events
-    #        3.  Compute Metrics
-    #        4.  Save Results to file
-    #     """
-    #
-    #     def _analyze_n_save(portfolio_metrics, params_rec, highest_profit_cash_, highest_profit_perc_, best_parameters_,
-    #                         initial_cash_total_, epoch_n_, save_every_nth_chunk=None):
-    #         '''Reconstruct Metrics from Order Records and Save'''
-    #         tell_metrics_start_timer = perf_counter()
-    #         #
-    #         # params_rec = ray.get(params_rec_id)
-    #         #
-    #         # Used for Printing
-    #         highest_profit_this_epoch = portfolio_metrics['Total Return [%]'].max()
-    #         highest_cash_profit_this_epoch = highest_profit_this_epoch * initial_cash_total_ / 100
-    #         best_parameters_this_epoch = portfolio_metrics['Total Return [%]'].idxmax()
-    #         #
-    #         if highest_cash_profit_this_epoch > highest_profit_cash_:
-    #             highest_profit_cash_ = highest_cash_profit_this_epoch
-    #             highest_profit_perc_ = highest_profit_this_epoch
-    #             best_parameters_ = best_parameters_this_epoch
-    #         #
-    #         logger.info(
-    #             f'Highest Profit so far: {round(highest_profit_cash_, 2):,}   \N{money-mouth face}\N{money bag}: '
-    #             f'{round(highest_profit_perc_, 2)}% of a ${initial_cash_total_:,} account')
-    #         logger.info(f'Best Param so far: {best_parameters_}  \N{money with wings}')
-    #         #
-    #         logger.info(f'  -> highest_profit_cash this epoch {highest_cash_profit_this_epoch:,}')
-    #         logger.info(f'  -> best_param this epoch {best_parameters_this_epoch}')
-    #         #
-    #         # clean up porfolio
-    #         portfolio_metrics.fillna(0.0)
-    #         for name, values in portfolio_metrics.items():
-    #             portfolio_metrics[name] = portfolio_metrics[name].astype(float).fillna(0.0)
-    #
-    #         # portfolio.replace(pd.NaT, pd.Timedelta(seconds=0), inplace=True)
-    #         #
-    #         # Fill metric record with new metric values
-    #         new_indexes = []
-    #         for _index, param_record in enumerate(params_rec):
-    #             trial_id = param_record["trial_id"]
-    #             param_record = rm_field_from_record(param_record, 'trial_id')
-    #             #
-    #             for ass_index, asset in enumerate(self.asset_names):
-    #                 param_tuple_ = tuple(param_record)
-    #                 param_tuple_ = param_tuple_ + (asset,)
-    #                 metrics_np = tuple(portfolio_metrics[:].loc[tuple(param_tuple_)])
-    #                 new_index = trial_id + (self.parameters_record_length * ass_index)
-    #                 new_indexes.append(new_index)
-    #                 metrics_input = (trial_id, asset) + metrics_np
-    #                 self.metrics_record[new_index] = metrics_input
-    #
-    #         logger.info(f'Time to Analyze Metrics {perf_counter() - tell_metrics_start_timer}')
-    #         #
-    #         # Concat and save the parameter and metric records to file every Nth epoch
-    #         if save_every_nth_chunk:
-    #             if epoch_n_ % save_every_nth_chunk == 0:
-    #                 logger.info(f"Saving epoch {epoch_n_}")
-    #                 save_start_timer = perf_counter()
-    #                 self._save_computed_params_metrics(new_indexes)
-    #                 #
-    #                 logger.info(f'Time to Save Records {perf_counter() - save_start_timer} during epoch {epoch_n_}')
-    #         #
-    #         return highest_profit_cash_, highest_profit_perc_, best_parameters_
-    #
-    #     batch_size = self.batch_size
-    #     # self.parameters_record_length = len(ray.get(self.parameters_record))
-    #     self.parameters_record_length = len(self.parameters_record)
-    #     #
-    #     from mini_genie_source.Simulation_Handler.simulation_handler import Simulation_Handler
-    #     # from Analysis_Handler.analysis_handler import Analysis_Handler`
-    #     simulation_handler = Simulation_Handler(self)
-    #     # analysis_handler = Analysis_Handler(self)
-    #     #
-    #     # simulation_handler_id, analysis_handler_id = put_objects_list_to_ray([simulation_handler, analysis_handler])
-    #     # simulation_handler_id, analysis_handler_id = simulation_handler, analysis_handler
-    #     #
-    #     logger.info(f'I am here 1')
-    #     highest_profit_cash = -sys.maxsize
-    #     highest_profit_perc = -sys.maxsize
-    #     best_parameters = None
-    #     #
-    #     logger.info(f'I am here 2')
-    #
-    #     initial_cash_total = self.runtime_settings["Portfolio_Settings.init_cash"]
-    #     stop_after_n_epoch = self.runtime_settings["Simulation_Settings.Initial_Search_Space.stop_after_n_epoch"]
-    #     save_every_nth_chunk = self.runtime_settings["Simulation_Settings.save_every_nth_chunk"]
-    #     #
-    #     # If metrics record empty then initiate
-    #     if not any(self.metrics_record):
-    #         logger.info(f'I am here 3')
-    #
-    #         self._initiate_metric_records(add_ids=True, params_size=self.parameters_record_length * len(
-    #             self.asset_names))  # we need n_assets as many metric elements as there are trial.params
-    #     else:
-    #         logger.info(f'I am here 4')
-    #
-    #         highest_profit_perc = np.max(self.metrics_record["Total Return [%]"])
-    #         #
-    #         logger.info(f'I am here 5')
-    #
-    #         highest_profit_cash = highest_profit_perc * initial_cash_total / 100
-    #         # self.parameters_record[]
-    #
-    #     if not self.user_pick:
-    #         logger.info(f'I am here 6')
-    #
-    #         # Get an array of indexes remaining to compute
-    #         from mini_genie_source.Utilities.general_utilities import fetch_non_filled_elements_indexes
-    #         # Since metric_record is n_assets times bigger than parameters_record,and because metrics record just
-    #         #   repeats every 1/n_assets of the array we only need the first portion it
-    #         trials_ids_not_computed = fetch_non_filled_elements_indexes(
-    #             self.metrics_record[:self.parameters_record_length])
-    #         logger.info(f'I am here 7')
-    #
-    #         # Take elements from parameter record that match with trials_ids_not_computed
-    #         # params_to_compute = np.take(ray.get(self.parameters_record), trials_ids_not_computed)
-    #         params_to_compute = np.take(self.parameters_record, trials_ids_not_computed)
-    #     else:
-    #         params_to_compute = self.parameters_record
-    #     #
-    #     logger.info(f'I am here 8')
-    #
-    #     # Get max n_chunks given max batch_size
-    #     n_chunks = int(np.floor(len(params_to_compute) / batch_size)) if batch_size < len(params_to_compute) else 1
-    #     # Split arrays into n_chunks
-    #     logger.info(f'I am here 9')
-    #
-    #     chunks_of_params_left_to_compute = np.array_split(params_to_compute, n_chunks)
-    #     #
-    #     # from Utilities.general_utilities import put_objects_list_to_ray
-    #     # chunks_ids_of_params_left_to_compute = put_objects_list_to_ray(chunks_of_params_left_to_compute)
-    #     # for epoch_n, epoch_params_record_id in enumerate(chunks_of_params_left_to_compute):
-    #     for epoch_n, epoch_params_record in enumerate(chunks_of_params_left_to_compute):
-    #         if epoch_n == stop_after_n_epoch or datetime.now() >= self.stop_sim_time:
-    #             break
-    #         #
-    #         logger.info(f'I am here 10')
-    #
-    #         start_time = perf_counter()
-    #         CHECKTEMPS(TEMP_DICT)
-    #         #
-    #         long_entries, long_exits, short_entries, short_exits, \
-    #         strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params_record)
-    #         #
-    #         pf = simulation_handler.simulate_events(long_entries, long_exits,
-    #                                                 short_entries, short_exits,
-    #                                                 strategy_specific_kwargs)
-    #         #
-    #         # pf = vbt.Portfolio.load(
-    #         #     f'{self.portfolio_dir_path}/{self.runtime_settings["Portfolio_Settings.saved_pf_optimization"]}')
-    #         '''Reconstruct Metrics from Order Records and Save'''
-    #         logger.info('Reconstructing Portfolio Stats')
-    #         compute_stats_timer = perf_counter()
-    #         func_calls = []
-    #         split_metric_names = np.array_split(self.metrics_key_names, len(self.metrics_key_names) / 3)
-    #         pf_id = ray.put(pf)
-    #         for metric_chunk in split_metric_names:
-    #             func_calls.append(compute_stats_remote.remote(pf_id, metric_chunk))
-    #         #
-    #         # Compute All metrics in Chunk, returns [*Dataframes]
-    #         compute_stats_results = ray.get(func_calls)
-    #
-    #         # Join all Metrics
-    #         portfolio_stats = compute_stats_results[0].join(compute_stats_results[1:])
-    #
-    #         ...
-    #         #
-    #         # portfolio_stats = compute_stats(pf, self.metrics_key_names)
-    #         #
-    #         logger.info(f'Time to Reconstruct Metrics {perf_counter() - compute_stats_timer}')
-    #         #
-    #         highest_profit_cash, highest_profit_perc, best_parameters = _analyze_n_save(portfolio_stats,
-    #                                                                                     epoch_params_record,
-    #                                                                                     highest_profit_cash,
-    #                                                                                     highest_profit_perc,
-    #                                                                                     best_parameters,
-    #                                                                                     initial_cash_total, epoch_n,
-    #                                                                                     save_every_nth_chunk=save_every_nth_chunk)
-    #         #
-    #         self.number_of_parameters_ran = self.number_of_parameters_ran + len(epoch_params_record)
-    #         logger.info(f'Number of parameter combinations ran: {self.number_of_parameters_ran:,}')
-    #         #
-    #         logger.info(f'Epoch {epoch_n} took {perf_counter() - start_time} seconds')
-    #         logger.info(f'\n\n')
-    #     #
-    #     # Do a final save !
-    #     self._save_computed_params_metrics()
-
     def simulate(self):
         """
         In chunks/batches:
@@ -1340,7 +1087,7 @@ class mini_genie_trader:
         """
 
         def _analyze_n_save(portfolio_current, params_rec, highest_profit_cash_, highest_profit_perc_, best_parameters_,
-                            initial_cash_total_, epoch_n_, save_every_nth_chunk=None):
+                            initial_cash_total_, epoch_n_):
             '''Reconstruct Metrics from Order Records and Save'''
 
             logger.info('Reconstructing Portfolio Stats')
@@ -1390,7 +1137,7 @@ class mini_genie_trader:
                 #
                 for ass_index, asset in enumerate(self.asset_names):
                     param_tuple_ = tuple(param_record)
-                    param_tuple_ = param_tuple_ + (asset,)
+                    if len(self.asset_names) != 1: param_tuple_ = param_tuple_ + (asset,)
                     metrics_np = tuple(portfolio_metrics[:].loc[tuple(param_tuple_)])
                     # todo: Keep record of indexes just added and append those to file ...
                     new_index = trial_id + (self.parameters_record_length * ass_index)
@@ -1425,12 +1172,8 @@ class mini_genie_trader:
         self.parameters_record_length = len(self.parameters_record)
         #
         from mini_genie_source.Simulation_Handler.simulation_handler import Simulation_Handler
-        # from Analysis_Handler.analysis_handler import Analysis_Handler`
         simulation_handler = Simulation_Handler(self)
-        # analysis_handler = Analysis_Handler(self)
-        #
-        # simulation_handler_id, analysis_handler_id = put_objects_list_to_ray([simulation_handler, analysis_handler])
-        # simulation_handler_id, analysis_handler_id = simulation_handler, analysis_handler
+
         #
         highest_profit_cash = -sys.maxsize
         highest_profit_perc = -sys.maxsize
@@ -1438,7 +1181,7 @@ class mini_genie_trader:
         #
         initial_cash_total = self.runtime_settings["Portfolio_Settings.init_cash"]
         stop_after_n_epoch = self.runtime_settings["Simulation_Settings.Initial_Search_Space.stop_after_n_epoch"]
-        save_every_nth_chunk = self.runtime_settings["Simulation_Settings.save_every_nth_chunk"]
+        # save_every_nth_chunk = self.runtime_settings["Simulation_Settings.save_every_nth_chunk"]
         #
         # If metrics record empty then initiate
         if not any(self.metrics_record):
@@ -1495,8 +1238,7 @@ class mini_genie_trader:
                 highest_profit_cash,
                 highest_profit_perc,
                 best_parameters,
-                initial_cash_total, epoch_n,
-                save_every_nth_chunk=save_every_nth_chunk)
+                initial_cash_total, epoch_n)
             #
             self.number_of_parameters_ran = self.number_of_parameters_ran + len(epoch_params_record)
             logger.info(f'Number of parameter combinations ran: {self.number_of_parameters_ran:,}')
@@ -1504,8 +1246,8 @@ class mini_genie_trader:
             logger.info(f'Epoch {epoch_n} took {perf_counter() - start_time} seconds')
             logger.info(f'\n\n')
         #
-        # Do a final save !
-        self._save_computed_params_metrics()
+        # # Do a final save !
+        # self._save_computed_params_metrics()
 
     def prepare_backtest(self):
         """Simulate parameters passed by user; either explicitly or produced from settings"""

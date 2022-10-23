@@ -3,42 +3,43 @@ import vectorbtpro as vbt
 
 from mini_genie_source.Indicators.simple_indicators import EMA
 from mini_genie_source.Utilities.bars_utilities import BARSINCE_genie
+from Modules.Utils import rsi_params_filter
+
+def rlgl_post_cartesian_product_filter_function(parameters_record, **kwargs):
+    from Modules.Utils import convert_to_seconds
+    import numpy as np
+    parameters_record = parameters_record[
+        np.where(np.less_equal([convert_to_seconds(i) for i in parameters_record["T1_ema_timeframes"]],
+                               [convert_to_seconds(i) for i in parameters_record["rsi_timeframes"]]))[0]]
+
+    parameters_record = parameters_record[
+        np.where(parameters_record["T1_ema_1_windows"] <= parameters_record["T1_ema_2_windows"])[0]]
+
+    parameters_record = parameters_record[
+        np.where(parameters_record["sma_on_rsi_1_windows"] <= parameters_record["sma_on_rsi_2_windows"])[
+            0]]
+
+    parameters_record = parameters_record[
+        np.where(parameters_record["sma_on_rsi_2_windows"] <= parameters_record["sma_on_rsi_3_windows"])[
+            0]]
+    return parameters_record
 
 
-
-# parameter_windows=dict(
-#         rsi_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
-#         rsi_windows=dict(type='window', lower_bound=20, upper_bound=80, min_step=1),
-#         #
-#         sma_on_rsi_1_windows=dict(type='window', lower_bound=2, upper_bound=30, min_step=1),
-#         sma_on_rsi_2_windows=dict(type='window', lower_bound=5, upper_bound=50, min_step=1),
-#         sma_on_rsi_3_windows=dict(type='window', lower_bound=15, upper_bound=70, min_step=1),
-#         #
-#         T1_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h']),
-#         T1_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=45, min_step=1),
-#         T1_ema_2_windows=dict(type='window', lower_bound=15, upper_bound=90, min_step=1),
-#         #
-#         # T2_ema_timeframes=dict(type='timeframe', values=['1 min', '5 min', '15 min', '30 min', '1h', '4h', '1d']),
-#         # T2_ema_1_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
-#         # T2_ema_2_windows=dict(type='window', lower_bound=2, upper_bound=10, min_step=1),
-#         #
-#         take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=10000000, min_step=1000),
-#         stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=10000000, min_step=1000),
-#         #
-#         #
-#         #
-#         # breakeven_1_trigger_bool=False,
-#         # breakeven_1_trigger_points=dict(step_n_type='break_even_trigger', lower_bound=50, upper_bound=2000),
-#         # breakeven_1_distance_points=dict(step_n_type='break_even_distance', lower_bound=20, upper_bound=2000),
-#         # #
-#         # breakeven_2_trigger_bool=False,
-#         # breakeven_2_trigger_points=dict(step_n_type='break_even_trigger', lower_bound=50, upper_bound=2000),
-#         # breakeven_2_distance_points=dict(step_n_type='break_even_distance', lower_bound=20, upper_bound=2000),
-#
-#     ),
 Strategy_Settings = dict(
     Strategy="RLGL_Strategy",
     # The order of parameter key_names should be honored across all files
+    _pre_cartesian_product_filter=dict(
+        function=rsi_params_filter,
+        kwargs=dict(
+            low_rsi=35,
+            high_rsi=65
+        )
+    ),
+    _post_cartesian_product_filter=dict(
+        function=rlgl_post_cartesian_product_filter_function,
+        kwargs=dict()
+    ),
+
     parameter_windows=dict(
             rsi_timeframes=dict(type='timeframe', values=['5 min', '15 min', '30 min', '1h', '4h', '1d']),
             rsi_windows=dict(type='window', lower_bound=2, upper_bound=98, min_step=1),
@@ -103,6 +104,9 @@ Strategy_Settings = dict(
         )
     ),
 )
+
+
+
 
 
 def cache_func(close_data,

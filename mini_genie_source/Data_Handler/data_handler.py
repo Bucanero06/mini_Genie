@@ -34,6 +34,8 @@ class Data_Handler:
     def __init__(self, genie_object):
         """Constructor for Data_Handler"""
         self.genie_object = genie_object
+        from Modules._Data_Manager import Data_Manager
+        self.data_manager = Data_Manager()
 
         #
 
@@ -41,99 +43,84 @@ class Data_Handler:
         import pprint
         pprint.pprint(self.__dict__ if not optional_object else optional_object.__dict__)
 
-    @staticmethod
-    def fetch_data(data_file_names, data_file_dirs):
-        if not data_file_dirs:
-            data_file_dirs = [".","Datas","Sample-Data"]
-        if not isinstance(data_file_names, list):
-            data_file_names = [data_file_names]
+    #
+    # @staticmethod
+    # def fetch_data(data_file_names, data_file_dirs):
+    #     if not data_file_dirs:
+    #         data_file_dirs = [".","Datas","Sample-Data"]
+    #     if not isinstance(data_file_names, list):
+    #         data_file_names = [data_file_names]
+    #
+    #     from Modules.Utils import find_file
+    #     data_file_paths = []
+    #
+    #     for file_name in data_file_names:
+    #         directory = find_file(file_name, *data_file_dirs)
+    #         __path = f'{directory}/{file_name}'
+    #         data_file_paths.append(__path)
+    #
+    #     return vbt.CSVData.fetch(data_file_paths, index_col=0,
+    #                       parse_dates=True, infer_datetime_format=True)
 
-        from Modules.Utils import find_file
-        data_file_paths = []
-
-        for file_name in data_file_names:
-            directory = find_file(file_name, *data_file_dirs)
-            __path = f'{directory}/{file_name}'
-            data_file_paths.append(__path)
-        # data_file_dir = data_file_dir or find_file(f'{data_file_name}.csv', *search_in)
-        # data_file_paths = [f'{data_file_dir}/{data_file_name}.csv' for data_file_name in data_file_names]
-        #     # data= Data_Handler.fetch_csv_data_dask(data_file_name=data_file_names, data_file_dir=data_file_dir,
-        #     #                                  scheduler=scheduler)
-        #     #
-        #     # return vbt.Data.from_data(data)
-        #
-        #
-        # data_array = [Data_Handler.fetch_csv_data_dask(data_file_name=data_file_name, data_file_dir=data_file_dir,
-        #                                                scheduler=scheduler) for data_file_name in data_file_names]
-        #
-        # datas_dict = {}
-        # for data_name, data_bars in zip(data_file_names, data_array):
-        #     datas_dict[data_name] = data_bars
-        #
-        # logger.info(f'Converting data to symbols_data obj')
-        # return vbt.Data.from_data(datas_dict)
-        return vbt.CSVData.fetch(data_file_paths, index_col=0,
-                          parse_dates=True, infer_datetime_format=True)
-
-    @staticmethod
-    def fetch_csv_data(data: object, data_files_dir: object) -> object:
-        """
-
-        Args:
-            data:
-            data_files_dir:
-
-        Returns:
-            object:
-
-        """
-        logger.info(f'Loading {data} from CSV file')
-        bar_data = pd.read_csv(f'{data_files_dir}/{data}.csv',
-                               index_col=0, parse_dates=True)
-        bar_data.columns = bar_data.columns.str.upper()
-
-        logger.info(f'Finished Loading {data} from CSV file')
-        return bar_data
+    # @staticmethod
+    # def fetch_csv_data(data: object, data_files_dir: object) -> object:
+    #     """
+    #
+    #     Args:
+    #         data:
+    #         data_files_dir:
+    #
+    #     Returns:
+    #         object:
+    #
+    #     """
+    #     logger.info(f'Loading {data} from CSV file')
+    #     bar_data = pd.read_csv(f'{data_files_dir}/{data}.csv',
+    #                            index_col=0, parse_dates=True)
+    #     bar_data.columns = bar_data.columns.str.upper()
+    #
+    #     logger.info(f'Finished Loading {data} from CSV file')
+    #     return bar_data
 
     # @staticmethod
 
-    @staticmethod
-    def fetch_csv_data_dask(data_file_name: object, data_file_dir: object = None,
-                            search_in=(".", "Datas"), scheduler='threads') -> object:
-        """
-        Loads data from a CSV file into a dask dataframe
-        :param data_file_name: name of the data file
-        :param data_file_dir: directory of the data file
-        :param input_format: format of the date in the data file
-        :param output_format: format of the date to be outputted
-        :return: dask dataframe
-        """
-        logger.info(f'Loading {data_file_name} from CSV file')
-
-        data_file_path = f'{data_file_dir}/{data_file_name}.csv'
-
-        # load the data into a dask dataframe
-        # bar_data = dd.read_csv(f'{data_file_dir}/{data_file_name}.csv', parse_dates=True)
-        bar_data = dd.read_csv(data_file_path, parse_dates=True)
-        # convert all column names to upper case
-        bar_data.columns = bar_data.columns.str.upper()
-        logger.info(f'Finished Loading {data_file_name} from CSV file')
-        logger.info(f'Prepping {data_file_name} for use')
-        logger.info(f'_parsing dates')
-        # get the name of the datetime column
-        datetime_col = bar_data.columns[0]
-        # parse the datetime column
-
-        bar_data[datetime_col] = dd.to_datetime(bar_data[datetime_col])
-        # bar_data[datetime_col] = bar_data[datetime_col].dt.strftime(output_format)
-        logger.info(f'_dask_compute')
-        # compute the dask dataframe
-        bar_data = bar_data.compute(scheduler=scheduler)
-        # set the datetime column as the index
-        bar_data.index = bar_data[datetime_col]
-        # delete the datetime column
-        del bar_data[datetime_col]
-        return bar_data
+    # @staticmethod
+    # def fetch_csv_data_dask(data_file_name: object, data_file_dir: object = None,
+    #                         search_in=(".", "Datas"), scheduler='threads') -> object:
+    #     """
+    #     Loads data from a CSV file into a dask dataframe
+    #     :param data_file_name: name of the data file
+    #     :param data_file_dir: directory of the data file
+    #     :param input_format: format of the date in the data file
+    #     :param output_format: format of the date to be outputted
+    #     :return: dask dataframe
+    #     """
+    #     logger.info(f'Loading {data_file_name} from CSV file')
+    #
+    #     data_file_path = f'{data_file_dir}/{data_file_name}.csv'
+    #
+    #     # load the data into a dask dataframe
+    #     # bar_data = dd.read_csv(f'{data_file_dir}/{data_file_name}.csv', parse_dates=True)
+    #     bar_data = dd.read_csv(data_file_path, parse_dates=True)
+    #     # convert all column names to upper case
+    #     bar_data.columns = bar_data.columns.str.upper()
+    #     logger.info(f'Finished Loading {data_file_name} from CSV file')
+    #     logger.info(f'Prepping {data_file_name} for use')
+    #     logger.info(f'_parsing dates')
+    #     # get the name of the datetime column
+    #     datetime_col = bar_data.columns[0]
+    #     # parse the datetime column
+    #
+    #     bar_data[datetime_col] = dd.to_datetime(bar_data[datetime_col])
+    #     # bar_data[datetime_col] = bar_data[datetime_col].dt.strftime(output_format)
+    #     logger.info(f'_dask_compute')
+    #     # compute the dask dataframe
+    #     bar_data = bar_data.compute(scheduler=scheduler)
+    #     # set the datetime column as the index
+    #     bar_data.index = bar_data[datetime_col]
+    #     # delete the datetime column
+    #     del bar_data[datetime_col]
+    #     return bar_data
 
     def compute_spread_from_ask_bid_data(self, tick_data):
         """
@@ -220,7 +207,6 @@ class Data_Handler:
                 ## bar_data = self.resample_ask_bid_data_to_minute()
 
         logger.info(f'{bar_data.head() = }')
-        exit()
         return bar_data
 
     def fetch_csv_data_add_spread(self, data_name: object, data_files_dir: object) -> object:
@@ -232,14 +218,16 @@ class Data_Handler:
         :return:
         """
 
-        bar_data = self.fetch_csv_data_dask(data_name, data_files_dir,
+        bar_data = self.data_manager.fetch_csv_data_dask(data_name, data_files_dir,
                                             #                                 input_format=self.genie_object.runtime_settings[
                                             # "Data_Settings.minute_data_input_format"], output_format=self.genie_object.runtime_settings[
                                             # "Data_Settings.minute_data_output_format"]
                                             )
+        print(bar_data)
+        exit()
         if "SPREAD" not in bar_data.columns and exists(
                 f'{data_files_dir}/{data_name}_tick.csv'):  # if spread column is not in minute data and tick data exists
-            bar_data_tick = self.fetch_csv_data_dask(f'{data_name}_tick', data_files_dir,
+            bar_data_tick = self.data_manager.fetch_csv_data_dask(f'{data_name}_tick', data_files_dir,
                                                      # input_format=self.genie_object.runtime_settings[
                                                      #     "Data_Settings.accompanying_tick_data_input_format"],
                                                      # output_format=self.genie_object.runtime_settings[
@@ -279,8 +267,8 @@ class Data_Handler:
                 f'{data_file}')
 
         else:
-            # data_array = [self.fetch_csv_data_dask(data_names, self.genie_object.runtime_settings[
-            data_array = [self.fetch_csv_data_add_spread(data_name, self.genie_object.runtime_settings[
+            data_array = [self.data_manager.fetch_csv_data_dask(data_name, self.genie_object.runtime_settings[
+            # data_array = [self.fetch_csv_data_add_spread(data_name, self.genie_object.runtime_settings[
                 "Data_Settings.data_files_dir"]) for data_name in
                           self.genie_object.runtime_settings["Data_Settings.data_files_names"]]
 
@@ -329,7 +317,8 @@ class Data_Handler:
         symbols_data = ray.get(
             self.genie_object.symbols_data_id) if self.genie_object.symbols_data_id else self.genie_object.symbols_data
 
-        open_data = symbols_data.get('OPEN')
+        # open_data = symbols_data.get('OPEN')
+        open_data = symbols_data.get('open')
 
         idx = pd.date_range(open_data.index[0], open_data.index[len(open_data) - 1], freq='1 min')
 
@@ -340,14 +329,14 @@ class Data_Handler:
         open_data = open_data.reindex(idx) if self.genie_object.runtime_settings[
             "Data_Settings.fill_dates"] else open_data
 
-        low_data = symbols_data.get('LOW')
+        low_data = symbols_data.get('low')
         low_data = low_data.tz_localize(None) if self.genie_object.runtime_settings[
             "Data_Settings.delocalize_data"] else low_data
         low_data = low_data.dropna() if self.genie_object.runtime_settings["Data_Settings.drop_nan"] else low_data
         low_data = low_data.ffill() if self.genie_object.runtime_settings["Data_Settings.ffill"] else low_data
         low_data = low_data.reindex(idx) if self.genie_object.runtime_settings["Data_Settings.fill_dates"] else low_data
 
-        high_data = symbols_data.get('HIGH')
+        high_data = symbols_data.get('high')
         high_data = high_data.tz_localize(None) if self.genie_object.runtime_settings[
             "Data_Settings.delocalize_data"] else high_data
         high_data = high_data.dropna() if self.genie_object.runtime_settings["Data_Settings.drop_nan"] else high_data
@@ -355,7 +344,7 @@ class Data_Handler:
         high_data = high_data.reindex(idx) if self.genie_object.runtime_settings[
             "Data_Settings.fill_dates"] else high_data
 
-        close_data = symbols_data.get('CLOSE')
+        close_data = symbols_data.get('close')
         close_data = close_data.tz_localize(None) if self.genie_object.runtime_settings[
             "Data_Settings.delocalize_data"] else close_data
         close_data = close_data.dropna() if self.genie_object.runtime_settings["Data_Settings.drop_nan"] else close_data
@@ -404,8 +393,8 @@ class Data_Handler:
             f'Optimization Data -> From: {optimization_close_data.index[0]} to {optimization_close_data.index[len(optimization_close_data) - 1]}')
 
         # fixme Just for debugging what comes next because tick data is being a pain in the ass
-        if "SPREAD" in symbols_data.wrapper.columns:
-            spread_data = symbols_data.get('SPREAD')
+        if "spread" in symbols_data.wrapper.columns:
+            spread_data = symbols_data.get('spread')
             spread_data = spread_data.tz_localize(None) if self.genie_object.runtime_settings[
                 "Data_Settings.delocalize_data"] else spread_data
             spread_data = spread_data.dropna() if self.genie_object.runtime_settings[
@@ -417,8 +406,14 @@ class Data_Handler:
             optimization_spread_data = self.fetch_dates_from_df(spread_data, optimization_start_date,
                                                                 optimization_end_date)
         else:
-            optimization_spread_data = pd.DataFrame().reindex_like(optimization_close_data).fillna(-np.inf)
+            print(f'{optimization_close_data.head() = }')
+            # optimization_spread_data = pd.DataFrame().reindex_like(optimization_close_data).fillna(-np.inf)
+            optimization_spread_data = -np.inf
 
+        print(f'{optimization_close_data.head() = }')
+        print(f'{optimization_close_data.shape = }')
+        print(f'{optimization_high_data.head() = }')
+        print(f'{optimization_high_data.shape = }')
         # EMA = vbt.IF.from_expr("""
         #                         ema=@talib_ema(close, window)
         #                         ema""")

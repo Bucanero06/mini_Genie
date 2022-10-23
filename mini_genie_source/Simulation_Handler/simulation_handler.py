@@ -2,6 +2,8 @@
 import gc
 import warnings
 
+import pandas as pd
+
 from mini_genie_source.Utilities.general_utilities import get_objects_list_from_ray
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -108,7 +110,11 @@ class Simulation_Handler:
         # high_data, close_data = self.genie_object.optimization_open_data, self.genie_object.optimization_low_data, \
         #                         self.genie_object.optimization_high_data, self.genie_object.optimization_close_data
 
+        # batch_size_ = int(long_entries.shape[1] / len(close_data.keys()))
+
+        close_data = pd.DataFrame(close_data)  # fixme bug where data is not a dataframe, do in data handler
         batch_size_ = int(long_entries.shape[1] / len(close_data.keys()))
+        logger.info(f"Batch Size: {batch_size_}")
 
         pf = self.genie_object.runtime_settings[
             "Portfolio_Settings.Simulator.optimization"](
