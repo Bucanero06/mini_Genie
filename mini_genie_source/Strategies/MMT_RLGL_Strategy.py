@@ -21,9 +21,11 @@ from Modules.Utils import rsi_params_filter, auto_garbage_collect
 
 # --- ↑ Do not remove these libs ↑ -------------------------------------------------------------------------------------
 
+"""Task: Please document as detailed yet user friendly as possible"""
+
 
 Strategy_Settings = dict(
-    Strategy="MMT_Strategy",
+    Strategy="MMT_RLGL_Strategy",
     _pre_cartesian_product_filter=dict(
         function=rsi_params_filter,
         kwargs=dict(
@@ -63,10 +65,9 @@ Strategy_Settings = dict(
         ema_2_windows=dict(type='window', lower_bound=20, upper_bound=80, min_step=5),
         #
         # min_step not used for the following parameters
-        take_profit_points=dict(type='take_profit', lower_bound=1, upper_bound=100000, min_step=50000),
-        stop_loss_points=dict(type='stop_loss', lower_bound=1, upper_bound=100000, min_step=50000),
+        take_profit_points=dict(type='take_profit', lower_bound=50, upper_bound=100000, min_step=50000),
+        stop_loss_points=dict(type='stop_loss', lower_bound=50, upper_bound=100000, min_step=50000),
         #
-
     ),
     strategy_user_picked_params=dict(
         output_file_name='backtest_result.csv',
@@ -193,8 +194,6 @@ def apply_function(low_data, high_data, close_data,
     # Compute the PeakHigh "( high == highest(3,high) and ( high - close > atr(AtrPeriod) )"
     PeakHigh = (high_eq_highest_in_N) & (high_minus_close_gt_atr)
 
-
-
     # Compute the rolling min of the low_data using a window of size data_lookback_window "lowest(3,low)"
     rolling_min = ROLLING_MIN_genie(PEAK_and_ATR_timeframe_low.to_numpy(), data_lookback_window)
     # Compare where the low_data is the same as the rolling_min "low == lowest(3,low)"
@@ -307,7 +306,20 @@ def apply_function(low_data, high_data, close_data,
     ).vbt.signals.fshift()
     short_exits = long_exits
     ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+    # Clean RAM and Swap
+    del long_entry_condition_1, long_entry_condition_2, long_entry_condition_3
+    del short_entry_condition_1, short_entry_condition_2, short_entry_condition_3
+    del inside_long_condition_3a1, inside_long_condition_3a2, inside_long_condition_3a
+    del inside_long_condition_3b1, inside_long_condition_3b2, inside_long_condition_3b
+    del inside_short_condition_3a1, inside_short_condition_3a2, inside_short_condition_3a
+    del inside_short_condition_3b1, inside_short_condition_3b2, inside_short_condition_3b
+    del ema_1_indicator, ema_2_indicator, sma_on_rsi_1_indicator, sma_on_rsi_2_indicator, sma_on_rsi_3_indicator
+    del PeakHigh, PeakLow
     auto_garbage_collect(pct=30)
+
+
+
 
 
     # print(f'long_exits: {long_exits.head(2)}')
@@ -315,12 +327,10 @@ def apply_function(low_data, high_data, close_data,
     # print(f'long_entry_condition_2: {long_entry_condition_2.head(2)}')
     # print(f'long_entry_condition_3: {long_entry_condition_3.head(2)}')
 
-
-
     return long_entries, long_exits, short_entries, short_exits, take_profit_points, stop_loss_points
 
 
-def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray_sim_n_cpus, param_product=False):
+def MMT_RLGL_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray_sim_n_cpus, param_product=False):
     """MMT_Strategy"""
     # ATR_EWM = vbt.IF.from_expr("""
     #                         ATR:
@@ -365,9 +375,6 @@ def MMT_Strategy(open_data, low_data, high_data, close_data, parameter_data, ray
     '''Stop Loss and Take Profit Information'''
     take_profit_points = np.array(parameter_data["take_profit_points"])
     stop_loss_points = np.array(parameter_data["stop_loss_points"])
-
-
-
 
     # print(high_data)
     # print(pd.concat(high_data, axis=2))

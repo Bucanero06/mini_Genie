@@ -54,9 +54,9 @@ class Data_Handler:
     #     from Modules.Utils import find_file
     #     data_file_paths = []
     #
-    #     for file_name in data_file_names:
-    #         directory = find_file(file_name, *data_file_dirs)
-    #         __path = f'{directory}/{file_name}'
+    #     for study_name in data_file_names:
+    #         directory = find_file(study_name, *data_file_dirs)
+    #         __path = f'{directory}/{study_name}'
     #         data_file_paths.append(__path)
     #
     #     return vbt.CSVData.fetch(data_file_paths, index_col=0,

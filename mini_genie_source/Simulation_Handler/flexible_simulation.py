@@ -170,7 +170,9 @@ def pre_sim_func_nb(c):
 def flex_order_func_nb(c, open_order_tracker, entry_and_exit_police,
                        # _____Passed From Settings_____
                        long_entries, long_exits, short_entries, short_exits, order_size, size_type, fees,
-                       slippage, spread, max_spread_allowed, tick_size, type_percent,
+                       slippage,
+                       spread, max_spread_allowed,
+                       tick_size, type_percent,
                        breakeven_1_distance_points, breakeven_2_distance_points,
                        long_progressive_condition, short_progressive_condition,
                        progressive_bool, max_number_of_trades_open, exit_on_opposite_direction_entry):

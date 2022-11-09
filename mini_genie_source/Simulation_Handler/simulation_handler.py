@@ -100,12 +100,13 @@ class Simulation_Handler:
             object: 
         '''  # (2b)_n-1
         logger.info(f"Simulating Events 💥")
-        gc.collect()
         data = [self.genie_object.optimization_open_data, self.genie_object.optimization_low_data,
                 self.genie_object.optimization_high_data, self.genie_object.optimization_close_data,
                 self.genie_object.optimization_spread_data
                 ]
         open_data, low_data, high_data, close_data, spread_data = get_objects_list_from_ray(data)
+        gc.collect()
+
         # open_data, low_data, \
         # high_data, close_data = self.genie_object.optimization_open_data, self.genie_object.optimization_low_data, \
         #                         self.genie_object.optimization_high_data, self.genie_object.optimization_close_data

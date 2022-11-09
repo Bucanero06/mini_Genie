@@ -12,6 +12,10 @@ def cache_func(low, high, close,
                PEAK_and_ATR_timeframes, atr_windows, data_lookback_windows,
                EMAs_timeframes, ema_1_windows, ema_2_windows,
                take_profit_points, stop_loss_points):
+    """
+    Cache function for MMT_RLGL strategy
+    """
+
     cache = {
         # Data
         'Low': {},

@@ -14,6 +14,7 @@ import ray
 import vectorbtpro as vbt
 from logger_tt import logger
 
+from Modules.Utils import load_n_combine_pf_objects_then_save
 from mini_genie_source.Analysis_Handler.analysis_handler import compute_stats_remote
 from mini_genie_source.Equipment_Handler.equipment_handler import CHECKTEMPS
 from mini_genie_source.Run_Time_Handler.equipment_settings import TEMP_DICT
@@ -41,7 +42,6 @@ class mini_genie_trader:
 
     def __init__(self, runtime_kwargs, args):
         """Constructor for mini_genie_trader"""
-
         print("""Constructor for mini_genie_trader""")
         self.parameters_record_length = None
         self.status = '__init__'
@@ -109,16 +109,30 @@ class mini_genie_trader:
         # Initial Actions
         #
         # Init Ray
-        os.environ["RAY_OBJECT_STORE_ALLOW_SLOW_STORAGE"] = '1'
+        # os.environ["RAY_OBJECT_STORE_ALLOW_SLOW_STORAGE"] = '1'
         self.ray_init = ray.init(
             ignore_reinit_error=True,
             num_cpus=self.runtime_settings["RAY_SETTINGS.ray_init_num_cpus"],
-            object_store_memory=100 * 10 ** 9
+            # object_store_memory=59 * 10 ** 9
         )
         #
         # Prepare directories and save file paths
         self._prepare_directory_paths_for_study()  # If path to study directory does not exist, self.continuing = False
         #
+        # # fixme
+        # logger.info(f"COMBING THROUGH {self.study_name} DIRECTORY")
+        # save_start_timer = perf_counter()
+        # assert load_n_combine_pf_objects_then_save(self.study_dir_path,
+        #                                            # target='pf_combined',
+        #                                            target=None,
+        #                                            # new_pf_obj=portfolio_current,
+        #                                            new_pf_obj=None,
+        #                                            output_pf_file_name='pf_combined',
+        #                                            delete_old_pf_files=False,
+        #                                            batch_size=10) == True
+        # logger.info(f'Time to Save Portfolio {perf_counter() - save_start_timer} during epoch 0')
+        # # fixme
+        # exit()
         self.number_of_parameters_ran = 0
         if not self.user_pick and self.continuing:
             # Load precomputed params, values, and stats if continuing study
@@ -249,7 +263,6 @@ class mini_genie_trader:
                 # Fill values
                 logger.info(f'Filling record ...')
                 dtype_names = list(self.metrics_record.dtype.names)
-
 
                 logger.info(f'{dtype_names  = }')
                 logger.info(f'{metrics_df.head()  = }')
@@ -660,7 +673,6 @@ class mini_genie_trader:
                 params,
                 **self.runtime_settings["Strategy_Settings._pre_cartesian_product_filter.kwargs"]._values)
             # logger.info(f'{params = }')
-
 
         from itertools import product
         logger.info(
@@ -1092,9 +1104,12 @@ class mini_genie_trader:
 
             logger.info('Reconstructing Portfolio Stats')
             compute_stats_timer = perf_counter()
+            # todo check if this is the best way to do this (i.e. if it is faster to split or chunk=true)
             split_metric_names = np.array_split(self.metrics_key_names, len(self.metrics_key_names) / 3)
             pf_id = ray.put(portfolio_current)
             func_calls = [compute_stats_remote.remote(pf_id, metric_chunk) for metric_chunk in split_metric_names]
+            del pf_id  # free up memory # TODO: check if this is necessary
+            gc.collect()  # free up memory # TODO: check if this is necessary
             #
             # Compute All metrics in Chunk, returns [*Dataframes]
             compute_stats_results = ray.get(func_calls)
@@ -1151,11 +1166,20 @@ class mini_genie_trader:
             logger.info(f'Time to Analyze Metrics {perf_counter() - tell_metrics_start_timer}')
             #
             # Save Portfolio after each epoch
+            # todo instead and combine the pf objects into one file to save memory when large datasets are used
+            # fixme This is working but is not memory efficient... NVM turns out this is better :/
             logger.info(f"Saving Portfolio for Post-Processing {epoch_n_}")
             save_start_timer = perf_counter()
             file_path = next_path(f'{self.portfolio_dir_path}/pf_%s.pickle')
             logger.info(f'{file_path = }')
             portfolio_current.save(file_path)
+            # def save_zipped_pickle(obj, filename, protocol=-1):
+            #     import gzip
+            #     from zmq.backend.cython.socket import cPickle
+            #
+            #     with gzip.open(filename, 'wb') as f:
+            #         cPickle.dump(obj, f, protocol)
+            # save_zipped_pickle(obj=portfolio_current, filename=file_path, protocol=-1)
             logger.info(f'Time to Save Portfolio {perf_counter() - save_start_timer} during epoch {epoch_n_}')
             #
             # Save the parameter and metric records to file
@@ -1218,6 +1242,18 @@ class mini_genie_trader:
         # for epoch_n, epoch_params_record_id in enumerate(chunks_of_params_left_to_compute):
         for epoch_n, epoch_params_record in enumerate(chunks_of_params_left_to_compute):
             if epoch_n == stop_after_n_epoch:
+                # # fixme
+                # logger.info(f"Saving Portfolio for Post-Processing epoch 0")
+                # save_start_timer = perf_counter()
+                # assert load_n_combine_pf_objects_then_save(self.study_dir_path,
+                #                                            # target='pf_combined',
+                #                                            target=None,
+                #                                            # new_pf_obj=portfolio_current,
+                #                                            new_pf_obj=None,
+                #                                            output_pf_file_name='pf_combined',
+                #                                            delete_old_pf_files=True) == True
+                # logger.info(f'Time to Save Portfolio {perf_counter() - save_start_timer} during epoch 0')
+                # # fixme
                 break
             #
             start_time = perf_counter()
