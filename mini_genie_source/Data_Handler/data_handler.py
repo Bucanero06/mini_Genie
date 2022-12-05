@@ -34,7 +34,8 @@ class Data_Handler:
     def __init__(self, genie_object):
         """Constructor for Data_Handler"""
         self.genie_object = genie_object
-        from Modules._Data_Manager import Data_Manager
+        from Modules.Actors_Old._Data_Manager import Data_Manager
+
         self.data_manager = Data_Manager()
 
         #

@@ -5,6 +5,7 @@ import warnings
 
 import psutil
 
+from Modules.Actors_Old.Utils import rsi_params_filter, auto_garbage_collect
 from mini_Genie.mini_genie_source.Indicators.simple_indicators import ATR_EWM, EMA
 from mini_genie_source.Strategies.mmt_rlgl_utils import mmt_rlgl_post_cartesian_product_filter_function, cache_func
 
@@ -17,7 +18,6 @@ from mini_Genie.mini_genie_source.Utilities.bars_utilities import BARSINCE_genie
 
 from mini_genie_source.Indicators.simple_indicators import EMA
 from mini_genie_source.Utilities.bars_utilities import BARSINCE_genie
-from Modules.Utils import rsi_params_filter, auto_garbage_collect
 
 # --- ↑ Do not remove these libs ↑ -------------------------------------------------------------------------------------
 

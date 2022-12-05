@@ -1,13 +1,13 @@
 import pandas as pd
 import vectorbtpro as vbt
 
+from Modules.Actors_Old.Utils import rsi_params_filter
 from mini_genie_source.Indicators.simple_indicators import EMA
 from mini_genie_source.Utilities.bars_utilities import BARSINCE_genie
-from Modules.Utils import rsi_params_filter
 
 def rlgl_post_cartesian_product_filter_function(parameters_record, **kwargs):
-    from Modules.Utils import convert_to_seconds
     import numpy as np
+    from Modules.Actors_Old.Utils import convert_to_seconds
     parameters_record = parameters_record[
         np.where(np.less_equal([convert_to_seconds(i) for i in parameters_record["T1_ema_timeframes"]],
                                [convert_to_seconds(i) for i in parameters_record["rsi_timeframes"]]))[0]]

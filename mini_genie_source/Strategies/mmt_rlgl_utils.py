@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from logger_tt import logger
 
+from Modules.Actors_Old.Utils import convert_to_seconds, comb_price_and_range_index
+
 
 def cache_func(low, high, close,
                # datetime_index,
@@ -61,7 +63,6 @@ def cache_func(low, high, close,
 def mmt_rlgl_post_cartesian_product_filter_function(parameters_record, **kwargs):
     '''RLGL'''
     logger.info(f'{parameters_record.shape = }')
-    from Modules.Utils import convert_to_seconds
     parameters_record = parameters_record[
         np.where(np.less_equal([convert_to_seconds(i) for i in parameters_record["EMAs_timeframes"]],
                                [convert_to_seconds(i) for i in parameters_record["rsi_timeframes"]]))[0]]
@@ -89,7 +90,6 @@ def mmt_rlgl_post_cartesian_product_filter_function(parameters_record, **kwargs)
 
 
 def comb_split_price_n_datetime_index(price_cols, datetime_cols, n_splits):
-    from Modules.Utils import comb_price_and_range_index
 
     if np.ndim(price_cols) == 2:
         new_split_data = [int(0) for x in range(n_splits)]

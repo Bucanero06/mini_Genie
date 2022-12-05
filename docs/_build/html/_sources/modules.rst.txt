@@ -1,7 +1,0 @@
-mini_genie_source
-=================
-
-.. toctree::
-   :maxdepth: 4
-
-   mini_genie_source
