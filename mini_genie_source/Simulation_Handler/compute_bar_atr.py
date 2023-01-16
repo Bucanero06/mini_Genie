@@ -289,3 +289,6 @@ def compute_bar_atr(genie_object):
         )
 
     return bar_atr
+
+
+

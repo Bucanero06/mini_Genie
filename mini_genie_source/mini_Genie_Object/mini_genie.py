@@ -301,11 +301,16 @@ class mini_genie_trader:
         data_processing.break_up_olhc_data_from_symbols_data()  # splits ^ into open, low, high, close, *alt (attrs)
 
     def _define_backtest_parameters(self):
+
+        logger.info(f'Defining backtest parameters  ...')
+
         n_initial_combinations, initial_param_combinations, parameter_df = None, None, pd.DataFrame()
         self.user_defined_param_file_bool = os.path.exists(self.user_defined_param_file)
+        sample_size = self.runtime_settings[f"Strategy_Settings.strategy_user_picked_params.sample_size"]
         #
         # If parameter file given
         if self.user_defined_param_file_bool:
+            logger.info(f'Loading parameters from file {self.user_defined_param_file}  ...')
             # load parameters (will only use parameter columns), create empty record with same length, fill with set of parameters
             parameter_df = pd.read_csv(self.user_defined_param_file) \
                 if self.user_defined_param_file.rsplit('.', 1)[-1] == 'csv' \
@@ -318,6 +323,10 @@ class mini_genie_trader:
         elif self.runtime_settings[f"Strategy_Settings.strategy_user_picked_params.compute_product"]:
             n_initial_combinations = np.product(
                 [len(self.parameter_windows[f'{key_name}.values']) for key_name in self.key_names])
+            logger.info(f'Computing product of user picked parameters  ... the initial search space is {n_initial_combinations}')
+            print(f'Computing product of user picked parameters  ... the initial search space is {n_initial_combinations}')
+
+
             #
             from itertools import product
 
@@ -330,6 +339,7 @@ class mini_genie_trader:
             )
         # If user picked parameter combinations
         else:
+            logger.info(f'Using user picked parameter combinations  ...')
             n_initial_combinations = len(self.parameter_windows[f'{self.key_names[0]}.values'])
             for key_name in self.key_names[1:]:
                 logger.info(f'{key_name = }')
@@ -341,6 +351,12 @@ class mini_genie_trader:
 
         #
         initial_param_combinations = initial_param_combinations if parameter_df.empty else parameter_df
+
+        if sample_size:
+            from Modules.Actors_Old.Utils import randomly_sample_from_2d
+            initial_param_combinations = randomly_sample_from_2d(initial_param_combinations, sample_size)
+            n_initial_combinations = len(initial_param_combinations)
+
         return n_initial_combinations, initial_param_combinations
 
     def _initiate_parameters_records(self, add_ids=None, initial_params_size=None):
@@ -635,12 +651,16 @@ class mini_genie_trader:
             # #
         else:
             ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+            logger.info(f'User pick mode is on')
             self.parameter_windows = self.runtime_settings[
                 f"Strategy_Settings.strategy_user_picked_params.parameter_windows"]
+
             #
             '''Prepare'''
             # Determine Parameter Combinations (returns either a list of tuple params or a df of params)
             n_initial_combinations, initial_param_combinations = self._define_backtest_parameters()
+
+
             #
             # Create empty parameter record
             self.parameter_data_dtype = np.dtype(parameters_record_dtype)
@@ -663,6 +683,9 @@ class mini_genie_trader:
 
             from mini_genie_source.Utilities.general_utilities import delete_non_filled_elements
             self.parameters_record = delete_non_filled_elements(self.parameters_record)
+            self._save_record_to_file(self.parameters_record, self.path_of_initial_params_record,
+                                      self.compression_of_initial_params_record)
+
 
     def _compute_params_product_n_fill_record(self, params):
         '''Pre Cartesion Product Filtering'''
@@ -838,11 +861,11 @@ class mini_genie_trader:
         tick_size = max(tick_sizes) if not isinstance(tick_sizes, float or int) else tick_sizes
         #
         tp_upper_bound, tp_lower_bound, tp_min_step = self.parameter_windows[self.tp_keyname[0]]["upper_bound"], \
-                                                      self.parameter_windows[self.tp_keyname[0]]["lower_bound"], \
-                                                      self.parameter_windows[self.tp_keyname[0]]["min_step"]
+            self.parameter_windows[self.tp_keyname[0]]["lower_bound"], \
+            self.parameter_windows[self.tp_keyname[0]]["min_step"]
         sl_upper_bound, sl_lower_bound, sl_min_step = self.parameter_windows[self.sl_keyname[0]]["upper_bound"], \
-                                                      self.parameter_windows[self.sl_keyname[0]]["lower_bound"], \
-                                                      self.parameter_windows[self.sl_keyname[0]]["min_step"]
+            self.parameter_windows[self.sl_keyname[0]]["lower_bound"], \
+            self.parameter_windows[self.sl_keyname[0]]["min_step"]
         #
 
         dtype = 'i4' if isinstance(self.parameter_windows[self.tp_keyname[0]]['lower_bound'], int) else 'f4'
@@ -1006,13 +1029,13 @@ class mini_genie_trader:
                   in the unlikelihood it occurs'''
                 #
                 tp_upper_bound, tp_lower_bound, tp_min_step = self.parameter_windows[self.tp_keyname[0]]["upper_bound"], \
-                                                              self.parameter_windows[self.tp_keyname[0]]["lower_bound"], \
-                                                              self.parameter_windows[self.tp_keyname[0]]["min_step"]
+                    self.parameter_windows[self.tp_keyname[0]]["lower_bound"], \
+                    self.parameter_windows[self.tp_keyname[0]]["min_step"]
                 tp_number_of_suggestions = self.parameters_lengths_dict[f'{self.tp_keyname[0]}_length']
                 #
                 sl_upper_bound, sl_lower_bound, sl_min_step = self.parameter_windows[self.sl_keyname[0]]["upper_bound"], \
-                                                              self.parameter_windows[self.sl_keyname[0]]["lower_bound"], \
-                                                              self.parameter_windows[self.sl_keyname[0]]["min_step"]
+                    self.parameter_windows[self.sl_keyname[0]]["lower_bound"], \
+                    self.parameter_windows[self.sl_keyname[0]]["min_step"]
                 sl_number_of_suggestions = self.parameters_lengths_dict[f'{self.sl_keyname[0]}_length']
                 #
                 tp_values = np.linspace(start=tp_lower_bound, stop=tp_upper_bound, num=tp_number_of_suggestions).astype(
@@ -1259,7 +1282,7 @@ class mini_genie_trader:
             CHECKTEMPS(TEMP_DICT)
             #
             long_entries, long_exits, short_entries, short_exits, \
-            strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params_record)
+                strategy_specific_kwargs = simulation_handler.simulate_signals(epoch_params_record)
             #
             pf = simulation_handler.simulate_events(long_entries, long_exits,
                                                     short_entries, short_exits,
